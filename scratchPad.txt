@@ -1,0 +1,19 @@
+		const fileName = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
+
+		vscode.commands.executeCommand('workbench.action.findInFiles',
+			{
+				query: "(?<!\\w)(create|select|sum|drop|table|if|exists|day|group|by|order|min|max|and|else|iif|end|over|partition|distinct|desc)(?!\\w)",
+				replace: "\\U$1",
+				triggerSearch: true,
+				isRegex: true,
+				filesToInclude: fileName,
+				isCaseSensitive: true,
+				matchWholeWord: true
+				// preserveCase: true,
+				// useExcludeSettingsAndIgnoreFiles: true,
+				// filesToExclude: "./*.css"
+			}).then(() => {
+				setTimeout(() => {
+					vscode.commands.executeCommand('search.action.replaceAll');
+				}, 1000);
+			});
