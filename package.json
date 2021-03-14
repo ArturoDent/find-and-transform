@@ -1,8 +1,8 @@
 {
 	"name": "find-and-transform",
-	"displayName": "find-and-transform",
-	"description": "Find text and transform it",
-	"version": "0.1.0",
+	"displayName": "Find and Transform",
+	"description": "Find text and transform it with case modifiers",
+	"version": "0.1.1",
 	"preview": true,
 	"engines": {
 		"vscode": "^1.54.0"
