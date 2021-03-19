@@ -1,59 +1,74 @@
 {
-	"name": "find-and-transform",
-	"displayName": "Find and Transform",
-	"description": "Find text and transform it with case modifiers",
-	"version": "0.1.1",
-	"preview": true,
-	"engines": {
-		"vscode": "^1.54.0"
-	},
-	"publisher": "ArturoDent",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-		"url": "https://github.com/ArturoDent/find-and-transform"
-  },
-	"categories": [
-		"Other"
-	],
-	"activationEvents": [
-		"onStartupFinished",
-		"onCommand:find-and-transform.uppcaseKeywords"
-	],
-	"main": "./src/extension.js",
-	"contributes": {
-		"commands": [
-			{
-				"command": "find-and-transform.uppcaseKeywords",
-				"title": "Uppercase all keywords",
-				"category": "Find-Transform"
-			}
-		],
-		"configuration": [
-			{
-				"properties": {
-					"find-and-transform": {
-						"scope": "resource",
-						"description": "Find and transform text."
-					}
-				}
-			}
-		]
-	},
-	"scripts": {
-		"lint": "eslint .",
-		"pretest": "npm run lint",
-		"test": "node ./test/runTest.js"
-	},
-	"devDependencies": {
-		"@types/vscode": "^1.54.0",
-		"@types/glob": "^7.1.1",
-		"@types/mocha": "^7.0.2",
-		"@types/node": "^13.11.0",
-		"eslint": "^6.8.0",
-		"glob": "^7.1.6",
-		"mocha": "^7.1.2",
-		"typescript": "^3.8.3",
-		"vscode-test": "^1.3.0"
-	}
+ "name": "find-and-transform",
+ "displayName": "Find and Transform",
+ "description": "Find text and transform it with case modifiers",
+ "version": "0.1.1",
+ "preview": true,
+ "engines": {
+  "vscode": "^1.54.0"
+ },
+ "publisher": "ArturoDent",
+ "license": "MIT",
+ "repository": {
+  "type": "git",
+  "url": "https://github.com/ArturoDent/find-and-transform"
+ },
+ "categories": [
+  "Other"
+ ],
+ "activationEvents": [
+  "onStartupFinished",
+  "onCommand:find-and-transform.uppcaseAllKeywords"
+ ],
+ "main": "./src/extension.js",
+ "contributes": {
+  "commands": [
+   {
+    "command": "find-and-transform.uppcaseAllKeywords",
+    "title": "Uppercase all Keywords",
+    "category": "Find-Transform"
+   }
+  ],
+  "configuration": [
+   {
+    "properties": {
+     "find-and-transform": {
+      "scope": "resource",
+      "description": "Find and transform text."
+     }
+    }
+   }
+  ]
+ },
+ "scripts": {
+  "lint": "eslint .",
+  "pretest": "npm run lint",
+  "test": "node ./test/runTest.js"
+ },
+ "devDependencies": {
+  "@types/vscode": "^1.54.0",
+  "@types/glob": "^7.1.1",
+  "@types/mocha": "^7.0.2",
+  "@types/node": "^13.11.0",
+  "eslint": "^6.8.0",
+  "glob": "^7.1.6",
+  "mocha": "^7.1.2",
+  "typescript": "^3.8.3",
+  "vscode-test": "^1.3.0"
+ },
+ "isUserBuiltin": false,
+ "isBuiltin": false,
+ "isUnderDevelopment": true,
+ "id": "ArturoDent.find-and-transform",
+ "identifier": {
+  "value": "ArturoDent.find-and-transform",
+  "_lower": "arturodent.find-and-transform"
+ },
+ "extensionLocation": {
+  "$mid": 1,
+  "fsPath": "c:\\Users\\Mark\\find-and-transform",
+  "_sep": 1,
+  "path": "/c:/Users/Mark/find-and-transform",
+  "scheme": "file"
+ }
 }
