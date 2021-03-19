@@ -68,7 +68,7 @@ In your `keybindings.json`:
 
 When you **save** a change to the "find-and-transform" settings, you will get the message notification below.  This extension will detect this change and create a corresponding command.  The command cannot be used in a keybinding and will not appear in the Command  Palette without saving the new setting.  
 
-<img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/reloadMessage.gif?raw=true" width="600" height="250" alt="notification to save after changing settings"/>
+<img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/reloadMessage.jpg?raw=true" width="600" height="150" alt="notification to save after changing settings"/>
 
 
 --------------------  
