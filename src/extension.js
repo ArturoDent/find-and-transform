@@ -1,6 +1,6 @@
 const vscode = require('vscode');
 const commands = require('./commands');
-const transform = require('./transform');
+// const transform = require('./transform');
 
 
 /** @type { Array<vscode.Disposable> } */
