@@ -35,8 +35,8 @@ In your `settings.json`:
 ```jsonc
 "find-and-transform": {
 
-	"upcaseKeywords": [                            				// <== "name" that can be used in a keybinding
-		{  "title": "Uppercase Keywords" },        				// title that will appear in the Command Palette
+	"upcaseKeywords": [                       // <== "name" that can be used in a keybinding
+		{  "title": "Uppercase Keywords" },  // title that will appear in the Command Palette
 		{  "find"    : "(?<!\\w)(create|select)(?!\\w)" },
 		{  "replace" : "\\U$1"  }		
 	],
