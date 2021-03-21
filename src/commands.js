@@ -46,7 +46,7 @@ exports.loadCommands = function (settings, context) {
 /**
  * Transform the settings into package.json-style commands {command: "", title: ""}
  * @param {object} settings - this extension's settings from getCurrentSettings()
- * @returns {Array} - package.json form of 'contributes.commands'
+ * @returns {Array<vscode.Command> | Array} - package.json form of 'contributes.commands'
  */
 function _makePackageCommandsFromSettings (settings) {
 
@@ -54,7 +54,7 @@ function _makePackageCommandsFromSettings (settings) {
 	let category = "Find-Transform";
 
 	let newCommand = {};
-	newCommand.command = "find-and-transform.uppcaseAllKeywords";
+	newCommand.command = "find-and-transform.upcaseAllKeywords";
 	newCommand.title = "Uppercase all Keywords";
 	newCommand.category = category;
 	settingsJSON.push(newCommand);
@@ -74,14 +74,14 @@ function _makePackageCommandsFromSettings (settings) {
  * Transform the settings (already transformed to package.json-style commands)
  * nto package.json 'activationEvents' : 'onCommand:<some command>'
  *
- * @param {object} settingsCommands -
- * @returns - an array of strings for package.json activationEvents
+ * @param {object} settingsCommands
+ * @returns {Array<string>} - an array of strings for package.json activationEvents
  */
 function _makeSettingsEventsFromSettingsPackageCommands (settingsCommands) {
 
 				// "activationEvents": [
 				//   "onStartupFinished",
-				//   "onCommand:find-and-transform.uppcaseKeywords",
+				//   "onCommand:find-and-transform.upcaseKeywords",
 				// ],
 
   let settingsJSON = [];
@@ -115,13 +115,13 @@ function _commandArraysAreEquivalent(settings, packages) {
 /**
  * Are the settings and package.json activationEvents the same?
  *
- * @param {Array} settings - activationEvents constructed from the settings.json 'command aliases'
- * @param {Array} packages - the pre-existing activationEvents from package.json
+ * @param {Array<string>} settings - activationEvents constructed from the settings.json 'command aliases'
+ * @param {Array<string>} packages - the pre-existing activationEvents from package.json
  * @returns {boolean}
  */
 function _activationEventArraysAreEquivalent(settings, packages) {
 
-  //   "onCommand:find-and-transform.uppcaseKeywords",
+  //   "onCommand:find-and-transform.upcaseKeywords",
 
   if (settings.length !== packages.length) return false;
 

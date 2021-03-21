@@ -1,7 +1,6 @@
 const vscode = require('vscode');
 const commands = require('./commands');
-// const transform = require('./transform');
-
+const transform = require('./transform');
 
 /** @type { Array<vscode.Disposable> } */
 let disposables = [];
@@ -13,12 +12,13 @@ let disposables = [];
 function activate(context) {
 
 	const findSettings = commands.getSettings();
+
 	if (findSettings) {
 		commands.loadCommands(findSettings, context);
 		commands.registerCommands(findSettings, context, disposables);
 	}
 
-	// -----------------------------------------------------------------
+	// -----------------------------------------------------------------------------------------------------------
 
 		// a sample command using a hard-written find regex and upperCase replacements
 	let disposable = vscode.commands.registerTextEditorCommand('find-and-transform.upcaseAllKeywords', async (editor, edit) => {
@@ -42,16 +42,38 @@ function activate(context) {
 	});
 	context.subscriptions.push(disposable);
 
-	// -----------------------------------------------------------------
+	// ---------------------------------------------------------------------------------------------------------------------
 
-	// make a generic "run" command here and in package.json for keybindings args
-	// let runDisposable = vscode.commands.registerTextEditorCommand('jump-and-select.run', async (editor, edit, args) => {
-	// 	// let kbText = args ? args.text : "";
-	// 	transform.findTransform(editor, edit, args);
-	// });
-	// context.subscriptions.push(runDisposable);
+	// make a generic "run" command for keybindings args
+	let runDisposable = vscode.commands.registerTextEditorCommand('find-and-transform.run', async (editor, edit, args) => {
 
-	// ------------------------------------------------------------------
+		// get this from keybinding:  { find: "(document)", replace: "\\U$1" }
+		// need this:                 [ { find: "(document)"	}, { replace: "\\U$1"	} ]
+
+		if (!args) {
+			vscode.window
+        .showInformationMessage('You must have "find" and "replace" keys and values in your "find-and-transform.run" keybinding.',
+          ...['Got it'])   // one button
+        .then(selected => {
+          if (selected === 'Got it') vscode.commands.executeCommand('leaveEditorMessage');
+				});
+			return;
+			// args.find = ""; args.replace = "";
+		}
+
+		// args in keybinding can be in any order, a new title will be constructed
+		// a title must be present to create a command from this object
+		let argsArray = [
+			{ "title": "Keybinding command run" },
+ 			{ "find": args.find },
+ 			{ "replace": args.replace }
+		];
+		transform.findTransform(editor, edit, argsArray);
+	});
+
+	context.subscriptions.push(runDisposable);
+
+	// ----------------------------------------------------------------------------------------------------------------------
 
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
 		if (event.affectsConfiguration("find-and-transform")) {

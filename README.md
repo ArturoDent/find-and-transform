@@ -70,6 +70,33 @@ When you **save** a change to the "find-and-transform" settings, you will get th
 
 <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/reloadMessage.jpg?raw=true" width="600" height="150" alt="notification to save after changing settings"/>
 
+<br/>
+
+-----------------------------  
+
+Alternate form of keybinding (with **NO setting**):  
+
+```jsonc
+{
+	"key": "alt+y",
+	"command": "find-and-transform.run",   // must be "run" here
+		"args": {                            // "args" right in the keybinding, not in a setting
+		"find": "(const\\s+)([^\\s]+)",
+		"replace": "$1\\U$2"
+	}
+}
+```  
+
+<img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="500" height="250" alt="notification to save after changing settings"/>  
+
+<br/>
+
+In this way you can specify a keybinding to run a generic `run` command with the find/replace arguments right in the keybinding and nowhere else.  There is no associated setting and you do not need to reload vscode for this version to work.  You can have an unlimited number of keybindings (with separate trigger keys, of course) using the `find-and-transform.run`  version.
+
+The downside to this method is that the various commands are not kept in one place, like your `settings.json` and these `run` versions cannot be found through the Command Palette.  However, particularly in a macro, you may wish to set up such a command.  
+
+This can be used in a macro like 
+
 
 --------------------  
 
