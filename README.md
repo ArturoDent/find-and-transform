@@ -72,6 +72,8 @@ When you **save** a change to the "find-and-transform" settings, you will get th
 
 <br/>
 
+> Note: commands can be removed by deleting or commenting out the associated settings and saving the `settings.json` file.  
+
 -----------------------------  
 
 Alternate form of keybinding (with **NO setting**):  
@@ -80,24 +82,28 @@ Alternate form of keybinding (with **NO setting**):
 {
 	"key": "alt+y",
 	"command": "find-and-transform.run",   // must be "run" here
-		"args": {                            // "args" right in the keybinding, not in a setting
+	"args": {                            // "args" right in the keybinding, not in a setting
 		"find": "(const\\s+)([^\\s]+)",
 		"replace": "$1\\U$2"
 	}
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="600" height="300" alt="demo of generic find-and-transform.run keybinding"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="600" height="275" alt="demo of generic find-and-transform.run keybinding"/>  
 
 <br/>
 
 In this way you can specify a keybinding to run a generic `run` command with the find/replace arguments right in the keybinding and nowhere else.  There is no associated setting and you do not need to reload vscode for this version to work.  You can have an unlimited number of keybindings (with separate trigger keys, of course) using the `find-and-transform.run`  version.
 
-The downside to this method is that the various commands are not kept in one place, like your `settings.json` and these `run` versions cannot be found through the Command Palette.  However, particularly in a macro, you may wish to set up such a command.     
+The downside to this method is that the various commands are not kept in one place, like your `settings.json` and these `run` versions cannot be found through the Command Palette.  However, particularly in a macro, you may wish to set up such a command.  
+
+
+This `find-and-transform.run` must supply an `args` section with  "find" and "replace" fields or you will see this inormation notification:  
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/runWithoutArgs.jpg?raw=true" width="600" height="150" alt="notification to add find/replace args to run keybinding"/>
 
 <br/>
+
 --------------------  
 
 ## Todo
@@ -106,14 +112,16 @@ The downside to this method is that the various commands are not kept in one pla
 * Intellisense for commands in the keybindings.    
 * Intellisense for `find` and `replace` in the settings.    
 * Option to apply to selection only.  
-* Support more string operations (e.g., `subString()`, `trim()`) in the settings?
+* Support more string operations (e.g., `subString()`, `trim()`) in the settings?  
+* Explore if "find" only, select all occurrences?  
 
 
 ## Release Notes
 
-* 0.1.0 Initial release.
-* 0.2.0 Replace with case modifiers work better.
-* 0.3.0 Added a generic `find-and-transform.run` command for use in keybindings with `args`.  
+* 0.1.0	Initial release.
+* 0.2.0	Replace with case modifiers work better.
+* 0.3.0	Added a generic `find-and-transform.run` command for use in keybindings with `args`.  
+  &emsp;&emsp; Work on capture groups without case modifiers.
 
 -----------------------------------------------------------------------------------------------------------  
 
