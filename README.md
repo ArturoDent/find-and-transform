@@ -68,7 +68,7 @@ In your `keybindings.json`:
 
 When you **save** a change to the "find-and-transform" settings, you will get the message notification below.  This extension will detect this change and create a corresponding command.  The command cannot be used in a keybinding and will not appear in the Command  Palette without saving the new setting.  
 
-<img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/reloadMessage.jpg?raw=true" width="600" height="150" alt="notification to save after changing settings"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/reloadMessage.jpg?raw=true" width="600" height="150" alt="notification to save after changing settings"/>
 
 <br/>
 
@@ -87,22 +87,21 @@ Alternate form of keybinding (with **NO setting**):
 }
 ```  
 
-<img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="500" height="250" alt="notification to save after changing settings"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="600" height="300" alt="demo of generic find-and-transform.run keybinding"/>  
 
 <br/>
 
 In this way you can specify a keybinding to run a generic `run` command with the find/replace arguments right in the keybinding and nowhere else.  There is no associated setting and you do not need to reload vscode for this version to work.  You can have an unlimited number of keybindings (with separate trigger keys, of course) using the `find-and-transform.run`  version.
 
-The downside to this method is that the various commands are not kept in one place, like your `settings.json` and these `run` versions cannot be found through the Command Palette.  However, particularly in a macro, you may wish to set up such a command.  
+The downside to this method is that the various commands are not kept in one place, like your `settings.json` and these `run` versions cannot be found through the Command Palette.  However, particularly in a macro, you may wish to set up such a command.     
 
-This can be used in a macro like 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/runWithoutArgs.jpg?raw=true" width="600" height="150" alt="notification to add find/replace args to run keybinding"/>
 
-
+<br/>
 --------------------  
 
 ## Todo
 
-* Investigate generic `run` command for use in keybindings with `args`.  
 * Introduce option to use search panel with confirmation and include/exclude options.  
 * Intellisense for commands in the keybindings.    
 * Intellisense for `find` and `replace` in the settings.    
@@ -114,6 +113,7 @@ This can be used in a macro like
 
 * 0.1.0 Initial release.
 * 0.2.0 Replace with case modifiers work better.
+* 0.3.0 Added a generic `find-and-transform.run` command for use in keybindings with `args`.  
 
 -----------------------------------------------------------------------------------------------------------  
 
