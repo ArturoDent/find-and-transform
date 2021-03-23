@@ -1,6 +1,8 @@
 const vscode = require('vscode');
 const commands = require('./commands');
 const transform = require('./transform');
+const providers = require('./completionProviders');
+
 
 /** @type { Array<vscode.Disposable> } */
 let disposables = [];
@@ -17,6 +19,9 @@ function activate(context) {
 		commands.loadCommands(findSettings, context);
 		commands.registerCommands(findSettings, context, disposables);
 	}
+
+	providers.makeKeybindingsCompletionProvider(context);
+	providers.makeSettingsCompletionProvider(context);
 
 	// -----------------------------------------------------------------------------------------------------------
 
@@ -50,7 +55,7 @@ function activate(context) {
 		// get this from keybinding:  { find: "(document)", replace: "\\U$1" }
 		// need this:                 [ { find: "(document)"	}, { replace: "\\U$1"	} ]
 
-		if (!args) {
+		if (!args) {     // or not
 			vscode.window
         .showInformationMessage('You must have "find" and "replace" keys and values in your "find-and-transform.run" keybinding.',
           ...['Got it'])   // one button
@@ -64,7 +69,7 @@ function activate(context) {
 		// args in keybinding can be in any order, a new title will be constructed
 		// a title must be present to create a command from this object
 		let argsArray = [
-			{ "title": "Keybinding command run" },
+			{ "title": "Keybinding for generic command run" },
  			{ "find": args.find },
  			{ "replace": args.replace }
 		];

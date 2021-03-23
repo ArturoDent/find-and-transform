@@ -108,12 +108,11 @@ This `find-and-transform.run` must supply an `args` section with  "find" and "re
 
 ## Todo
 
-* Introduce option to use search panel with confirmation and include/exclude options.  
-* Intellisense for commands in the keybindings.    
-* Intellisense for `find` and `replace` in the settings.    
-* Option to apply to selection only.  
-* Support more string operations (e.g., `subString()`, `trim()`) in the settings?  
+* Introduce option to use search panel with confirmation and include/exclude options.      
+* Option to apply to selection(s) only, default = "document" or if multiple selections, use those..  
+* Support more string operations (e.g., `subString()`, `trim()`, `++`) in the settings?  
 * Explore if "find" only, select all occurrences?  
+* Explore if "replace" only, use current word at cursor or single selection as "find"?
 
 
 ## Release Notes
@@ -121,11 +120,13 @@ This `find-and-transform.run` must supply an `args` section with  "find" and "re
 * 0.1.0	Initial release.
 * 0.2.0	Replace with case modifiers work better.
 * 0.3.0	Added a generic `find-and-transform.run` command for use in keybindings with `args`.  
-  &emsp;&emsp; Work on capture groups without case modifiers.
+  &emsp;&emsp; Work on capture groups without case modifiers.  
+* 0.4.0	Added intellisense fro settings and keybindings.
 
 -----------------------------------------------------------------------------------------------------------  
 
-<br/>
+<br/>  
+<br/>  
 
 ## Example Command with a hard-coded find regex and upperCase transform  
 

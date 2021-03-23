@@ -8,6 +8,10 @@ const vscode = require('vscode');
  */
 exports.findTransform = function (editor, edit, findReplaceArray) {
 
+	// or use selections here if multiple  // Array<vscode.Selection>
+	// let selections = editor.selections;
+
+
 	let docString = editor.document.getText();
 	const re = new RegExp(findReplaceArray[1].find, "g");
 	const replaceValue = findReplaceArray[2].replace;

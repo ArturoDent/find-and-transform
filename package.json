@@ -18,7 +18,10 @@
  ],
  "activationEvents": [
   "onStartupFinished",
-  "onCommand:find-and-transform.upcaseAllKeywords"
+  "onCommand:find-and-transform.upcaseAllKeywords",
+  "onCommand:find-and-transform.upcaseSelectedKeywords",
+  "onCommand:find-and-transform.upcaseSwap2",
+  "onCommand:find-and-transform.removeDigits"
  ],
  "main": "./src/extension.js",
  "contributes": {
@@ -26,6 +29,21 @@
    {
     "command": "find-and-transform.upcaseAllKeywords",
     "title": "Uppercase all Keywords",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "find-and-transform.upcaseSelectedKeywords",
+    "title": "Uppercase selected Keywords",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "find-and-transform.upcaseSwap2",
+    "title": "swap iif <==> hello",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "find-and-transform.removeDigits",
+    "title": "Remove digits from Art....",
     "category": "Find-Transform"
    }
   ],
