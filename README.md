@@ -118,7 +118,9 @@ The downside to this method is that the various commands are not kept in one pla
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindNoRunDemo.gif?raw=true" width="600" height="275" alt="demo of no find and no replace keys in args"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindNoRunDemo.gif?raw=true" width="700" height="300" alt="demo of no find and no replace keys in args"/> 
+
+<br/>  
 
 * Generic `run` command in `keybindings.json` only, with `find` but no `replace` key  
 
@@ -135,7 +137,9 @@ The downside to this method is that the various commands are not kept in one pla
 }
 ```   
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoRunDemo.gif?raw=true" width="600" height="275" alt="demo of find and no replace keys in args"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceDemo.gif?raw=true" width="700" height="300" alt="demo of find and no replace keys in args"/> 
+
+<br/>  
 
 * Generic `run` command in `keybindings.json` only, with `find` and `replace` keys   
 
@@ -150,7 +154,24 @@ The downside to this method is that the various commands are not kept in one pla
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findRunDemo.gif?raw=true" width="600" height="275" alt="demo of find and replace keys in args"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceDemo.gif?raw=true" width="700" height="300" alt="demo of find and replace keys in args"/> 
+
+<br/>  
+
+* Generic `run` command in `keybindings.json` only, with a `replace` key but NO `find` key   
+
+```jsonc
+{
+	"key": "alt+y",
+	"command": "find-and-transform.run",
+	"args": {
+		// "find": "(create|table|exists)",
+		"replace": "\\U$1",
+	}
+}
+```  
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindReplaceDemo.gif?raw=true" width="700" height="300" alt="demo of replace but no find keys in args"/> 
 
 --------------------
 
