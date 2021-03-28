@@ -25,7 +25,7 @@ exports.findTransform = function (editor, edit, findReplaceArray) {
 
 	// no find and no replace
 	if (!findItem.length && !replaceItem.length)
-		_findAndSelect(editor, findValue, "document"); // find and select all even if restrictFind === selections
+		_findAndSelect(editor, findValue, restrictFind); // find and select all even if restrictFind === selections
 
 	// add all "empty selections" to editor.selections_replaceSelectionsLoop
 	else if (restrictFind === "selections" && replaceValue) {

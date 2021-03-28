@@ -193,6 +193,44 @@ The downside to this method is that the various commands are not kept in one pla
 
 ### Explanation: With no `find` key will find the words at the cursors or selections and apply the replacement.  
 
+---------------
+
+<br/>  
+
+* `find` and `replace` and `"restrictFind": "selections"   
+
+```jsonc
+{
+	"key": "alt+y",
+	"command": "find-and-transform.run",
+	"args": {
+		"find": "(create|table|exists)",
+		"replace": "_\\U$1_",
+		"restrictFind": "selections"
+	}
+}
+```  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceSelectionDemo.gif?raw=true" width="625" height="325" alt="demo of using restrictFind arg to 'selection'"/>  
+
+### Explanation: Using `restrictFind` arg set to `selections`, find will only occur within the selections.  Selections can be multiple and selections include "words at cursors".   
+
+The above keybinding is no different than this setting (in your `settings.json`):  
+
+```jsonc
+"find-and-transform": {
+
+	"upcaseSelectedKeywords": [
+		{  "title": "Uppercase selected Keywords" },
+		{  "find": "(create|table|exists)" },
+		{  "replace": "_\\U$1_" },
+		{  "restrictFind": "selections" }
+	]
+}
+```
+except that a **reload of vscode is required** prior to using the generated command from the setting (no reload necessary for the keybinding) and the `title`, in this case `"Uppercase selected Keywords"` will appear and be searchable in the Command Palette (not true for keybinding "commands").  
+
+<br/>
+
 --------------------
 
 ## Todo
