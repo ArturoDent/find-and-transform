@@ -95,7 +95,7 @@ Alternate form of keybinding (with **NO setting**), in `keybindings.json`:
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="600" height="275" alt="demo of generic find-and-transform.run keybinding"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="625" height="325" alt="demo of generic find-and-transform.run keybinding"/>  
 
 <br/>
 
@@ -109,6 +109,12 @@ The downside to this method is that the various commands are not kept in one pla
 
 ## More Examples and Demos
 
+<br/>  
+
+>  What are &nbsp; **`"words at cursors"`**? &nbsp; In VS Code, a cursor next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a command with no `find` arg it will treat any and all "words at cursors" as if you were asking to find those words.  Actual selections and "words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  This is demonstrated in some of the demos below.  
+
+<br/>  
+
 *  Generic `run` command in `keybindings.json` only, no `find` or `replace` keys in the `args`
 
 ```jsonc
@@ -118,7 +124,11 @@ The downside to this method is that the various commands are not kept in one pla
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindNoRunDemo.gif?raw=true" width="700" height="300" alt="demo of no find and no replace keys in args"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindNoReplaceDemo.gif?raw=true" width="625" height="325" alt="demo of no find and no replace keys in args"/> 
+
+### Explanation: With no `find` key, find matches of selections or words at cursors (multi-cursors work) and select all those matches.  
+
+---------------
 
 <br/>  
 
@@ -137,7 +147,11 @@ The downside to this method is that the various commands are not kept in one pla
 }
 ```   
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceDemo.gif?raw=true" width="700" height="300" alt="demo of find and no replace keys in args"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceDemo.gif?raw=true" width="625" height="325" alt="demo of find and no replace keys in args"/> 
+
+### Explanation: Will find according to the `find` key and select all those matches.  No replacement.  
+
+------------------
 
 <br/>  
 
@@ -154,7 +168,11 @@ The downside to this method is that the various commands are not kept in one pla
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceDemo.gif?raw=true" width="700" height="300" alt="demo of find and replace keys in args"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceDemo.gif?raw=true" width="625" height="325" alt="demo of find and replace keys in args"/>  
+
+### Explanation: Find using its value in `args` and replace each with its value in the `args` field.  
+
+----------------
 
 <br/>  
 
@@ -171,7 +189,9 @@ The downside to this method is that the various commands are not kept in one pla
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindReplaceDemo.gif?raw=true" width="700" height="300" alt="demo of replace but no find keys in args"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindReplaceDemo.gif?raw=true" width="625" height="325" alt="demo of replace but no find keys in args"/>  
+
+### Explanation: With no `find` key will find the words at the cursors or selections and apply the replacement.  
 
 --------------------
 
