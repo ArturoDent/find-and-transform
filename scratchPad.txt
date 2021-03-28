@@ -17,3 +17,21 @@
 					vscode.commands.executeCommand('search.action.replaceAll');
 				}, 1000);
 			});
+
+			---------------------------------------------------------------------------------------
+
+		// if (!args.find && !args.replace) {     // or not
+		// 	vscode.window
+    //     .showInformationMessage('You must have "find" and "replace" keys and values in your "find-and-transform.run" keybinding.',
+    //       ...['Got it'])   // one button
+    //     .then(selected => {
+    //       if (selected === 'Got it') vscode.commands.executeCommand('leaveEditorMessage');
+		// 		});
+		// 	return;
+		// }
+
+		-------------------------------------------------------------------------------------
+
+		This `find-and-transform.run` must supply an `args` section with  "find" and "replace" fields or you will see this inormation notification:
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/runWithoutArgs.jpg?raw=true" width="600" height="150" alt="notification to add find/replace args to run keybinding"/>

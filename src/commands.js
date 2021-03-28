@@ -75,7 +75,7 @@ function _makePackageCommandsFromSettings (settings) {
  * nto package.json 'activationEvents' : 'onCommand:<some command>'
  *
  * @param {object} settingsCommands
- * @returns {Array<string>} - an array of strings for package.json activationEvents
+ * @returns {Array<String>} - an array of strings for package.json activationEvents
  */
 function _makeSettingsEventsFromSettingsPackageCommands (settingsCommands) {
 
@@ -115,8 +115,8 @@ function _commandArraysAreEquivalent(settings, packages) {
 /**
  * Are the settings and package.json activationEvents the same?
  *
- * @param {Array<string>} settings - activationEvents constructed from the settings.json 'command aliases'
- * @param {Array<string>} packages - the pre-existing activationEvents from package.json
+ * @param {Array<String>} settings - activationEvents constructed from the settings.json 'command aliases'
+ * @param {Array<String>} packages - the pre-existing activationEvents from package.json
  * @returns {boolean}
  */
 function _activationEventArraysAreEquivalent(settings, packages) {

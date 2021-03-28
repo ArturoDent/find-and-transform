@@ -1,9 +1,8 @@
 const vscode = require('vscode');
-// const utilities = require('./utilities');
 
 
 /**
- * @description - register a CompletionItemProvider for keybindings.json
+ * Register a CompletionItemProvider for keybindings.json
  * @param {vscode.ExtensionContext} context
  */
 exports.makeKeybindingsCompletionProvider = function(context) {
@@ -18,7 +17,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 						// 	"args": {
 						// 		"find"              : "<string>",
 						// 		"replace"           : "<string>",
-						// 		"restrictFind  "    : "selection"                  // or "document"
+						// 		"restrictFind  "    : "selections"        // or "document"
 						// 	}
 						// }
 
@@ -41,7 +40,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 
 					let command;
 					if (commandSearch.length) command = commandSearch[0].groups?.command;
-					else return undefined;  // notify no command
+					else return undefined;  // notify no command TODO
 
 					// next line after command should be "args": {}
 					const lineAfterCommand = document.lineAt(commandLinePos.line + 1);
@@ -59,18 +58,17 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 					if (!argsRange.contains(position) || linePrefix.search(/^\s*"/m) === -1) return undefined;
 
 					// TODO: should restrict this to in the 'find-and-transform.run' keybinding
-					if (argsRange.contains(position) && linePrefix.endsWith('"restrictSearch": "')) {
+					if (argsRange.contains(position) && linePrefix.endsWith('"restrictFind": "')) {
 						return [
-							_makeCompletionItem("selection(s)", position, "document"),
+							_makeCompletionItem("selections", position, "document"),
 							_makeCompletionItem("document", position, "document")
 						];
 					}
 
-					const argArray = ["find", "replace", "restrictSearch"];
+					const argArray = ["find", "replace", "restrictFind"];
 
 					// eliminate any options already used
-					// if (command === "run") {
-					if (command === "run" && (linePrefix.search(/^\s*"(find|replace|restrictSearch)"\s*:\s*"/) === -1)) {
+					if (command === "run" && (linePrefix.search(/^\s*"(find|replace|restrictFind)"\s*:\s*"/) === -1)) {
 						return _filterCompletionsItemsNotUsed(argArray, argsText, position);
 					}
 					else return undefined;
@@ -83,7 +81,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 };
 
 /**
- * register a CompletionItemProvider for settings.json
+ * Register a CompletionItemProvider for settings.json
  * @param {vscode.ExtensionContext} context
  */
 exports.makeSettingsCompletionProvider = function(context) {
@@ -108,12 +106,11 @@ exports.makeSettingsCompletionProvider = function(context) {
         }
 
         // check that cursor position is within the "find-and-transform" setting
-
         let fullText = document.getText();
 				let settingRegex = /(?<setting>"find-and-transform")/;  // our 'find-and-transform' setting
 
 				let settingsMatch = fullText.match(settingRegex);
-				// limit fullText to from "find-and-transform" to end of file
+				// limit fullText to start of "find-and-transform" to end of file
 				if (settingsMatch.index) fullText = fullText.substring(settingsMatch.index);
 				else return;
 
@@ -149,19 +146,19 @@ exports.makeSettingsCompletionProvider = function(context) {
 				let settingsRange = new vscode.Range(settingStartPos, settingEndPos);
 				if (!settingsRange.contains(position)) return undefined;  // cursor is not in the 'find-and-transform' setting
 
-				if (linePrefix.search(/"restrictSearch":\s*"$/) !== -1) {
+				if (linePrefix.search(/"restrictFind":\s*"$/) !== -1) {
 					return [
-						_makeCompletionItem("selection(s)", position, "document"),
+						_makeCompletionItem("selections", position, "document"),
 						_makeCompletionItem("document", position, "document")
 					];
 				}
 
-				const keyArray = ["title", "find", "replace", "restrictSearch"];
+				const keyArray = ["title", "find", "replace", "restrictFind"];
 				const defaults = {
 														"title": "",
 														"find": "",
 														"replace": "",
-														"restrictSearch": "document"
+														"restrictFind": "document"
 													};
 
         let completionItemArray = [];
@@ -186,9 +183,9 @@ exports.makeSettingsCompletionProvider = function(context) {
 /**
  * From a string input make a CompletionItemKind.Text
  *
- * @param {string} key
+ * @param {String} key
  * @param {vscode.Position} position
- * @param {string} defaultValue - default value for this option
+ * @param {String} defaultValue - default value for this option
  * @returns {vscode.CompletionItem} - CompletionItemKind.Text
  */
 function _makeCompletionItem(key, position, defaultValue) {
@@ -196,16 +193,14 @@ function _makeCompletionItem(key, position, defaultValue) {
 	let item = new vscode.CompletionItem(key, vscode.CompletionItemKind.Text);
 	item.range = new vscode.Range(position, position);
 	if (defaultValue) item.detail = `default: ${ defaultValue }`;
-	// else if (defaultValue === "") item.detail = `default: ""`;
-
   return item;
 }
 
 /**
  * Make CompletionItem arrays, eliminate already used option keys found in the args text
  *
- * @param {string[]} argArray - options for forward or backward commands
- * @param {string} argsText - text of the 'args' options:  "args": { .... }
+ * @param {String[]} argArray - options for forward or backward commands
+ * @param {String} argsText - text of the 'args' options:  "args": { .... }
  * @param {vscode.Position} position - cursor position
  * @returns {Array<vscode.CompletionItem>}
  */
@@ -214,7 +209,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	const defaults = {
 		"find": "",
 		"replace": "",
-		"restrictSearch": "document"
+		"restrictFind": "document"   // else "selections"
 	}
 
 	/** @type { Array<vscode.CompletionItem> } */

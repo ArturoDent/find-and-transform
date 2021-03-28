@@ -55,24 +55,22 @@ function activate(context) {
 		// get this from keybinding:  { find: "(document)", replace: "\\U$1" }
 		// need this:                 [ { find: "(document)"	}, { replace: "\\U$1"	} ]
 
-		if (!args) {     // or not
-			vscode.window
-        .showInformationMessage('You must have "find" and "replace" keys and values in your "find-and-transform.run" keybinding.',
-          ...['Got it'])   // one button
-        .then(selected => {
-          if (selected === 'Got it') vscode.commands.executeCommand('leaveEditorMessage');
-				});
-			return;
-			// args.find = ""; args.replace = "";
-		}
 
-		// args in keybinding can be in any order, a new title will be constructed
+		let argsArray = [];
+		// args in keybinding may be in any order, a new generic title must be constructed
 		// a title must be present to create a command from this object
-		let argsArray = [
-			{ "title": "Keybinding for generic command run" },
- 			{ "find": args.find },
- 			{ "replace": args.replace }
+		if (args) {
+			argsArray = [
+				{ "title": "Keybinding for generic command run" },
+				{ "find": args.find },
+				{ "replace": args.replace },
+				{ "restrictFind": args.restrictFind }
+			];
+		}
+		else argsArray = [
+			{ "title": "Keybinding for generic command run" }
 		];
+
 		transform.findTransform(editor, edit, argsArray);
 	});
 
