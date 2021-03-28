@@ -62,6 +62,7 @@ function _makePackageCommandsFromSettings (settings) {
   for (const setting of settings) {
 		let newCommand = {};
 		newCommand.command = `find-and-transform.${ setting[0] }`;
+		// warn here if there is no title?  vscode does it automatically
 		newCommand.title = setting[1][0].title;
 		newCommand.category = category;
 		settingsJSON.push(newCommand);

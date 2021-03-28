@@ -51,7 +51,7 @@ In your `settings.json`:
 	// it will appear as, e.g., "Find-Transform: Uppercase Keywords" in the Command Palette
 
 	"upcaseSwap": [
-		{  "title": "swap iif <==> hello"},
+		{  "title": "swap iif <==> hello"},    // all settings must have a "title" field
 		{  "find"    : "(iif) (hello)"  },
 		{  "replace" : "\\u$2 \\U$1"  }
 	]
@@ -75,6 +75,12 @@ In your `keybindings.json`:
 When you **save** a change to the "find-and-transform" settings, you will get the message notification below.  This extension will detect a change in its settings and create a corresponding command.  The command cannot be used in a keybinding and will not appear in the Command  Palette **without saving the new setting**.  
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/reloadMessage.jpg?raw=true" width="600" height="150" alt="notification to save after changing settings"/>
+
+<br/>  
+
+If you try to save a new setting that does not have a `"title"` key, vscode will prompt that an error has occurred.  Each setting "command" must have its own unique `"title"` key and value.  Otherwise you will get this notification message from vscode:  
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/mandatoryTitle.jpg?raw=true" width="700" height="350" alt="notification to include a title key in setting"/>  
 
 <br/>
 
@@ -197,7 +203,7 @@ The downside to this method is that the various commands are not kept in one pla
 
 <br/>  
 
-* `find` and `replace` and `"restrictFind": "selections"   
+* `find` and `replace` with `"restrictFind": "selections"`   
 
 ```jsonc
 {
@@ -212,7 +218,9 @@ The downside to this method is that the various commands are not kept in one pla
 ```  
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceSelectionDemo.gif?raw=true" width="625" height="325" alt="demo of using restrictFind arg to 'selection'"/>  
 
-### Explanation: Using `restrictFind` arg set to `selections`, find will only occur within the selections.  Selections can be multiple and selections include "words at cursors".   
+### Explanation: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  Selections can be multiple and selections include "words at cursors".  
+
+<br/>  
 
 The above keybinding is no different than this setting (in your `settings.json`):  
 
