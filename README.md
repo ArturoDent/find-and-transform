@@ -6,6 +6,7 @@ Find and transform text in a single file.
 2.  Replacements can include case modifiers, like `\U`.  
 3.  Find in the entire document or within selections only.     
 4.  Keybindings can be quite generic, not necessarily including `find` or `replace` keys.  
+5.  A command can be created right in a keybinding, without using a setting at all.   
 
  The replace transforms can include ***case modifiers*** like:  
 
@@ -20,7 +21,7 @@ This extension provides a way to save and re-use find/replace regex's and use ca
 
 <br/>
 
-> Note, the above case modifiers must be double-escaped in the settings.  So `\U$1` should be `\\U$1` in the settings.  VS Code will show an error if you do not double-escape the modifiers (similar to other escaped regex items like `\w`).  
+> Note, the above case modifiers must be double-escaped in the settings or keybindings.  So `\U$1` should be `\\U$1` in the settings.  VS Code will show an error if you do not double-escape the modifiers (similar to other escaped regex items like `\w`).  
 
 <br/>
 
@@ -29,9 +30,22 @@ This extension provides a way to save and re-use find/replace regex's and use ca
 
 ## Features
 
-1.  Make a setting with `find` and `replace` values and some name (with no spaces) for that setting.
-2.  Trigger that command from the Command Palette by searching for that name or use that name in a keybinding.  
-<br/>
+1.  Make a setting with `find`, `replace` and `restrictFind` values and some name (with no spaces) for that setting.  
+2.  Save your `settings.json` file. Reload VS Code.   
+3.  Optionally select some code or words in your file.    
+4.  Trigger that command from the Command Palette by searching for that name or use that name in a keybinding.  
+
+or  
+
+1.  Make a keybinding with `args` including `find`, `replace` and `restrictFind` values.  
+3.  Optionally select some code or words in your file.      
+2.  Trigger that keybinding.  
+
+<br/>  
+
+> Note: commands can be removed by deleting or commenting out the associated settings and re-saving the `settings.json` file and reloading VS Code.  
+
+-------------------
 
 ## Sample Usage
 
@@ -47,7 +61,7 @@ In your `settings.json`:
 		{  "restrictFind": "selections" }   // or "document", the default		
 	],
 
-	// this extension will generate a command each of the settings, 
+	// this extension will generate a command for each of the settings, 
 	// it will appear as, e.g., "Find-Transform: Uppercase Keywords" in the Command Palette
 
 	"upcaseSwap": [
@@ -80,11 +94,9 @@ When you **save** a change to the "find-and-transform" settings, you will get th
 
 If you try to save a new setting that does not have a `"title"` key, vscode will prompt that an error has occurred.  Each setting "command" must have its own unique `"title"` key and value.  Otherwise you will get this notification message from vscode:  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/mandatoryTitle.jpg?raw=true" width="700" height="350" alt="notification to include a title key in setting"/>  
+&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/mandatoryTitle.jpg?raw=true" width="750" height="350" alt="notification to include a title key in setting"/>  
 
-<br/>
-
-> Note: commands can be removed by deleting or commenting out the associated settings and re-saving the `settings.json` file.  
+<br/>    
 
 -----------------------------  
 
@@ -94,7 +106,7 @@ Alternate form of keybinding (with **NO setting**), in `keybindings.json`:
 {
 	"key": "alt+y",
 	"command": "find-and-transform.run",   // must be "run" here
-	"args": {                            // "args" right in the keybinding, not in a setting
+	"args": {                              // "args" right in the keybinding, not in a setting
 		"find": "(const\\s+)([^\\s]+)",
 		"replace": "$1\\U$2"
 	}
@@ -117,7 +129,7 @@ The downside to this method is that the various commands are not kept in one pla
 
 <br/>  
 
->  What are &nbsp; **`"words at cursors"`**? &nbsp; In VS Code, a cursor next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a command with no `find` arg it will treat any and all "words at cursors" as if you were asking to find those words.  Actual selections and "words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  This is demonstrated in some of the demos below.  
+>  Important:  &nbsp; What are &nbsp; **`"words at cursors"`**? &nbsp; In VS Code, a cursor next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a command with no `find` arg it will treat any and all "words at cursors" as if you were asking to find those words.  Actual selections and "words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  This is demonstrated in some of the demos below.  
 
 <br/>  
 
@@ -241,10 +253,33 @@ except that a **reload of vscode is required** prior to using the generated comm
 
 --------------------
 
+<br/>  
+
+* `find` and no `replace` with `"restrictFind": "selections"`  
+
+```jsonc
+{
+	"key": "alt+y",
+	"command": "find-and-transform.run",
+	"args": {
+		"find": "(create|table|exists)",
+		// "replace": "_\\U$1_",
+		"restrictFind": "selections"
+	}
+}
+```
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceSelectionDemo.gif?raw=true" width="625" height="325" alt="demo of using restrictFind arg to 'selection'" with no replace/>  
+
+### Explanation: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  All find matches within selections will be selected.  
+
+<br/>  
+
+----------------------
+
 ## Todo
 
 * Introduce option to use search panel with confirmation and include/exclude options.        
-* Support more string operations (e.g., `subString()`, `trim()`, `++`) in the settings?    
+* Support more string operations (e.g., `subString()`, `trim()`, `++`) in the settings/args?    
 
 
 ## Release Notes
@@ -255,7 +290,8 @@ except that a **reload of vscode is required** prior to using the generated comm
   &emsp;&emsp; Work on capture groups without case modifiers.  
 * 0.4.0	Added intellisense for settings and keybindings.  
   &emsp;&emsp; Added `restrictFind` argument.  
-	&emsp;&emsp; If no find or replace, will select all matches of word at cursor or selection.
+	&emsp;&emsp; If no find or replace, will select all matches of word at cursor or selection.  
+	&emsp;&emsp; Added many README examples and explanations.    
 
 -----------------------------------------------------------------------------------------------------------  
 
