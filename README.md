@@ -144,18 +144,9 @@ When you **save** a change to the settings, you will get the message notificatio
 
 <br/>
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/reloadMessage.jpg?raw=true" width="600" height="175" alt="notification to save after changing settings"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/reloadMessage.jpg?raw=true" width="525" height="150" alt="notification to save after changing settings"/>
 
 <br/>  
-
-If you try to save a new setting that does not have a `"title"` key, vscode will prompt that an error has occurred.  Each setting "command" must have its own unique `"title"` key and value.  The "title" field must be a **string** - it may contain spaces. Otherwise you will get this notification message from vscode: 
-
-<br/>
-
-&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/mandatoryTitle.jpg?raw=true" width="750" height="350" alt="notification to include a title key in setting"/>  
-
-
-<br/>    
 
 -----------------------------  
 
@@ -180,7 +171,7 @@ An example of keybinding with **NO associated setting**, in `keybindings.json`:
 
 <br/>
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="625" height="325" alt="demo of generic find-and-transform.run keybinding"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="650" height="300" alt="demo of generic find-and-transform.run keybinding"/>  
 
 <br/>
 
@@ -209,7 +200,7 @@ The downside to this method is that the various commands are not kept in one pla
 },
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindNoReplaceDemo.gif?raw=true" width="625" height="325" alt="demo of no find and no replace keys in args"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindNoReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of no find and no replace keys in args"/> 
 
 ### Explanation: With no `find` key, find matches of selections or words at cursors (multi-cursors work) and select all those matches.  Blue text are the selections.   
 
@@ -232,7 +223,7 @@ The downside to this method is that the various commands are not kept in one pla
 }
 ```   
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceDemo.gif?raw=true" width="625" height="325" alt="demo of find and no replace keys in args"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of find and no replace keys in args"/> 
 
 ### Explanation: Will find according to the `find` key and select all those matches.  No replacement.  
 
@@ -253,7 +244,7 @@ The downside to this method is that the various commands are not kept in one pla
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceDemo.gif?raw=true" width="625" height="325" alt="demo of find and replace keys in args"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of find and replace keys in args"/>  
 
 ### Explanation: Find using its value in `args` and replace each with its value in the `args` field.  Sincer there is no `restrictFind` key, the default `document` will be used.   
 
@@ -274,7 +265,7 @@ The downside to this method is that the various commands are not kept in one pla
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindReplaceDemo.gif?raw=true" width="625" height="325" alt="demo of replace but no find keys in args"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of replace but no find keys in args"/>  
 
 ### Explanation: With no `find` key will find the words at the cursors or selections and apply the replacement.  
 
@@ -295,7 +286,7 @@ The downside to this method is that the various commands are not kept in one pla
 	}
 }
 ```  
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceSelectionDemo.gif?raw=true" width="625" height="325" alt="demo of using restrictFind arg to 'selection'"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceSelectionDemo.gif?raw=true" width="650" height="300" alt="demo of using restrictFind arg to 'selection'"/>  
 
 ### Explanation: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  Selections can be multiple and selections include "words at cursors".  
 
@@ -335,7 +326,7 @@ except that a **reload of vscode is required** prior to using the generated comm
 	}
 }
 ```
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceSelectionDemo.gif?raw=true" width="625" height="325" alt="demo of using restrictFind arg to 'selection'" with no replace/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceSelectionDemo.gif?raw=true" width="650" height="300" alt="demo of using restrictFind arg to 'selection'" with no replace/>  
 
 ### Explanation: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  All find matches within selections will be selected.  
 
@@ -343,23 +334,170 @@ except that a **reload of vscode is required** prior to using the generated comm
 
 If you have set `"restrictFind": "document"` any actual selections in the file will be ignored and the find/replace will be applied to the entire file.  Likewise, if you have `"restrictFind"` key at all, any selections will be ignored (because the default for ``"restrictFind"` is `document`).  
 
-----------------------
+----------------------  
+---------------------- 
+
+<br/>
+
+## Using the Search Panel for searches with `runInSearchPanel` commands   
+
+<br/>
+
+```jsonc
+"runInSearchPanel": {
+
+	"removeDigits": {
+		"title": "Remove digits from Arturo",
+		"find": "^(\\s*Arturo)\\d+",
+		"replace": "$1",              // all the args options will be shown by intellisense
+		"isRegex": true,
+		"triggerSearch": true,
+		"filesToInclude": "${file}"   // some variables are supported
+	}
+}
+```
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchIntellisense.gif?raw=true" width="650" height="300" alt="demo of search panel setting with intellisense"/>
+
+### Explanation: The `runInSearchPanel` command will do a search using the Search Panel.  This allows you to search the current file, folder or the entire workspace, for example.  
+
+<br/>
+
+The `runInSearchPanel` settings commands can be used in keybindings just like the `findInCurrentFile` commands discussed above.  The above `removeDigits` command could be used in a keybinding like this:  
+
+```jsonc
+{
+	"key": "alt+z",
+	"command": "runInSearchPanel.removeDigits"
+}
+```
+Just like with `findInCurrentFile` keybindings if you add arguments to a command that already exists in a setting, the keybinding arguments will be ignored.  
+
+```jsonc
+{
+	"key": "alt+z",
+	"command": "runInSearchPanel.removeDigits",  // assume this exists in settings
+	"args": {                     // then all args are ignored, the settings options are applied instead
+		"find": "(?<=Arturo)\\d+",
+		"replace": "###"
+	}
+}
+```
+
+You can also create commands solely in a keybinding like:
+
+```jsonc
+{
+	"key": "alt+z",
+	"command": "runInSearchPanel",
+	"args": {
+		"find": "(?<=^Arturo)\\d+",   // fixed-width lookbehinds and multiline supported
+		"replace": "###",
+		"matchWholeWord": false,
+		"isRegex": true,
+		"filesToInclude": "${file}",  // resolves to current file
+		"triggerSearch": true
+	}
+}
+```
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchGeneric1.gif?raw=true" width="650" height="300" alt="demo of search panel setting with intellisense"/>
+
+### Explanation: Creating a Search Panel command in the keybindings only.  In this case, search for `^Arturo` preceding some digits and replace in the current file.  
+
+<br/>
+
+> Note: Regex lookbehinds that are **not fixed-length** (also called fixed-width sometimes), like `(?<=^Art[\w]*)` are not supported in the Search Panel.  But non-fixed-length lookbehinds are supported in vscode's Find in a file (as in using the Find widget) so they can be used in `findInCurrentFile` settings or keybindings.  This works:
+
+```jsonc
+{
+	"key": "alt+y",
+	"command": "findInCurrentFile",
+	"args": {
+		"find": "(?<=^Art[\\w]*)\\d+",    // not fixed-length
+		"replace": "###"
+	}
+}
+```
+
+but the same keybinding in `runInSearchPanel` will error and not run:  
+
+```jsonc
+{
+	"key": "alt+y",
+	"command": "runInSearchPanel",        // runInSearchPanel here
+	"args": {
+		"find": "(?<=^Art[\\w]*)\\d+",    // not fixed-length: ERROR will not run
+		"replace": "###"
+	}
+}
+```
+
+-----------------------
+
+### -- `runInSearchPanel` arguments and defaults:  
+
+<br/>
+
+```jsonc
+"title": "<some string>",             // can have spaces, will be shown in the Command Palette
+
+"find": "<some string>",
+
+"replace": "<some string>",
+
+"triggerSearch": true,           // boolean, same as the "Replace All" button, confirmation box will open
+
+"isRegex": true,
+
+"filesToInclude": "${file}",               	// default is ${file} = current file
+
+"preserveCase": true,
+
+"useExcludeSettingsAndIgnoreFiles": true,
+
+"isCaseSensitive": true,
+
+"matchWholeWord": false,                    // default is false
+
+"filesToExclude": "<some string>"
+```
+
+You will get intellisense presenting these arguments. Some work remains on making this experience nicer though.  
+
+<br/>
+
+The `filesToInclude` argument supports these values:  
+
+	"${file}"  
+	"${relativeFile}"  
+	"${fileDirname}"  
+	"${fileWorkspaceFolder}"  
+	"${workspaceFolder}"  
+	"${relativeFileDirname}"  
+	"${workspaceFolderBasename}"  
+	"${selectedText}"  
+	"${pathSeparator}"  
+
+They should have the same resolved values as found at [pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
+
+-----------------------
 
 ## Todo
 
-* Filter intellisense for options in    
+* Filter intellisense for previously used args options in  `runInSearchPanel` settings.    
 * Add more error messages, like capture group in replace but not in find.    
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
-* Consider adding a `setCategory` setting.  
+* Explore adding a command `setCategory` setting.   
+* Explore adding settings to change default values for `filesToInclude` usage.  
 * Support more string operations (e.g., `subString()`, `trim()`, `++`) in the settings/args?    
-* Support replacing with current match index?  
+* Support replacing with current match index?   
 
 
 ## Release Notes
 
 * 0.1.0	Initial release.
 * 0.2.0	Replace with case modifiers work better.
-* 0.3.0	Added a generic `find-and-transform.run` command for use in keybindings with `args`.  
+* 0.3.0	Added a generic `find-and-transform.run` command for use in keybindings with `args`.  (later refactored away)  
   &emsp;&emsp; Work on capture groups without case modifiers.  
 * 0.4.0	Added intellisense for settings and keybindings.  
   &emsp;&emsp; Added `restrictFind` argument.  

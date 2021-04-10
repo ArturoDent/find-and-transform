@@ -146,7 +146,6 @@ function _parseVariables(include) {
 				break;
 
 			case "${pathSeparator}":
-				// resolved = .+path.sep
 				resolved = path.sep;
 				break;
 

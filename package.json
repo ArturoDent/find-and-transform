@@ -3,10 +3,6 @@
  "displayName": "Find and Transform",
  "description": "Find text and transform it with case modifiers",
  "version": "0.4.0",
- "extensionKind": [
-	 "ui",
-	 "workspace"
- ],
  "preview": true,
  "engines": {
   "vscode": "^1.54.0"
@@ -42,12 +38,12 @@
    },
    {
     "command": "findInCurrentFile.upcaseSelectedKeywords",
-    "title": "Uppercase selected Keywords",
+    "title": "upcaseSelectedKeywords",
     "category": "Find-Transform"
    },
    {
     "command": "runInSearchPanel.removeDigits",
-    "title": "Remove digits from Art....",
+    "title": "Remove digits from Arturo",
     "category": "Find-Transform"
    }
   ],
