@@ -3,6 +3,10 @@
  "displayName": "Find and Transform",
  "description": "Find text and transform it with case modifiers",
  "version": "0.4.0",
+ "extensionKind": [
+	 "ui",
+	 "workspace"
+ ],
  "preview": true,
  "engines": {
   "vscode": "^1.54.0"
@@ -18,23 +22,45 @@
  ],
  "activationEvents": [
   "onStartupFinished",
-  "onCommand:find-and-transform.upcaseAllKeywords"
+  "onCommand:findInCurrentFile.upcaseAllKeywords",
+  "onCommand:findInCurrentFile.upcaseSwap2",
+  "onCommand:findInCurrentFile.upcaseSelectedKeywords",
+  "onCommand:runInSearchPanel.removeDigits"
  ],
  "main": "./src/extension.js",
  "contributes": {
   "commands": [
    {
-    "command": "find-and-transform.upcaseAllKeywords",
+    "command": "findInCurrentFile.upcaseAllKeywords",
     "title": "Uppercase all Keywords",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.upcaseSwap2",
+    "title": "swap iif <==> hello",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.upcaseSelectedKeywords",
+    "title": "Uppercase selected Keywords",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "runInSearchPanel.removeDigits",
+    "title": "Remove digits from Art....",
     "category": "Find-Transform"
    }
   ],
   "configuration": [
    {
     "properties": {
-     "find-and-transform": {
+     "findInCurrentFile": {
       "scope": "resource",
-      "description": "Find and transform text."
+      "description": "Find in the current file."
+     },
+     "runInSearchPanel": {
+      "scope": "resource",
+      "description": "Search using the Search Panel."
      }
     }
    }

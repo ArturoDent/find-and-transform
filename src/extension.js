@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const commands = require('./commands');
-const transform = require('./transform');
+const findCommands = require('./transform');
+const searchCommands = require('./search');
 const providers = require('./completionProviders');
 
 
@@ -11,22 +12,17 @@ let disposables = [];
 /**
  * @param {vscode.ExtensionContext} context
  */
-function activate(context) {
+async function activate(context) {
 
-	const findSettings = commands.getSettings();
+	_loadSettingsAsCommands(context, disposables);
 
-	if (findSettings) {
-		commands.loadCommands(findSettings, context);
-		commands.registerCommands(findSettings, context, disposables);
-	}
-
-	providers.makeKeybindingsCompletionProvider(context);
-	providers.makeSettingsCompletionProvider(context);
+	await providers.makeKeybindingsCompletionProvider(context);
+	await providers.makeSettingsCompletionProvider(context);
 
 	// -----------------------------------------------------------------------------------------------------------
 
 		// a sample command using a hard-written find regex and upperCase replacements
-	let disposable = vscode.commands.registerTextEditorCommand('find-and-transform.upcaseAllKeywords', async (editor, edit) => {
+	let disposable = vscode.commands.registerTextEditorCommand('findInCurrentFile.upcaseAllKeywords', async (editor, edit) => {
 
 		const docString = editor.document.getText();
 		const re = /(?<!\w)(create|select|sum|drop|table|if|exists|day|group|by|order|min|max|and|else|iif|end|over|partition|distinct|desc)(?!\w)/g;
@@ -49,19 +45,18 @@ function activate(context) {
 
 	// ---------------------------------------------------------------------------------------------------------------------
 
-	// make a generic "run" command for keybindings args
-	let runDisposable = vscode.commands.registerTextEditorCommand('find-and-transform.run', async (editor, edit, args) => {
+	// make a generic "run" command for keybindings args using find in current file only
+	let runDisposable = vscode.commands.registerTextEditorCommand('findInCurrentFile', async (editor, edit, args) => {
 
 		// get this from keybinding:  { find: "(document)", replace: "\\U$1" }
 		// need this:                 [ { find: "(document)"	}, { replace: "\\U$1"	} ]
 
 
 		let argsArray = [];
-		// args in keybinding may be in any order, a new generic title must be constructed
-		// a title must be present to create a command from this object
+		// args in keybinding may be in any order
 		if (args) {
 			argsArray = [
-				{ "title": "Keybinding for generic command run" },
+				{ "title": "Keybinding for generic command run" },  // "title" is never used?
 				{ "find": args.find },
 				{ "replace": args.replace },
 				{ "restrictFind": args.restrictFind }
@@ -71,28 +66,73 @@ function activate(context) {
 			{ "title": "Keybinding for generic command run" }
 		];
 
-		transform.findTransform(editor, edit, argsArray);
+		findCommands.findTransform(editor, edit, argsArray);
 	});
 
 	context.subscriptions.push(runDisposable);
 
+	// ---------------------------------------------------------------------------------------------------------------------
+
+	// make a generic "runInSearchPanel" command for keybindings args using the search panel
+	let runInSearchPanelDisposable = vscode.commands.registerCommand('runInSearchPanel', async (args) => {
+
+				// find: "",
+				// replace: "",
+				// triggerSearch: true,                     // default is true
+				// isRegex: true,                           // default is true
+				// filesToInclude: "",                      // default is $file = current file
+				// preserveCase: true,                      // default is true
+				// useExcludeSettingsAndIgnoreFiles: true,  // default is true
+				// isCaseSensitive: true,                   // default is true
+				// matchWholeWord: false,                   // default is false
+				// filesToExclude: "./*.css"                // default is ""
+
+		let argsArray = [];
+		// args in keybinding may be in any order
+		if (args) {
+			argsArray = searchCommands.getKeysAndDefaultsFromArgs(args);
+
+			// argsArray = [
+			// 	{ "find":             args.find },
+			// 	{ "replace":          args.replace },
+			// 	{ "triggerSearch":    args.triggerSearch  ?? true},
+			// 	{ "isRegex":          args.isRegex        ?? true },
+			// 	{ "filesToInclude":   args.filesToInclude ?? "" },
+			// 	{ "preserveCase":     args.preserveCase   ?? true },
+			// 	{ "useExcludeSettingsAndIgnoreFiles": args.useExcludeSettingsAndIgnoreFiles ?? true },
+			// 	{ "isCaseSensitive": args.isCaseSensitive ?? true },
+			// 	{ "matchWholeWord":   args.matchWholeWord ?? false },
+			// 	{ "filesToExclude":   args.filesToExclude ?? "" }
+			// ];
+		}
+		else argsArray = [
+			{ "title": "Keybinding for generic command run" }
+		];
+
+		searchCommands.useSearchPanel(argsArray);
+	});
+
+	context.subscriptions.push(runInSearchPanelDisposable);
+
 	// ----------------------------------------------------------------------------------------------------------------------
 
-	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
-		if (event.affectsConfiguration("find-and-transform")) {
+	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration( async (event) => {
+		if (event.affectsConfiguration("findInCurrentFile") ||
+				event.affectsConfiguration("runInSearchPanel")) {
 
 			for (let disposable of disposables) {
-				disposable.dispose();
+				await disposable.dispose();
 			}
+			// should do disposables = [] here? Or does it matter?
+
 			// reload
-			const findSettings = commands.getSettings();
-			if (findSettings) {
-				commands.loadCommands(findSettings, context);
-				commands.registerCommands(findSettings, context, disposables);
-			}
+			await _loadSettingsAsCommands(context, disposables);
+
+			await providers.makeKeybindingsCompletionProvider(context);
+			await providers.makeSettingsCompletionProvider(context);
 
 			vscode.window
-        .showInformationMessage("Reload vscode to see the changes you made in the Command Palette.  The new commands can be used in keybindings without reloading.",
+        .showInformationMessage("Reload vscode to see the changes you made in the Command Palette.",
           ...['Reload vscode', 'Do not Reload'])   // two buttons
         .then(selected => {
           if (selected === 'Reload vscode') vscode.commands.executeCommand('workbench.action.reloadWindow');
@@ -101,6 +141,25 @@ function activate(context) {
 		}
 	}));
 }
+
+async function _loadSettingsAsCommands(context, disposables) {
+
+		const findSettings = await commands.getSettings("findInCurrentFile");
+		const searchSettings = await commands.getSettings("runInSearchPanel");
+
+		if (findSettings || searchSettings) {
+			await commands.loadCommands(findSettings, searchSettings, context);
+		}
+
+		if (findSettings.length) {
+			await commands.registerFindCommands(findSettings, context, disposables);
+		}
+
+		if (searchSettings.length) {
+			await commands.registerSearchCommands(searchSettings, context, disposables);
+		}
+}
+
 
 // exports.activate = activate;
 

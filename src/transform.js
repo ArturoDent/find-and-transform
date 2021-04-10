@@ -9,18 +9,31 @@ const vscode = require('vscode');
 exports.findTransform = function (editor, edit, findReplaceArray) {
 
 	let restrictFind = "document";  // effectively making "document" the default
-	let restrictItem = findReplaceArray.filter(item => item.restrictFind);
-	if (restrictItem.length) restrictFind = restrictItem[0].restrictFind;
+	let restrictItem = Object.entries(findReplaceArray).filter(item => (item[1].restrictFind || item[0] === 'restrictFind'));
+	if (restrictItem.length) restrictFind = restrictItem[0][1].restrictFind ?? restrictItem[0][1];  // limit to 'document/selections' only
 
 	let findValue = "";
-	let findItem = findReplaceArray.filter(item => item.find);  // returns an empty [] if nothing
-	if (findItem.length) findValue = findItem[0].find;
+	let findItem = Object.entries(findReplaceArray).filter(item => {
+		return (item[1].find || item[0] === 'find');
+	});  // returns an empty [] if nothing
+	if (findItem.length) findValue = findItem[0][1].find ?? findItem[0][1];
 	// no 'find' key generate a findValue useing the selected words/wordsAtCursors as the 'find' value
+	// TODO  what if find === "" empty string?
 	else findValue = _makeFind(editor.selections);
 
 	let replaceValue = null;
-	let replaceItem = findReplaceArray.filter(item => item.replace);
-	if (replaceItem.length) replaceValue = replaceItem[0].replace;
+	// lots of extra work because string.replace is a function and so true
+	// not the case for 'find' or 'restrictFind'
+	// possible to change to 'replace' in registerCommand?
+	let replaceItem = Object.entries(findReplaceArray).filter(item => {
+		if (typeof item[1] === 'string') return item[0] === 'replace';  // keybinding from a setting
+		else if (item[1].replace === '') return item;
+		else return item[1].replace;   // from keybinding not from a setting
+	});
+	if (replaceItem.length) {
+		if (typeof replaceItem[0][1] === 'string') replaceValue = replaceItem[0][1];
+		else replaceValue = replaceItem[0][1].replace;
+	}
 	else if (!findItem.length) replaceValue = "$1";  // if no replace key, set to $1
 
 	// no find and no replace
@@ -28,11 +41,11 @@ exports.findTransform = function (editor, edit, findReplaceArray) {
 		_findAndSelect(editor, findValue, restrictFind); // find and select all even if restrictFind === selections
 
 	// add all "empty selections" to editor.selections_replaceSelectionsLoop
-	else if (restrictFind === "selections" && replaceValue) {
+	else if (restrictFind === "selections" && replaceValue !== null) {
 		_addEmptySelectionMatches(editor);
 		_replaceSelectionsLoop(editor, edit, findValue, replaceValue);
 	}
-	else if (replaceValue) _replaceWholeDocument(editor, edit, findValue, replaceValue);
+	else if (replaceValue !== null) _replaceWholeDocument(editor, edit, findValue, replaceValue);
 	else _findAndSelect(editor, findValue, restrictFind);   // find but no replace
 }
 
@@ -85,7 +98,9 @@ function _addEmptySelectionMatches(editor) {
 		if (selection.isEmpty) {
 
 			let wordRange = editor.document.getWordRangeAtPosition(selection.start);
-			let word = editor.document.getText(wordRange);
+			let word;
+			if (wordRange) word = editor.document.getText(wordRange);
+			else return;
 
 			// get all the matches in the document
 			let fullText = editor.document.getText();
@@ -124,7 +139,7 @@ function _findAndSelect(editor, findValue, restrictFind) {
 
 		// get all the matches in the document
 		let fullText = editor.document.getText();
-		let matches = [...fullText.matchAll(new RegExp(findValue, "g"))];
+		let matches = [...fullText.matchAll(new RegExp(findValue, "gm"))];
 
 		matches.forEach((match, index) => {
 			let startPos = editor.document.positionAt(match.index);
@@ -146,7 +161,7 @@ function _findAndSelect(editor, findValue, restrictFind) {
 			else selectedRange = new vscode.Range(selection.start, selection.end);
 
 			let selectedText = editor.document.getText(selectedRange);
-			let matches = [...selectedText.matchAll(new RegExp(findValue, "g"))];
+			let matches = [...selectedText.matchAll(new RegExp(findValue, "gm"))];
 
 			matches.forEach((match) => {
 
@@ -178,7 +193,7 @@ function _findAndSelect(editor, findValue, restrictFind) {
  */
 function _replaceWholeDocument(editor, edit, findValue, replaceValue) {
 
-	const re = new RegExp(findValue, "g");
+	const re = new RegExp(findValue, "gm");
 	const firstLine = editor.document.lineAt(0);
 	const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
 	const matchRange = new vscode.Range(firstLine.range.start, lastLine.range.end);
@@ -207,7 +222,7 @@ function _replaceWholeDocument(editor, edit, findValue, replaceValue) {
  */
 function _replaceSelectionsLoop(editor, edit, findValue, replaceValue) {
 
-	const re = new RegExp(findValue, "g");
+	const re = new RegExp(findValue, "gm");
 
 	editor.selections.forEach(selection => {
 
@@ -225,7 +240,7 @@ function _replaceSelectionsLoop(editor, edit, findValue, replaceValue) {
 			});
 		};
 
-		if (replaceValue && doReplace) {
+		if (replaceValue !== null && doReplace) {
 			const matchRange = selectedRange;
 			edit.replace(matchRange, docString);
 		}
@@ -251,7 +266,9 @@ function _buildReplaceValue(replaceValue, groups) {
 	// groups.capGroupOnly is for '$n' with no case modifier
 	let identifiers;
 
-	if (replaceValue)
+	if (replaceValue === "") return replaceValue;
+
+	if (replaceValue !== null)
 		identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)/g)];
 
 	if (!identifiers.length) return replaceValue;
@@ -350,4 +367,17 @@ function _addToNextIdentifier(identifiers, i, replaceValue) {
  */
 function _stringBetweenIdentifiers(identifiers, i, replaceValue) {
 	return replaceValue.substring(identifiers[i].index + identifiers[i][0].length, identifiers[i + 1].index);
+}
+
+exports.getKeys = function () {
+	return ["title", "find", "replace", "restrictFind"];
+}
+
+exports.getDefaults = function () {
+	return {
+						"title": "",
+						"find": "",
+						"replace": "",
+						"restrictFind": "document"
+				};
 }

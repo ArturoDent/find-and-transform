@@ -1,37 +1,26 @@
-		const fileName = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
+let disposable = vscode.commands.registerCommand('yourExtensionName.someCommandName', async function () {
 
-		vscode.commands.executeCommand('workbench.action.findInFiles',
-			{
-				query: "(?<!\\w)(create|select|sum|drop|table|if|exists|day|group|by|order|min|max|and|else|iif|end|over|partition|distinct|desc)(?!\\w)",
-				replace: "\\U$1",
-				triggerSearch: true,
-				isRegex: true,
-				filesToInclude: fileName,
-				isCaseSensitive: true,
-				matchWholeWord: true
-				// preserveCase: true,
-				// useExcludeSettingsAndIgnoreFiles: true,
-				// filesToExclude: "./*.css"
-			}).then(() => {
-				setTimeout(() => {
-					vscode.commands.executeCommand('search.action.replaceAll');
-				}, 1000);
-			});
+  const fileName = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
 
-			---------------------------------------------------------------------------------------
+  vscode.commands.executeCommand('workbench.action.findInFiles',
+    {
+      query: "\"(.+)\"",
+      replace: "'$1'",
+      triggerSearch: true,
+      isRegex: true,
+      filesToInclude: fileName
+      // preserveCase: true,
+      // useExcludeSettingsAndIgnoreFiles: true,
+      // isCaseSensitive: true,
+      // matchWholeWord: true,
+      // filesToExclude: "./*.css"
+      }).then(() => {
+        setTimeout(() => {
+          vscode.commands.executeCommand('search.action.replaceAll');
+        }, 1000);
+      });
+});
 
-		// if (!args.find && !args.replace) {     // or not
-		// 	vscode.window
-    //     .showInformationMessage('You must have "find" and "replace" keys and values in your "find-and-transform.run" keybinding.',
-    //       ...['Got it'])   // one button
-    //     .then(selected => {
-    //       if (selected === 'Got it') vscode.commands.executeCommand('leaveEditorMessage');
-		// 		});
-		// 	return;
-		// }
+context.subscriptions.push(disposable);
 
-		-------------------------------------------------------------------------------------
-
-		This `find-and-transform.run` must supply an `args` section with  "find" and "replace" fields or you will see this inormation notification:
-
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/runWithoutArgs.jpg?raw=true" width="600" height="150" alt="notification to add find/replace args to run keybinding"/>
+---------------------------------------------------------------------------------------
