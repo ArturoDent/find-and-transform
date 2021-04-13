@@ -369,10 +369,18 @@ function _stringBetweenIdentifiers(identifiers, i, replaceValue) {
 	return replaceValue.substring(identifiers[i].index + identifiers[i][0].length, identifiers[i + 1].index);
 }
 
+/**
+ * Get just the findInCurrentFile args keys, like "title", "find", etc.
+ * @returns {Array}
+ */
 exports.getKeys = function () {
 	return ["title", "find", "replace", "restrictFind"];
 }
 
+/**
+ * Get the default values for all findInCurrentFile keys
+ * @returns {Object} - {"title": "", "find": ""}
+ */
 exports.getDefaults = function () {
 	return {
 						"title": "",

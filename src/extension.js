@@ -53,7 +53,6 @@ async function activate(context) {
 
 
 		let argsArray = [];
-		// args in keybinding may be in any order
 		if (args) {
 			argsArray = [
 				{ "title": "Keybinding for generic command run" },  // "title" is never used?
@@ -76,35 +75,9 @@ async function activate(context) {
 	// make a generic "runInSearchPanel" command for keybindings args using the search panel
 	let runInSearchPanelDisposable = vscode.commands.registerCommand('runInSearchPanel', async (args) => {
 
-				// find: "",
-				// replace: "",
-				// triggerSearch: true,                     // default is true
-				// isRegex: true,                           // default is true
-				// filesToInclude: "",                      // default is $file = current file
-				// preserveCase: true,                      // default is true
-				// useExcludeSettingsAndIgnoreFiles: true,  // default is true
-				// isCaseSensitive: true,                   // default is true
-				// matchWholeWord: false,                   // default is false
-				// filesToExclude: "./*.css"                // default is ""
-
 		let argsArray = [];
-		// args in keybinding may be in any order
-		if (args) {
-			argsArray = searchCommands.getKeysAndDefaultsFromArgs(args);
 
-			// argsArray = [
-			// 	{ "find":             args.find },
-			// 	{ "replace":          args.replace },
-			// 	{ "triggerSearch":    args.triggerSearch  ?? true},
-			// 	{ "isRegex":          args.isRegex        ?? true },
-			// 	{ "filesToInclude":   args.filesToInclude ?? "" },
-			// 	{ "preserveCase":     args.preserveCase   ?? true },
-			// 	{ "useExcludeSettingsAndIgnoreFiles": args.useExcludeSettingsAndIgnoreFiles ?? true },
-			// 	{ "isCaseSensitive": args.isCaseSensitive ?? true },
-			// 	{ "matchWholeWord":   args.matchWholeWord ?? false },
-			// 	{ "filesToExclude":   args.filesToExclude ?? "" }
-			// ];
-		}
+		if (args) argsArray = searchCommands.getObjectFromArgs(args);
 		else argsArray = [
 			{ "title": "Keybinding for generic command run" }
 		];

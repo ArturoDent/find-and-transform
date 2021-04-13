@@ -128,7 +128,7 @@ Examples of possible keybindings (in your `keybindings.json`):
 {
 	"key": "alt+z",
 	"command": "runInSearchPanel",       // note no second part of a command name
-	"args": {                            // args not set here will use their defaults
+	"args": {                            // args not set here will use their last values set in the Search Panel 
 		"find": "(?<=Arturo)\\d+",
 		"replace": "###",
 		"matchWholeWord": false,
@@ -357,7 +357,7 @@ If you have set `"restrictFind": "document"` any actual selections in the file w
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchIntellisense.gif?raw=true" width="650" height="300" alt="demo of search panel setting with intellisense"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchIntellisense.gif?raw=true" width="750" height="400" alt="demo of search panel setting with intellisense"/>
 
 ### Explanation: The `runInSearchPanel` command will do a search using the Search Panel.  This allows you to search the current file, folder or the entire workspace, for example.  
 
@@ -400,18 +400,19 @@ You can also create commands solely in a keybinding like:
 	}
 }
 ```
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchGeneric1.gif?raw=true" width="650" height="300" alt="demo of search panel setting with intellisense"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchGeneric1.gif?raw=true" width="750" height="400" alt="demo of search panel setting with intellisense"/>
 
 ### Explanation: Creating a Search Panel command in the keybindings only.  In this case, search for `^Arturo` preceding some digits and replace in the current file.  
 
 <br/>
 
-> Note: Regex lookbehinds that are **not fixed-length** (also called fixed-width sometimes), like `(?<=^Art[\w]*)` are not supported in the Search Panel.  But non-fixed-length lookbehinds are supported in vscode's Find in a file (as in using the Find widget) so they can be used in `findInCurrentFile` settings or keybindings.  This works:
+> Note: Regex lookbehinds that are **not fixed-length** (also called fixed-width sometimes), like `(?<=^Art[\w]*)` are not supported in the Search Panel.  But non-fixed-length lookbehinds are supported in vscode's Find in a file (as in using the Find widget) so they can be used in `findInCurrentFile` settings or keybindings.  This works:  
+
 
 ```jsonc
 {
 	"key": "alt+y",
-	"command": "findInCurrentFile",
+	"command": "findInCurrentFile",        // findInCurrentFile here
 	"args": {
 		"find": "(?<=^Art[\\w]*)\\d+",    // not fixed-length
 		"replace": "###"
@@ -434,39 +435,45 @@ but the same keybinding in `runInSearchPanel` will error and not run:
 
 -----------------------
 
-### -- `runInSearchPanel` arguments and defaults:  
+### -- `runInSearchPanel` arguments and types:  
 
 <br/>
 
 ```jsonc
-"title": "<some string>",             // can have spaces, will be shown in the Command Palette
+"title": "<some string>",        // can have spaces, will be shown in the Command Palette: "Find-Transform:My Title"
 
-"find": "<some string>",
+"find": "<some string>",         // if no find key or empty value, will use the selected text (as vscode does natively)
 
 "replace": "<some string>",
 
-"triggerSearch": true,           // boolean, same as the "Replace All" button, confirmation box will open
+"triggerSearch": <boolean>,      // boolean, same as the "Replace All" button, confirmation box will still open
 
-"isRegex": true,
+"isRegex": <boolean>,
 
-"filesToInclude": "${file}",               	// default is ${file} = current file
+"filesToInclude": "",            // default is "" = current workspace
 
-"preserveCase": true,
+"preserveCase": <boolean>,
 
-"useExcludeSettingsAndIgnoreFiles": true,
+"useExcludeSettingsAndIgnoreFiles": <boolean>,
 
-"isCaseSensitive": true,
+"isCaseSensitive": <boolean>,
 
-"matchWholeWord": false,                    // default is false
+"matchWholeWord": <boolean>,
 
 "filesToExclude": "<some string>"
 ```
 
-You will get intellisense presenting these arguments. Some work remains on making this experience nicer though.  
+You will get intellisense presenting these arguments.   And the completions will be filtered to remove any options arlready used in that setting or keybinding.  
 
 <br/>
 
-The `filesToInclude` argument supports these values:  
+> As noted above, if you have a `runInSearchPanel` command with no `find` key at all, then the selected text will be used as the query term.  Likewise, if you have a `find` key but with a value of the empty string `""`, the selected text will be used.    
+
+> Note: The Search Panel remembers your option selections, like `matchWholeWord` `true/false` for example.  Thus, that option value will persist from call to call of the Search Panel.  If you want to change a value in a setting or keybinding then realize that value will remain as set the next time `runInSearchPanel` is run.  That is how vscode operates.  You can either set a value in the keybinding or setting or manually change it once the Search Panel pops up.   
+
+<br/>
+
+The `filesToInclude` argument supports these variables as values:  
 
 	"${file}"  
 	"${relativeFile}"  
@@ -478,19 +485,21 @@ The `filesToInclude` argument supports these values:
 	"${selectedText}"  
 	"${pathSeparator}"  
 
-They should have the same resolved values as found at [pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
+They should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
 
------------------------
+-----------------------  
+
+<br/>
 
 ## Todo
 
-* Filter intellisense for previously used args options in  `runInSearchPanel` settings.    
-* Add more error messages, like capture group in replace but not in find.    
+* Add more error messages, like if a capture group used in replace but none in the find.    
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
 * Explore adding a command `setCategory` setting.   
-* Explore adding settings to change default values for `filesToInclude` usage.  
-* Support more string operations (e.g., `subString()`, `trim()`, `++`) in the settings/args?    
-* Support replacing with current match index?   
+* Explore adding settings to change default values for `filesToInclude` usage or other keys.
+* Explore support for some snippet variables, like `Clipboard`, `Line Number`, etc.    
+* Explore more string operations (e.g., `substring()`, `trim()`, `++`) in the replace settings/args?    
+* Explore replacing with current match index?   
 
 
 ## Release Notes
@@ -504,7 +513,8 @@ They should have the same resolved values as found at [pre-defined variables doc
 	&emsp;&emsp; If no find or replace, will select all matches of word at cursor or selection.  
 	&emsp;&emsp; Added many README examples and explanations.   
 * 0.5.0	Added option to use Search Panel with confirmation and all supported options.  
-	&emsp;&emsp; Added intellisense for `runInSearchPanel` args.      
+	&emsp;&emsp; Added intellisense for `runInSearchPanel` args with filtering.  
+	&emsp;&emsp; Use the current selection if no `find` entry or it is set to the empty string.        
 
 -----------------------------------------------------------------------------------------------------------  
 
@@ -513,4 +523,4 @@ They should have the same resolved values as found at [pre-defined variables doc
 
 For an example using a hard-coded find and replace regex with case modifiers, see **[uppcaseKeywords](uppcaseKeywords.md)**.
 
-<br/>
+<br/><br/>

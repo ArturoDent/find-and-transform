@@ -1,26 +1,35 @@
-let disposable = vscode.commands.registerCommand('yourExtensionName.someCommandName', async function () {
+function _findSettingRange(index, settingsText, document) {
 
-  const fileName = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
+	const re = /({)|(})/;
+	let brackets = 0;
+	// let offset = index;
+	let offset = 0;
+	let match;
 
-  vscode.commands.executeCommand('workbench.action.findInFiles',
-    {
-      query: "\"(.+)\"",
-      replace: "'$1'",
-      triggerSearch: true,
-      isRegex: true,
-      filesToInclude: fileName
-      // preserveCase: true,
-      // useExcludeSettingsAndIgnoreFiles: true,
-      // isCaseSensitive: true,
-      // matchWholeWord: true,
-      // filesToExclude: "./*.css"
-      }).then(() => {
-        setTimeout(() => {
-          vscode.commands.executeCommand('search.action.replaceAll');
-        }, 1000);
-      });
-});
+	// count braces until matching closing brace; will be end of this setting
+	do {
+		match = settingsText.match(re);
+		if (match[0] === '{') ++brackets;
+		if (match[0] === '}') --brackets;
 
-context.subscriptions.push(disposable);
+		if (brackets) {
+			offset += match.index + 1;
+			settingsText = settingsText.substring(match.index + 1);
+		}
+		else offset += match.index;
+	} while (brackets);
+
+	/** @type { vscode.Position } */
+	let settingStartPos;
+	let settingEndPos;
+
+	if (index) {
+		settingStartPos = document.positionAt(index);  // start of setting
+		settingEndPos = document.positionAt(index + offset);  // end of setting
+	}
+	else return undefined;
+
+	return new vscode.Range(settingStartPos, settingEndPos);
+}
 
 ---------------------------------------------------------------------------------------
