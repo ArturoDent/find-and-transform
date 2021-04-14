@@ -2,7 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find text and transform it with case modifiers",
- "version": "0.5.0",
+ "version": "0.5.5",
  "preview": true,
  "engines": {
   "vscode": "^1.54.0"
@@ -18,7 +18,10 @@
  ],
  "activationEvents": [
   "onStartupFinished",
-  "onCommand:findInCurrentFile.upcaseAllKeywords"
+  "onCommand:findInCurrentFile.upcaseAllKeywords",
+  "onCommand:findInCurrentFile.upcaseSwap2",
+  "onCommand:findInCurrentFile.upcaseSelectedKeywords",
+  "onCommand:runInSearchPanel.removeDigits"
  ],
  "main": "./src/extension.js",
  "contributes": {
@@ -26,6 +29,21 @@
    {
     "command": "findInCurrentFile.upcaseAllKeywords",
     "title": "Uppercase all Keywords",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.upcaseSwap2",
+    "title": "swap iif <==> hello",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.upcaseSelectedKeywords",
+    "title": "Uppercase selected Keywords",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "runInSearchPanel.removeDigits",
+    "title": "Remove digits from Arturo",
     "category": "Find-Transform"
    }
   ],

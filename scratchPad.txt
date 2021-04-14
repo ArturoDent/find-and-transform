@@ -33,3 +33,32 @@ function _findSettingRange(index, settingsText, document) {
 }
 
 ---------------------------------------------------------------------------------------
+
+/**
+ * Replace all find matches in the entire document
+ *
+ * @param {vscode.window.activeTextEditor} editor
+ * @param {vscode.TextEditorEdit} edit
+ * @param {String} findValue
+ * @param {String} replaceValue
+ */
+function _replaceWholeDocument(editor, edit, findValue, replaceValue) {
+
+	const re = new RegExp(findValue, "gm");
+	const firstLine = editor.document.lineAt(0);
+	const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
+	const matchRange = new vscode.Range(firstLine.range.start, lastLine.range.end);
+
+	let docString = editor.document.getText();
+	let doReplace = false;
+
+	if (re.test(docString)) {  // boolean, must be a global regexp
+
+		doReplace = true;
+		// find all matches in iteratively reduced docString
+		docString = docString.replace(re, (...groups) => {
+			return _buildReplaceValue(replaceValue, groups);
+		});
+	};
+	if (doReplace) edit.replace(matchRange, docString);
+}

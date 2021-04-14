@@ -191,25 +191,20 @@ function _findAndSelect(editor, findValue, restrictFind) {
  * @param {String} findValue
  * @param {String} replaceValue
  */
-function _replaceWholeDocument(editor, edit, findValue, replaceValue) {
+async function _replaceWholeDocument(editor, edit, findValue, replaceValue) {
 
 	const re = new RegExp(findValue, "gm");
-	const firstLine = editor.document.lineAt(0);
-	const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
-	const matchRange = new vscode.Range(firstLine.range.start, lastLine.range.end);
+	const docString = editor.document.getText();
+	const matches = [...docString.matchAll(re)];
 
-	let docString = editor.document.getText();
-	let doReplace = false;
+	for (const match of matches) {
 
-	if (re.test(docString)) {  // boolean, must be a global regexp
-
-		doReplace = true;
-		// find all matches in iteratively reduced docString
-		docString = docString.replace(re, (...groups) => {
-			return _buildReplaceValue(replaceValue, groups);
-		});
-	};
-	if (doReplace) edit.replace(matchRange, docString);
+		const replacement = _buildReplaceValue(replaceValue, match);
+		const matchStartPos = editor.document.positionAt(match.index);
+		const matchEndPos = editor.document.positionAt(match.index + match[0].length);
+		const matchRange = new vscode.Range(matchStartPos, matchEndPos)
+		edit.replace(matchRange, replacement);
+	}
 }
 
 /**
@@ -299,7 +294,6 @@ function _buildReplaceValue(replaceValue, groups) {
 					case "\\U":
 						if (groups[thisGroup]) {
 							buildReplace += groups[thisGroup].toUpperCase();
-							//
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
 						// case "\\U$n" but there is no matching capture group

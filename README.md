@@ -171,7 +171,7 @@ An example of keybinding with **NO associated setting**, in `keybindings.json`:
 
 <br/>
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="650" height="300" alt="demo of generic find-and-transform.run keybinding"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="650" height="300" alt="demo of generic findInCurrentFile keybinding"/>  
 
 <br/>
 
@@ -213,7 +213,7 @@ The downside to this method is that the various commands are not kept in one pla
 ```jsonc
 {
 	"key": "alt+y",
-	"command": "find-and-transform.run",
+	"command": "findInCurrentFile",
 	"args": {
 		"find": "(create|table|exists)",
 		// "replace": "\\U$1",
@@ -231,7 +231,7 @@ The downside to this method is that the various commands are not kept in one pla
 
 <br/>  
 
-* Generic `run` command in `keybindings.json` only, with `find` and `replace` keys   
+* Generic `findInCurrentFile` command in `keybindings.json` only, with `find` and `replace` keys   
 
 ```jsonc
 {
@@ -252,7 +252,7 @@ The downside to this method is that the various commands are not kept in one pla
 
 <br/>  
 
-* Generic `run` command in `keybindings.json` only, with a `replace` key but NO `find` key   
+* Generic `findInCurrentFile` command in `keybindings.json` only, with a `replace` key but NO `find` key   
 
 ```jsonc
 {
@@ -433,6 +433,28 @@ but the same keybinding in `runInSearchPanel` will error and not run:
 }
 ```
 
+-------------  
+
+**What if you have no `find` entry in a keybinding or setting?** 
+
+```jsonc
+{
+	"key": "alt+z",
+	"command": "runInSearchPanel",
+	"args": {
+		//"find": "<someText>",  // assume no "find" entry
+		"replace": "###",        // optional
+		"triggerSearch": true    // optional
+	}
+}
+```
+
+If there is no `"find"` entry, this extension will either use the first selection in the current file or the current word at the cursor as the search query.  In the demo below, text with a ***blue background*** is selected:  
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindSearch.gif?raw=true" width="750" height="600" alt="demo of search panel setting with intellisense"/>  
+
+<br/>
+
 -----------------------
 
 ### -- `runInSearchPanel` arguments and types:  
@@ -499,7 +521,8 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 * Explore adding settings to change default values for `filesToInclude` usage or other keys.
 * Explore support for some snippet variables, like `Clipboard`, `Line Number`, etc.    
 * Explore more string operations (e.g., `substring()`, `trim()`, `++`) in the replace settings/args?    
-* Explore replacing with current match index?   
+* Explore replacing with current match index?
+* Explore supporting conditionals, like snippets: `${2:+yada}`   
 
 
 ## Release Notes
@@ -514,13 +537,14 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 	&emsp;&emsp; Added many README examples and explanations.   
 * 0.5.0	Added option to use Search Panel with confirmation and all supported options.  
 	&emsp;&emsp; Added intellisense for `runInSearchPanel` args with filtering.  
-	&emsp;&emsp; Use the current selection if no `find` entry or it is set to the empty string.        
+	&emsp;&emsp; Use the current selection if no `find` entry or it is set to the empty string.    
+* 0.5.5	Refactored to use matchRange for edits in whole document rather than entire text.   
+  &emsp;&emsp; Added supported for empty selections to `runInSearchPanel` query creation.  
 
 -----------------------------------------------------------------------------------------------------------  
 
 <br/>  
 <br/> 
 
-For an example using a hard-coded find and replace regex with case modifiers, see **[uppcaseKeywords](uppcaseKeywords.md)**.
-
+For an example usin
 <br/><br/>

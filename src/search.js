@@ -70,8 +70,16 @@ exports.useSearchPanel = function (findArray) {
 		}
 	});
 
-	// if no find key use selection[0]?
-	if (!obj['query']) obj['query'] = vscode.window.activeTextEditor.document.getText(vscode.window.activeTextEditor.selections[0]);
+	// if no find key use selections[0] or getWordRangeAtPosition()
+	if (!obj['query']) {
+		const document = vscode.window.activeTextEditor.document;
+		const selections = vscode.window.activeTextEditor.selections;
+		if (selections.length === 1 && selections[0].isEmpty) {
+			const wordRange = document.getWordRangeAtPosition(selections[0].start);
+			obj['query'] = document.getText(wordRange);
+		}
+		else obj['query'] = document.getText(selections[0]);
+	}
 
 	vscode.commands.executeCommand('workbench.action.findInFiles',
 		obj	).then(() => {
