@@ -18,10 +18,7 @@
  ],
  "activationEvents": [
   "onStartupFinished",
-  "onCommand:findInCurrentFile.upcaseAllKeywords",
-  "onCommand:findInCurrentFile.upcaseSwap2",
-  "onCommand:findInCurrentFile.upcaseSelectedKeywords",
-  "onCommand:runInSearchPanel.removeDigits"
+  "onCommand:findInCurrentFile.upcaseAllKeywords"
  ],
  "main": "./src/extension.js",
  "contributes": {
@@ -29,21 +26,6 @@
    {
     "command": "findInCurrentFile.upcaseAllKeywords",
     "title": "Uppercase all Keywords",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.upcaseSwap2",
-    "title": "swap iif <==> hello",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.upcaseSelectedKeywords",
-    "title": "Uppercase selected Keywords",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "runInSearchPanel.removeDigits",
-    "title": "Remove digits from Arturo",
     "category": "Find-Transform"
    }
   ],
