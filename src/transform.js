@@ -170,7 +170,6 @@ function _findAndSelect(editor, findValue, restrictFind) {
 				if (selection.isEmpty && (match.index + editor.document.offsetAt(selection.start) === editor.document.offsetAt(selection.start))) {
 					selectionStart = editor.document.offsetAt(selectedRange.start);
 				}
-				// else if (selection.isEmpty) selectionStart = 0;  // doesn't seem necessary
 				else selectionStart = editor.document.offsetAt(selection.start);
 
 				let startPos = editor.document.positionAt(match.index + selectionStart);
@@ -368,6 +367,7 @@ function _stringBetweenIdentifiers(identifiers, i, replaceValue) {
  * @returns {Array}
  */
 exports.getKeys = function () {
+	// return ["title", "find", "replace", "restrictFind"];
 	return ["title", "find", "replace", "restrictFind"];
 }
 

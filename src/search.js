@@ -54,18 +54,24 @@ exports.getDefaults = function () {
  * Register a command that uses the Search Panel
  * @param {Object} findArray
  */
-exports.useSearchPanel = function (findArray) {
+exports.useSearchPanel = async function (findArray) {
 
 	const obj = new Object();
 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 	if (isfilesToInclude) {
-		obj["filesToInclude"] = _parseVariables(isfilesToInclude);
+		obj["filesToInclude"] = await _parseVariables(isfilesToInclude.filesToInclude);
 	}
+
+	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
+	if (find?.find === "${CLIPBOARD}") {
+		obj["query"] = await _parseQuery(find.find);
+	}
+	else if (find.find) obj["query"] = find.find;
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];
 		if (key !== "filesToInclude") {
-			if (key === "find") obj[`query`] = Object.values(arg)[0];
+			if (!obj[`query`]) obj[`query`] = Object.values(arg)[0];
 			else obj[`${ key }`] = Object.values(arg)[0];
 		}
 	});
@@ -90,28 +96,51 @@ exports.useSearchPanel = function (findArray) {
 		});
 }
 
-// * ${workspaceFolder} - the path of the folder opened in VS Code
-// * ${workspaceFolderBasename} - the name of the folder opened in VS Code without any slashes (/)
-// * ${file} - the current opened file
-// * ${fileWorkspaceFolder} - the current opened file's workspace folder
-// * ${relativeFile} - the current opened file relative to workspaceFolder
-// * ${relativeFileDirname} - the current opened file's dirname relative to workspaceFolder
-// * ${fileDirname} - the current opened file's dirname
-// ${cwd} - the task runner's current working directory on startup
-// * ${selectedText} - text selected in your code editor, used for the query if none
-// * ${pathSeparator} - / on macOS or linux, \\ on Windows
+
+/**
+ * If the "find" value uses a variable(s) return the resolved value
+ * @param {*} find - the "find" value
+ * @returns {Promise<String>}
+ */
+async function _parseQuery(find) {
+
+	if (typeof find !== 'string') return "";
+	const re = /(\${CLIPBOARD})/g;
+	const matches = [...find.matchAll(re)];
+	if (!matches.length) return find;
+
+	for (const item of matches) {
+
+		let resolved = "";
+
+		switch (item[1]) {
+
+			case "${CLIPBOARD}":
+				await vscode.env.clipboard.readText().then(string => {
+					resolved = string;
+				});
+				break;
+
+			default:
+				break;
+		}
+		find = find.replace(item[1], resolved);
+	}
+
+	return find;
+}
 
 
 /**
- * If the filesToInclude value uses a variable(s) return the resolved value
- * @param {String} include - the filesToInclude value
- * @returns {String}
+ * If the "filesToInclude" value uses a variable(s) return the resolved value
+ * @param {String} include - the "filesToInclude" value
+ * @returns {Promise<String>}
  */
-function _parseVariables(include) {
+async function _parseVariables(include) {
 
 	if (typeof include !== 'string') return "";
 
-	const re = /(\${file}|\${relativeFile}|\${fileDirname}|\${fileWorkspaceFolder}|\${workspaceFolder}|\${relativeFileDirname}|\${workspaceFolderBasename}|\${selectedText}|\${pathSeparator})/g;
+	const re = /(\${file}|\${relativeFile}|\${fileDirname}|\${fileWorkspaceFolder}|\${workspaceFolder}|\${relativeFileDirname}|\${workspaceFolderBasename}|\${selectedText}|\${pathSeparator}|\${CLIPBOARD})/g;
 
 	const matches = [...include.matchAll(re)];
 	if (!matches.length) return include;
@@ -119,7 +148,6 @@ function _parseVariables(include) {
 	let filePath = vscode.window.activeTextEditor.document.uri.path;
 	let relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
 
-	// let ws = vscode.window.activeTextEditor.
 	// if no filePath message to open an editor TODO
 
 	for (const item of matches) {
@@ -158,6 +186,12 @@ function _parseVariables(include) {
 
 			case "${selectedText}":
 				resolved = vscode.window.activeTextEditor.document.getText(vscode.window.activeTextEditor.selections[0]);
+				break;
+
+			case "${CLIPBOARD}":
+				await vscode.env.clipboard.readText().then(string => {
+					resolved = string;
+				});
 				break;
 
 			case "${pathSeparator}":

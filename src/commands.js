@@ -71,12 +71,6 @@ function _makePackageCommandsFromFindSettings (settings) {
   let settingsJSON = [];
 	let category = "Find-Transform";
 
-	let newCommand = {};
-	newCommand.command = "findInCurrentFile.upcaseAllKeywords";
-	newCommand.title = "Uppercase all Keywords";
-	newCommand.category = category;
-	settingsJSON.push(newCommand);
-
   for (const setting of settings) {
 		let newCommand = {};
 		newCommand.command = `findInCurrentFile.${ setting[0] }`;

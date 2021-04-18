@@ -20,7 +20,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 						// 	"args": {
 						// 		"find"              : "<string>",
 						// 		"replace"           : "<string>",
-						// 		"restrictFind  "    : "selections"        // or "document"
+						// 		"restrictFind"      : "selections",        // or "document"
 						// 	}
 						// }
 
@@ -88,14 +88,14 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 					if (search && argsRange.contains(position) && linePrefix.search(searchArgsRegex) !== -1)
 						return _makeSearchArgsCompletions(position, linePrefix);
 
-					const runFindArgs = findCommands.getKeys().slice(1);
-					const runSearchArgs = searchCommands.getKeys().slice(1);
+					let runFindArgs = findCommands.getKeys().slice(1);       // remove title
+					const runSearchArgs = searchCommands.getKeys().slice(1); // remove title
 
 					// eliminate any options already used
-					if (find && (linePrefix.search(/^\s*"(find|replace|restrictFind)"\s*:\s*"/) === -1)) {
+					if (find && (linePrefix.search(/^\s*"$/m) !== -1)) {
 						return _filterCompletionsItemsNotUsed(runFindArgs, argsText, position);
 					}
-					else if (search && (linePrefix.search(searchArgsRegex) === -1)) {
+					if (search && (linePrefix.search(/^\s*"$/m) !== -1)) {
 						return _filterCompletionsItemsNotUsed(runSearchArgs, argsText, position);
 					}
 					else return undefined;
@@ -147,12 +147,6 @@ exports.makeSettingsCompletionProvider = function(context) {
 				const searchCommandNode = rootNode.children?.find(child => child.children[0]?.value === "runInSearchPanel");
 				if (!findCommandNode && !searchCommandNode) return undefined;
 
-				// const inFindCommand = findCommandNode.children[1].children.find(child => {
-				// 	const startOffset = child.children[1].offset;
-				// 	const findSubCommandRange = new vscode.Range(document.positionAt(startOffset), document.positionAt(startOffset + child.children[1].length));
-				// 	return findSubCommandRange.contains(position);
-				// });
-
 				const node = jsonc.findNodeAtOffset(rootNode, document.offsetAt(position));
 				const curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
 
@@ -162,8 +156,6 @@ exports.makeSettingsCompletionProvider = function(context) {
 				if (command === 'findInCurrentFile') find = true;
 				else if (command === 'runInSearchPanel') search = true;
 				else return undefined;  // not in our keybindings
-
-				// if (curLocation?.path[1] !== 'args') return undefined;
 
 				let keysText = "";
 
@@ -185,15 +177,16 @@ exports.makeSettingsCompletionProvider = function(context) {
 					];
 				}
 
-				const runFindArgs = findCommands.getKeys().slice(1);
-				const runSearchArgs = searchCommands.getKeys().slice(1);
-				const searchArgsRegex = /^\s*"(find|replace|triggerSearch|isRegex|filesToInclude|preserveCase|useExcludeSettingsAndIgnoreFiles|isCaseSensitive|matchWholeWord|filesToExclude)"\s*:\s*"/;
+				// const runFindArgs = findCommands.getKeys().slice(1);     // remove title
+				// const runSearchArgs = searchCommands.getKeys().slice(1); // remove title
+				const runFindArgs = findCommands.getKeys();     // remove title
+				const runSearchArgs = searchCommands.getKeys(); // remove title
 
 				// eliminate any options already used
-				if (find && (linePrefix.search(/^\s*"(find|replace|restrictFind)"\s*:\s*"/) === -1)) {
+				if (find && (linePrefix.search(/^\s*"$/m) !== -1)) {
 					return _filterCompletionsItemsNotUsed(runFindArgs, keysText, position);
 				}
-				else if (search && (linePrefix.search(searchArgsRegex) === -1)) {
+				else if (search && (linePrefix.search(/^\s*"$/m) !== -1)) {
 					return _filterCompletionsItemsNotUsed(runSearchArgs, keysText, position);
 				}
 				else return undefined;
@@ -333,9 +326,8 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	/** @type { Array<vscode.CompletionItem> } */
 	let completionArray = [];
 
-	// does account for commented options (in keybindings at least)
+	// account for commented options (in keybindings and settings)
 	argArray.forEach(option => {
-		// if (!argsText.includes(`"${ option }"`))
 		if (argsText.search(new RegExp(`^[ \t]*"${option}"`, "gm")) === -1)
 				completionArray.push(_makeCompletionItem(option, position, defaults[`${ option }`], priority[`${ option }`]));
 	});

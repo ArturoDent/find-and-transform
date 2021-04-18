@@ -3,10 +3,11 @@ const commands = require('./commands');
 const findCommands = require('./transform');
 const searchCommands = require('./search');
 const providers = require('./completionProviders');
-
+const codeActions = require('./codeActions');
 
 /** @type { Array<vscode.Disposable> } */
 let disposables = [];
+
 
 
 /**
@@ -14,34 +15,10 @@ let disposables = [];
  */
 async function activate(context) {
 
-	_loadSettingsAsCommands(context, disposables);
+	await _loadSettingsAsCommands(context, disposables);
 
 	await providers.makeKeybindingsCompletionProvider(context);
 	await providers.makeSettingsCompletionProvider(context);
-
-	// -----------------------------------------------------------------------------------------------------------
-
-		// a sample command using a hard-written find regex and upperCase replacements
-	let disposable = vscode.commands.registerTextEditorCommand('findInCurrentFile.upcaseAllKeywords', async (editor, edit) => {
-
-		const docString = editor.document.getText();
-		const re = /(?<!\w)(create|select|sum|drop|table|if|exists|day|group|by|order|min|max|and|else|iif|end|over|partition|distinct|desc)(?!\w)/g;
-		const matches = [...docString.matchAll(re)];
-
-		if (matches) {
-			matches.forEach((match) => {
-
-				// this matchRange can be used if find matches are single words only
-				// const matchRange = editor.document.getWordRangeAtPosition(editor.document.positionAt(match.index));
-
-				// use this matchRange if matches can be more than a single word
-				const matchRange = new vscode.Range(editor.document.positionAt(match.index), editor.document.positionAt(match.index + match[0].length));
-
-				edit.replace(matchRange, match[1].toUpperCase());
-			});
-		}
-	});
-	context.subscriptions.push(disposable);
 
 	// ---------------------------------------------------------------------------------------------------------------------
 
@@ -126,13 +103,13 @@ async function _loadSettingsAsCommands(context, disposables) {
 
 		if (findSettings.length) {
 			await commands.registerFindCommands(findSettings, context, disposables);
+			await codeActions.makeCodeActionProvider(context, findSettings);
 		}
 
 		if (searchSettings.length) {
 			await commands.registerSearchCommands(searchSettings, context, disposables);
 		}
 }
-
 
 // exports.activate = activate;
 

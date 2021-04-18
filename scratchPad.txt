@@ -62,3 +62,41 @@ function _replaceWholeDocument(editor, edit, findValue, replaceValue) {
 	};
 	if (doReplace) edit.replace(matchRange, docString);
 }
+
+-----------------------------------
+
+function createCommand() {
+	const action = new vscode.CodeAction('Learn more...', vscode.CodeActionKind.Source);
+	action.command = { command: "findInCurrentFile.upcaseSwap2", title: 'swap iif <==> hello', tooltip: 'You are a superstar!!' };
+	return action;
+}
+
+---------------------------------
+
+		// a sample command using a hard-written find regex and upperCase replacements
+	let disposable = vscode.commands.registerTextEditorCommand('findInCurrentFile.upcaseAllKeywords', async (editor, edit) => {
+
+		const docString = editor.document.getText();
+		const re = /(?<!\w)(create|select|sum|drop|table|if|exists|day|group|by|order|min|max|and|else|iif|end|over|partition|distinct|desc)(?!\w)/g;
+		const matches = [...docString.matchAll(re)];
+
+		if (matches) {
+			matches.forEach((match) => {
+
+				// this matchRange can be used if find matches are single words only
+				// const matchRange = editor.document.getWordRangeAtPosition(editor.document.positionAt(match.index));
+
+				// use this matchRange if matches can be more than a single word
+				const matchRange = new vscode.Range(editor.document.positionAt(match.index), editor.document.positionAt(match.index + match[0].length));
+
+				edit.replace(matchRange, match[1].toUpperCase());
+			});
+		}
+	});
+	context.subscriptions.push(disposable);
+
+	// let newCommand = {};
+	// newCommand.command = "findInCurrentFile.upcaseAllKeywords";
+	// newCommand.title = "Uppercase all Keywords";
+	// newCommand.category = category;
+	// settingsJSON.push(newCommand);

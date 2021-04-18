@@ -2,7 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find text and transform it with case modifiers",
- "version": "0.5.5",
+ "version": "0.6.0",
  "preview": true,
  "engines": {
   "vscode": "^1.54.0"
@@ -17,17 +17,11 @@
   "Other"
  ],
  "activationEvents": [
-  "onStartupFinished",
-  "onCommand:findInCurrentFile.upcaseAllKeywords"
+  "onStartupFinished"
  ],
  "main": "./src/extension.js",
  "contributes": {
   "commands": [
-   {
-    "command": "findInCurrentFile.upcaseAllKeywords",
-    "title": "Uppercase all Keywords",
-    "category": "Find-Transform"
-   }
   ],
   "configuration": [
    {

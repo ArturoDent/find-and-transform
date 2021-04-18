@@ -1,6 +1,6 @@
 # find-and-transform
 
-Find and transform text in a single file.  
+Find and transform text in a single file, folder, workspace or custom group.    
 
 1.   &emsp; Any number of find/replace combinations can be saved in settings and triggered either by the Command Palette or a keybinding.
 2.   &emsp; Replacements can include case modifiers, like `\U`.  
@@ -8,7 +8,8 @@ Find and transform text in a single file.
 4.   &emsp; Keybindings can be quite generic, not necessarily including `find` or `replace` keys.  
 5.   &emsp; A command can be created right in a keybinding, without using a setting at all.  
 6.   &emsp; Can also use pre-defined searches using the Search Panel.  
-7.   &emsp; Supports using various path variables in the Search Panel.    
+7.   &emsp; Supports using various path variables in the Search Panel.  
+8.   &emsp; All `findInCurrentFile` commands can be used in `editor.codeActionsOnSave`.  
 
  The replace transforms can include ***case modifiers*** like:  
 
@@ -48,6 +49,13 @@ or
 1.  Make a setting to use the Search Panel with many options, like `title`, `find`, `replace`, `triggerSearch`, `isRegex`, `filesToInclude` and more (see below).  
 2.  Save your `settings.json` file. Reload VS Code as prompted.  
 3.  Trigger that command from the Command Palette by searching for that name or use that name in a keybinding.  
+
+or  
+
+1.  Make one or more `findInCurrentFile` command settings.  
+2.  Use one or more in an `editor.codeActionsOnSave` setting.  
+3.  Save file and those commands will automatically be run in order.  
+> For more on this `codeActionsOnSave` usage see [running commands on save](codeActions.md).  
 
 <br/>  
 
@@ -497,15 +505,22 @@ You will get intellisense presenting these arguments.   And the completions will
 
 The `filesToInclude` argument supports these variables as values:  
 
-	"${file}"  
-	"${relativeFile}"  
-	"${fileDirname}"  
-	"${fileWorkspaceFolder}"  
-	"${workspaceFolder}"  
-	"${relativeFileDirname}"  
-	"${workspaceFolderBasename}"  
-	"${selectedText}"  
-	"${pathSeparator}"  
+* "${file}"  
+* "${relativeFile}"  
+* "${fileDirname}"  
+* "${fileWorkspaceFolder}"  
+* "${workspaceFolder}"  
+* "${relativeFileDirname}"  
+* "${workspaceFolderBasename}"  
+* "${selectedText}"  
+* "${pathSeparator}"  
+* "${CLIPBOARD}"   
+
+<br/>
+
+The `find` argument (only in the `runInSearchPanel` setting or keybinding) supports this variable as values:  
+
+* "${CLIPBOARD}"  
 
 They should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
 
@@ -517,7 +532,7 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 
 * Add more error messages, like if a capture group used in replace but none in the find.    
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
-* Explore adding a command `setCategory` setting.   
+* Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?    
 * Explore adding settings to change default values for `filesToInclude` usage or other keys.
 * Explore support for some snippet variables, like `Clipboard`, `Line Number`, etc.    
 * Explore more string operations (e.g., `substring()`, `trim()`, `++`) in the replace settings/args?    
@@ -528,7 +543,7 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 ## Release Notes
 
 * 0.1.0	Initial release.
-* 0.2.0	Replace with case modifiers work better.
+* 0.2.0	Replace with case modifiers now work better.
 * 0.3.0	Added a generic `find-and-transform.run` command for use in keybindings with `args`.  (later refactored away)  
   &emsp;&emsp; Work on capture groups without case modifiers.  
 * 0.4.0	Added intellisense for settings and keybindings.  
@@ -540,11 +555,10 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 	&emsp;&emsp; Use the current selection if no `find` entry or it is set to the empty string.    
 * 0.5.5	Refactored to use matchRange for edits in whole document rather than entire text.   
   &emsp;&emsp; Added supported for empty selections to `runInSearchPanel` query creation.  
+* 0.6.0	Added support for `CodeActions` so commands from settings can be run on save.   
+  &emsp;&emsp; Added `${CLIPBOARD}` support to `runInSearchPanel` `find` value.  
 
 -----------------------------------------------------------------------------------------------------------  
 
 <br/>  
 <br/> 
-
-For an example usin
-<br/><br/>
