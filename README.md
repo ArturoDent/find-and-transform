@@ -366,7 +366,7 @@ except that a **reload of vscode is required** prior to using the generated comm
   },
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMove arg with restrictFind of 'once'/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMove arg with restrictFind of 'once'"/>
 
 ### Explanation: Find any `>` within selection(s) and replace them with ` class=\"@\">`.  Then move the cursor(s) to the `@` and select it.  `moveCursor` value can be any text, even the regex delimiters `^` and `$` which mean line or selection start and end.    
 
