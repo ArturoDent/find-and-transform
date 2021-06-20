@@ -15,90 +15,93 @@ exports.makeKeybindingsCompletionProvider = function(context) {
         provideCompletionItems(document, position) {
 
            	// {
-						// 	"key": "alt+r",
-						// 	"command": "findInCurrentFile",  // runInSearchPanel
-						// 	"args": {
-						// 		"find"              : "<string>",
-						// 		"replace"           : "<string>",
-						// 		"restrictFind"      : "selections",        // or "document"
-						// 	}
-						// }
+			// 	"key": "alt+r",
+			// 	"command": "findInCurrentFile",  // runInSearchPanel
+			// 	"args": {
+			// 		"find"              : "<string>",
+			// 		"replace"           : "<string>",
+			// 		"restrictFind"      : "selections",        // or "document", "line", "once"
+			// 		"cursorMove"        : "<string>"
+			// 	}
+			// }
 
-					const linePrefix = document.lineAt(position).text.substr(0, position.character);
+			const linePrefix = document.lineAt(position).text.substr(0, position.character);
 
-					// ---------------    command completion start   ----------------------------
+			// ---------------    command completion start   ----------------------------
 
-					let find = false;
-					let search = false;
-					if (linePrefix.search(/^\s*"command":\s*"(findInCurrentFile)./) !== -1) find = true;
-					if (linePrefix.search(/^\s*"command":\s*"(runInSearchPanel)./) !== -1) search = true;
+			let find = false;
+			let search = false;
+			if (linePrefix.search(/^\s*"command":\s*"(findInCurrentFile)./) !== -1) find = true;
+			if (linePrefix.search(/^\s*"command":\s*"(runInSearchPanel)./) !== -1) search = true;
 
-					if (find || search) {
+			if (find || search) {
 
-						let thisExtension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
-						let packageCommands = thisExtension.packageJSON.contributes.commands;
+				const thisExtension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
+				const packageCommands = thisExtension.packageJSON.contributes.commands;
 
-						let completionArray = [];
+				const completionArray = [];
 
-						packageCommands.forEach(pcommand => {
-							// "command": "findInCurrentFile.upcaseSwap2",
-							if (find && pcommand.command.startsWith("findInCurrentFile")) {
-								completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), position, null));
-							}
-							else if (search && pcommand.command.startsWith("runInSearchPanel")) {
-								completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), position, null));
-							}
-						});
-						return completionArray;
+				packageCommands.forEach(pcommand => {
+					// "command": "findInCurrentFile.upcaseSwap2",
+					if (find && pcommand.command.startsWith("findInCurrentFile")) {
+						completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), position, null));
 					}
-					// ---------------    command completion end   ----------------------------
-
-
-					// ---------------    args completion start   ----------------------------
-
-					const rootNode = jsonc.parseTree(document.getText());
-					const node = jsonc.findNodeAtOffset(rootNode, document.offsetAt(position));
-					const curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
-
-					const thisKeybinding = node.parent?.parent?.parent?.parent?.children[1]?.children[1]?.value;
-					if (thisKeybinding === 'findInCurrentFile') find = true;
-					else if (thisKeybinding === 'runInSearchPanel') search = true;
-					else return undefined;  // not in our keybindings
-
-					if (curLocation?.path[1] !== 'args') return undefined;
-
-					const argNode = node.parent.parent.parent.children;
-					const argsStartingIndex = argNode[0]?.offset;
-					const argsLength = argNode[0]?.length + argNode[1]?.length;
-
-					const argsRange = new vscode.Range(document.positionAt(argsStartingIndex), document.positionAt(argsLength + argsStartingIndex + 1));
-					const argsText = document.getText(argsRange);
-
-					if (!argsRange.contains(position) || linePrefix.search(/^\s*"/m) === -1) return undefined;
-
-					if (find && argsRange.contains(position) && linePrefix.endsWith('"restrictFind": "')) {
-						return [
-							_makeCompletionItem("selections", position, "document"),
-							_makeCompletionItem("document", position, "document")
-						];
+					else if (search && pcommand.command.startsWith("runInSearchPanel")) {
+						completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), position, null));
 					}
+				});
+				return completionArray;
+			}
+			// ---------------    command completion end   ----------------------------
 
-					const searchArgsRegex = /^\s*"(find|replace|triggerSearch|isRegex|filesToInclude|preserveCase|useExcludeSettingsAndIgnoreFiles|isCaseSensitive|matchWholeWord|filesToExclude)"\s*:\s*"/;
 
-					if (search && argsRange.contains(position) && linePrefix.search(searchArgsRegex) !== -1)
-						return _makeSearchArgsCompletions(position, linePrefix);
+			// ---------------    args completion start   ----------------------------
 
-					let runFindArgs = findCommands.getKeys().slice(1);       // remove title
-					const runSearchArgs = searchCommands.getKeys().slice(1); // remove title
+			const rootNode = jsonc.parseTree(document.getText());
+			const node = jsonc.findNodeAtOffset(rootNode, document.offsetAt(position));
+			const curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
 
-					// eliminate any options already used
-					if (find && (linePrefix.search(/^\s*"$/m) !== -1)) {
-						return _filterCompletionsItemsNotUsed(runFindArgs, argsText, position);
-					}
-					if (search && (linePrefix.search(/^\s*"$/m) !== -1)) {
-						return _filterCompletionsItemsNotUsed(runSearchArgs, argsText, position);
-					}
-					else return undefined;
+			const thisKeybinding = node.parent?.parent?.parent?.parent?.children[1]?.children[1]?.value;
+			if (thisKeybinding === 'findInCurrentFile') find = true;
+			else if (thisKeybinding === 'runInSearchPanel') search = true;
+			else return undefined;  // not in our keybindings
+
+			if (curLocation?.path[1] !== 'args') return undefined;
+
+			const argNode = node.parent.parent.parent.children;
+			const argsStartingIndex = argNode[0]?.offset;
+			const argsLength = argNode[0]?.length + argNode[1]?.length;
+
+			const argsRange = new vscode.Range(document.positionAt(argsStartingIndex), document.positionAt(argsLength + argsStartingIndex + 1));
+			const argsText = document.getText(argsRange);
+
+			if (!argsRange.contains(position) || linePrefix.search(/^\s*"/m) === -1) return undefined;
+
+			if (find && argsRange.contains(position) && linePrefix.endsWith('"restrictFind": "')) {
+				return [
+					_makeCompletionItem("selections", position, "document"),
+					_makeCompletionItem("line", position, "document"),
+					_makeCompletionItem("once", position, "document"),
+					_makeCompletionItem("document", position, "document")
+				];
+			}
+
+			const searchArgsRegex = /^\s*"(find|replace|triggerSearch|isRegex|filesToInclude|preserveCase|useExcludeSettingsAndIgnoreFiles|isCaseSensitive|matchWholeWord|filesToExclude)"\s*:\s*"/;
+
+			if (search && argsRange.contains(position) && linePrefix.search(searchArgsRegex) !== -1)
+				return _makeSearchArgsCompletions(position, linePrefix);
+
+			const runFindArgs = findCommands.getKeys().slice(1);       // remove title
+			const runSearchArgs = searchCommands.getKeys().slice(1); // remove title
+
+			// eliminate any options already used
+			if (find && (linePrefix.search(/^\s*"$/m) !== -1)) {
+				return _filterCompletionsItemsNotUsed(runFindArgs, argsText, position);
+			}
+			if (search && (linePrefix.search(/^\s*"$/m) !== -1)) {
+				return _filterCompletionsItemsNotUsed(runSearchArgs, argsText, position);
+			}
+			else return undefined;
         }
       },
       '.', '"'   // trigger intellisense/completion
@@ -118,23 +121,23 @@ exports.makeSettingsCompletionProvider = function(context) {
     {
       provideCompletionItems(document, position) {
 
-					// 	"findInCurrentFile": {
-					//     "upcaseSwap2": {
-					// 			"title": "swap iif <==> hello",
-					// 			"find": "(iif) (hello)",
-					// 			"replace": "_\\u$2_ _\\U$1_",  // double-escaped case modifiers
-					//     }
-					// 	},
+		// 	"findInCurrentFile": {
+		//     "upcaseSwap2": {
+		// 			"title": "swap iif <==> hello",
+		// 			"find": "(iif) (hello)",
+		// 			"replace": "_\\u$2_ _\\U$1_",  // double-escaped case modifiers
+		//     }
+		// 	},
 
-					// // non-fixed width lookbehind works in find but not in search
-					// 	"runInSearchPanel": {
-					// 		"removeDigits": {
-					// 			"title": "Remove digits from Art....",
-					// 			"find": "(?<=Arturo)\\d+",   // double-escaped
-					// 			"replace": "",
-					//      ""
-					// 		}
-					// 	}
+		// // non-fixed width lookbehind works in find but not in search
+		// 	"runInSearchPanel": {
+		// 		"removeDigits": {
+		// 			"title": "Remove digits from Art....",
+		// 			"find": "(?<=Arturo)\\d+",   // double-escaped
+		// 			"replace": "",
+		//      ""
+		// 		}
+		// 	}
 
         // get all text until the current `position` and check if it reads `  {  "` before the cursor
 				const linePrefix = document.lineAt(position).text.substr(0, position.character);
@@ -160,7 +163,7 @@ exports.makeSettingsCompletionProvider = function(context) {
 				let keysText = "";
 
 				if (curLocation.isAtPropertyKey && subCommand) {
-					let subCommandNode = node.parent.parent.parent.children[1];
+					const subCommandNode = node.parent.parent.parent.children[1];
 					const keysRange = new vscode.Range(document.positionAt(subCommandNode.offset), document.positionAt(subCommandNode.offset + subCommandNode.length + 1));
 					keysText = document.getText(keysRange);
 				}
@@ -168,6 +171,8 @@ exports.makeSettingsCompletionProvider = function(context) {
 				if (linePrefix.search(/"restrictFind":\s*"$/m) !== -1) {
 					return [
 						_makeCompletionItem("selections", position, "document"),
+						_makeCompletionItem("line", position, "document"),
+						_makeCompletionItem("once", position, "document"),
 						_makeCompletionItem("document", position, "document")
 					];
 				}
@@ -207,16 +212,16 @@ exports.makeSettingsCompletionProvider = function(context) {
  */
 function _makeSearchArgsCompletions(position, linePrefix) {
 
-				// find: "",
-				// replace: "",
-				// triggerSearch: true,                     // default is true
-				// isRegex: true,                           // default is true
-				// filesToInclude: "",                      // default is "" = current workspace
-				// preserveCase: true,                      // default is true
-				// useExcludeSettingsAndIgnoreFiles: true,  // default is true
-				// isCaseSensitive: true,                   // default is true
-				// matchWholeWord: true,                   // default is true
-				// filesToExclude: "./*.css"                // default is ""
+		// find: "",
+		// replace: "",
+		// triggerSearch: true,                     // default is true
+		// isRegex: true,                           // default is true
+		// filesToInclude: "",                      // default is "" = current workspace
+		// preserveCase: true,                      // default is true
+		// useExcludeSettingsAndIgnoreFiles: true,  // default is true
+		// isCaseSensitive: true,                   // default is true
+		// matchWholeWord: true,                   // default is true
+		// filesToExclude: "./*.css"                // default is ""
 
 	// if (linePrefix.endsWith('"triggerSearch": "')) {
 	// 	return [
@@ -274,7 +279,7 @@ function _makeSearchArgsCompletions(position, linePrefix) {
  */
 function _makeCompletionItem(key, position, defaultValue, sortText) {
 
-	let item = new vscode.CompletionItem(key, vscode.CompletionItemKind.Text);
+	const item = new vscode.CompletionItem(key, vscode.CompletionItemKind.Text);
 
 	item.range = new vscode.Range(position, position);
 	if (defaultValue) item.detail = `default: ${ defaultValue }`;
@@ -296,23 +301,26 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	// const defaults = {
 	// 	"find": "",
 	// 	"replace": "",
-	// 	"restrictFind": "document",   							// else "selections"
+	// 	"restrictFind": "document",   				// else "selections", "line", "once"
+	//  "cursorMove": "",
 	// 	"triggerSearch": true,                    	// default is true
 	// 	"isRegex": true,                           	// default is true
-	// 	"filesToInclude": "",               	      // default is "" = current workspace
+	// 	"filesToInclude": "",               	    // default is "" = current workspace
 	// 	"preserveCase": true,                      	// default is true
 	// 	"useExcludeSettingsAndIgnoreFiles": true,  	// default is true
 	// 	"isCaseSensitive": true,                   	// default is true
 	// 	"matchWholeWord": false,                    // default is false
-	// 	"filesToExclude": ""                			 	// default is ""
+	// 	"filesToExclude": ""                		// default is ""
 	// };
 
 	const defaults = searchCommands.getDefaults();
 
 	const priority = {
-		"find": "01",
+		"title": "01",
+		"find": "011",
 		"replace": "02",
 		"restrictFind": "03",
+		"cursorMove": "031",
 		"triggerSearch": "04",
 		"isRegex": "05",
 		"filesToInclude": "06",
@@ -324,12 +332,12 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	};
 
 	/** @type { Array<vscode.CompletionItem> } */
-	let completionArray = [];
+	const completionArray = [];
 
 	// account for commented options (in keybindings and settings)
 	argArray.forEach(option => {
 		if (argsText.search(new RegExp(`^[ \t]*"${option}"`, "gm")) === -1)
-				completionArray.push(_makeCompletionItem(option, position, defaults[`${ option }`], priority[`${ option }`]));
+			completionArray.push(_makeCompletionItem(option, position, defaults[`${ option }`], priority[`${ option }`]));
 	});
 
 	return completionArray;

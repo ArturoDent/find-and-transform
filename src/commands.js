@@ -32,14 +32,14 @@ exports.getSettings = async function (setting) {
  */
 exports.loadCommands = function (findSettings, searchSettings, context) {
 
-  let thisExtension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
+	let thisExtension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
 	let packageCommands = thisExtension.packageJSON.contributes.commands;
 
 	let findSettingsCommands   =  _makePackageCommandsFromFindSettings(findSettings);
 	let searchSettingsCommands =  _makePackageCommandsFromSearchSettings(searchSettings);
 	let settingsCommands       =  findSettingsCommands.concat(searchSettingsCommands);
 
-  let packageEvents  =  thisExtension.packageJSON.activationEvents;
+  	let packageEvents  =  thisExtension.packageJSON.activationEvents;
 	let settingsEvents =  _makeSettingsEventsFromSettingsCommands(settingsCommands);
 
 	if (!_commandArraysAreEquivalent(settingsCommands, packageCommands) ||

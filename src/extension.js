@@ -15,6 +15,10 @@ let disposables = [];
  */
 async function activate(context) {
 
+	process.on('warning', (warning) => {
+		console.log(warning.stack);
+	});
+
 	await _loadSettingsAsCommands(context, disposables);
 
 	await providers.makeKeybindingsCompletionProvider(context);
@@ -23,11 +27,10 @@ async function activate(context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 
 	// make a generic "run" command for keybindings args using find in current file only
-	let runDisposable = vscode.commands.registerTextEditorCommand('findInCurrentFile', async (editor, edit, args) => {
+	const runDisposable = vscode.commands.registerTextEditorCommand('findInCurrentFile', async (editor, edit, args) => {
 
 		// get this from keybinding:  { find: "(document)", replace: "\\U$1" }
 		// need this:                 [ { find: "(document)"	}, { replace: "\\U$1"	} ]
-
 
 		let argsArray = [];
 		if (args) {
@@ -35,7 +38,8 @@ async function activate(context) {
 				{ "title": "Keybinding for generic command run" },  // "title" is never used?
 				{ "find": args.find },
 				{ "replace": args.replace },
-				{ "restrictFind": args.restrictFind }
+				{ "restrictFind": args.restrictFind },
+				{ "moveCursor": args.moveCursor }
 			];
 		}
 		else argsArray = [

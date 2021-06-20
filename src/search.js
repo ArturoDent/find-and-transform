@@ -35,18 +35,19 @@ exports.getKeys = function () {
  */
 exports.getDefaults = function () {
 	return {
-					"title": "",
-					"find": "",
-					"replace": "",
-					"restrictFind": "document",   							// else "selections"
-					"triggerSearch": true,
-					"isRegex": true,
-					"filesToInclude": "",               	// default is current workspace
-					"preserveCase": true,
-					"useExcludeSettingsAndIgnoreFiles": true,
-					"isCaseSensitive": true,
-					"matchWholeWord": true,                    // default is false
-					"filesToExclude": ""
+		"title": "",
+		"find": "",
+		"replace": "",
+		"restrictFind": "document",   	// else "selections", "line" or "once"
+		"cursorMove": "",
+		"triggerSearch": true,
+		"isRegex": true,
+		"filesToInclude": "",               	// default is current workspace
+		"preserveCase": true,
+		"useExcludeSettingsAndIgnoreFiles": true,
+		"isCaseSensitive": true,
+		"matchWholeWord": true,                    // default is false
+		"filesToExclude": ""
 	};
 }
 
@@ -114,7 +115,6 @@ async function _parseQuery(find) {
 		let resolved = "";
 
 		switch (item[1]) {
-
 			case "${CLIPBOARD}":
 				await vscode.env.clipboard.readText().then(string => {
 					resolved = string;
@@ -126,7 +126,6 @@ async function _parseQuery(find) {
 		}
 		find = find.replace(item[1], resolved);
 	}
-
 	return find;
 }
 
@@ -139,14 +138,13 @@ async function _parseQuery(find) {
 async function _parseVariables(include) {
 
 	if (typeof include !== 'string') return "";
-
 	const re = /(\${file}|\${relativeFile}|\${fileDirname}|\${fileWorkspaceFolder}|\${workspaceFolder}|\${relativeFileDirname}|\${workspaceFolderBasename}|\${selectedText}|\${pathSeparator}|\${CLIPBOARD})/g;
 
 	const matches = [...include.matchAll(re)];
 	if (!matches.length) return include;
 
-	let filePath = vscode.window.activeTextEditor.document.uri.path;
-	let relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
+	const filePath = vscode.window.activeTextEditor.document.uri.path;
+	const relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
 
 	// if no filePath message to open an editor TODO
 
