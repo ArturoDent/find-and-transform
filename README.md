@@ -82,16 +82,16 @@ Example keybinding:
 }
 ```
 
-<br/>
-
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextDontMoveFind.gif?raw=true" width="650" height="300" alt="notification to save after changing settings"/>
 
-<br/>
+
 1. `"restrictFind": "nextDontMoveCursor"` make the next replacement but leave the cursor at the original position.  
 2. `"restrictFind": "nextCursor"` make the next replacement and move the cursor to that next replaced match. Does not select.
 3. `"restrictFind": "nextSelect"` make the next replacement and select that next replaced match. 
 
-When using the above `restrictFind` options the `cursorMoveSelect` option will be ignored.  
+>  When using the **above** `restrictFind` options the `cursorMoveSelect` option will be ignored. 
+
+>  And these options above do not currently work with multiple selections.  Only the first selection made in the document will be used as a `find` value - so the order you make selections matters.  If you made multiple selections from the bottom of the document up, the first selection made (which would appear after other selections) would be used.        
 
 You can use the `cursorMoveSelect` option with the below `restrictFind` options.  
 
@@ -100,7 +100,13 @@ You can use the `cursorMoveSelect` option with the below `restrictFind` options.
 6. `"restrictFind": "line"` make all replacements on the current line. Doesn't matter where the cursor is located.
 7.  `"restrictFind": "selections"` make all replacements in the selections only. 
 
-The `cursorMoveSelect` option takes any text as its value.  That text, which can be part of the replacement text or any text, will be searched for after the replacement and the cursor will move there and that text will be selected.  
+The `cursorMoveSelect` option takes any text as its value.  That text, which can be part of the replacement text or any text, will be searched for after the replacement and the cursor will move there and that text will be selected.
+
+--------  
+
+### Some `"restrictFind": "next...` option examples:  
+
+<br/>
 
 ```jsonc
 {
@@ -113,11 +119,8 @@ The `cursorMoveSelect` option takes any text as its value.  That text, which can
   }
 }
 ```
-<br/>
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextMoveCursorFind.gif?raw=true" width="650" height="300" alt="nextMoveCursor with find and replace"/>
-
-<br/>
 
 ```jsonc
 {
@@ -130,11 +133,7 @@ The `cursorMoveSelect` option takes any text as its value.  That text, which can
   }
 }
 ```
-<br/>
-
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextSelectFind.gif?raw=true" width="650" height="300" alt="nextSelect with find and replace"/>
-
-<br/>
 
 ```jsonc
 {
@@ -147,11 +146,7 @@ The `cursorMoveSelect` option takes any text as its value.  That text, which can
   }
 }
 ```
-<br/>
-
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextMoveCursorNoFindNoReplace.jpg?raw=true" width="650" height="300" alt="nextMoveCursor with no find or replace"/>
-
-<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextMoveCursorNoFindNoReplace.gif?raw=true" width="650" height="300" alt="nextMoveCursor with no find or replace"/>
 
 ### Explanation: With no `find` argument, the current word at the cursor will be used as the `find` value.  So, in the above example `FIXME` will be used as the find query.  And with `nextMoveCursor` the cursor will move to the next match.  `nextSelect` could be used here as well.  
 
@@ -301,7 +296,11 @@ The downside to this method is that the various commands are not kept in one pla
 
 <br/>  
 
->  Important:  &nbsp; What are &nbsp; **`"words at cursors"`**? &nbsp; In VS Code, a cursor next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a command with no `find` arg it will treat any and all "words at cursors" as if you were asking to find those words.  Actual selections and "words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  This is demonstrated in some of the demos below.  
+>  Important:  &nbsp; What are &nbsp; **`"words at cursors"`**? &nbsp; In VS Code, a cursor next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a command with no `find` arg it will treat any and all "words at cursors" as if you were asking to find those words.  Actual selections and "words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  It appears that a word at a cursor is defined generally as this: `[a-zA-Z0-9_}` although some languages may define it differently.  
+
+> So with the cursor at the start or end of `FIXME` or any within the word, the `FIXME` is the word at the cursor.  `FIXME-Soon` consists of two words.  If the cursor followed the `*` in `FIXME*` then `FIXME` is **not** the word at the cursor.  
+
+This is demonstrated in some of the demos below.  
 
 <br/>  
 
@@ -682,9 +681,10 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 
 <br/>
 
-## Todo
+## TODO
 
-* Add more error messages, like if a capture group used in replace but none in the find.    
+* Add more error messages, like if a capture group used in replace but none in the find.
+* Add notifications for mispellings in the options.  .    
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?    
 * Explore adding settings to change default values for `filesToInclude` usage or other keys.
@@ -713,7 +713,9 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 * 0.6.0	Added support for `CodeActions` so commands from settings can be run on save.   
   &emsp;&emsp; Added `${CLIPBOARD}` support to `runInSearchPanel` `find` value.  
 * 0.7.0	Added support for `cursorMoveSelect` argument for `findInCurrentFile` settings and keybindings.  
-  &emsp;&emsp; Added `once` and `line` support to `findInCurrentFile` `restrictFind` options.       
+  &emsp;&emsp; Added `once` and `line` support to `restrictFind` options.  
+* 0.8.0	Added `nextSelectFind`, `nextMoveCursorFind`, and `nextDontMoveCursorFind` support to `restrictFind` options.   
+     
 
 -----------------------------------------------------------------------------------------------------------  
 

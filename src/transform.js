@@ -19,7 +19,7 @@ exports.findTransform = function (editor, edit, findReplaceArray) {
 	if (findItem.length) findValue = findItem[0][1].find ?? findItem[0][1];
 	// no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
 	// TODO  what if find === "" empty string?
-	else findValue = _makeFind(editor.selections);
+	else findValue = _makeFind(editor.selections, restrictFind);
 
 	let cursorMoveSelect = "";  // effectively making "" the default
 	const cursorMoveSelectItem = Object.entries(findReplaceArray).filter(item => (item[1].cursorMoveSelect || item[0] === 'cursorMoveSelect'));
@@ -71,13 +71,19 @@ exports.findTransform = function (editor, edit, findReplaceArray) {
  * from all selected words or words at cursor positions wrapped by word boundaries \b
  *
  * @param {Array<vscode.Selection>} selections
+ * @param {String} restrictFind
  * @returns {String} - selected text '(\\ba\\b|\\bb c\\b|\\bd\\b)'
  */
-function _makeFind(selections) {
+function _makeFind(selections, restrictFind) {
 
 	const document = vscode.window.activeTextEditor.document;
 	let selectedText = "";
 	let find = "";
+
+	// only use the first selection for these options
+	if (restrictFind.substring(0,4) === "next") {
+		selections = [selections[0]];
+	}
 
 	selections.forEach((selection, index) => {
 
