@@ -21,9 +21,13 @@ exports.findTransform = function (editor, edit, findReplaceArray) {
 	// TODO  what if find === "" empty string?
 	else findValue = _makeFind(editor.selections);
 
-	let moveCursor = "";  // effectively making "" the default
-	const moveCursorItem = Object.entries(findReplaceArray).filter(item => (item[1].moveCursor || item[0] === 'moveCursor'));
-	if (moveCursorItem.length)	moveCursor = moveCursorItem[0][1].moveCursor ?? moveCursorItem[0][1];  // from keybinding or setting
+	let cursorMoveSelect = "";  // effectively making "" the default
+	const cursorMoveSelectItem = Object.entries(findReplaceArray).filter(item => (item[1].cursorMoveSelect || item[0] === 'cursorMoveSelect'));
+	if (cursorMoveSelectItem.length)	cursorMoveSelect = cursorMoveSelectItem[0][1].cursorMoveSelect ?? cursorMoveSelectItem[0][1];  // from keybinding or setting
+
+	// let next = "";  // effectively making "" the default
+	// const nextItem = Object.entries(findReplaceArray).filter(item => (item[1].next || item[0] === 'next'));
+	// if (nextItem.length) next = nextItem[0][1].next ?? nextItem[0][1];  // from keybinding or setting
 
 	let replaceValue = null;
 	// lots of extra work because string.replace is a function and so true
@@ -41,18 +45,23 @@ exports.findTransform = function (editor, edit, findReplaceArray) {
 	else if (!findItem.length) replaceValue = "$1";  // if no replace key, set to $1
 
 	// no find and no replace
-	if (!findItem.length && !replaceItem.length)
+	if (!findItem.length && !replaceItem.length && restrictFind !== "nextMoveCursor" && restrictFind !== "nextSelect" && restrictFind !== "nextDontMoveCursor")
 		_findAndSelect(editor, findValue, restrictFind); // find and select all even if restrictFind === selections
 
 	// add all "empty selections" to editor.selections_replaceSelectionsLoop
 	else if (restrictFind === "selections" && replaceValue !== null) {
 		_addEmptySelectionMatches(editor);
-		_replaceSelectionsLoop(editor, edit, findValue, replaceValue, moveCursor);
+		_replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMoveSelect);
 	}
 	else if ((restrictFind === "line" || restrictFind === "once") && replaceValue !== null) {
-		_replaceInLine(editor, edit, findValue, replaceValue, restrictFind, moveCursor);
+		_replaceInLine(editor, edit, findValue, replaceValue, restrictFind, cursorMoveSelect);
 	}
-	else if (replaceValue !== null) _replaceWholeDocument(editor, edit, findValue, replaceValue, moveCursor);
+	// is replaceValue appropriate here?
+	else if (restrictFind === "nextMoveCursor" || restrictFind === "nextSelect" || restrictFind === "nextDontMoveCursor") {
+		_replaceNextInWholeDocument(editor, edit, findValue, replaceValue, restrictFind);
+	}
+	else if (replaceValue !== null) _replaceWholeDocument(editor, edit, findValue, replaceValue, cursorMoveSelect);
+	
 	else _findAndSelect(editor, findValue, restrictFind);   // find but no replace
 }
 
@@ -73,6 +82,7 @@ function _makeFind(selections) {
 	selections.forEach((selection, index) => {
 
 		if (selection.isEmpty) {
+			// const wordRange = document.getWordRangeAtPosition(selection.start);
 			const wordRange = document.getWordRangeAtPosition(selection.start);
 			selectedText = document.getText(wordRange);
 		}
@@ -196,9 +206,9 @@ function _findAndSelect(editor, findValue, restrictFind) {
  * @param {String} findValue
  * @param {String} replaceValue
  * @param {String} restrictFind : 'line' or 'once'
- * @param {String} moveCursor
+ * @param {String} cursorMoveSelect
  */
-async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFind, moveCursor) {
+async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFind, cursorMoveSelect) {
 
 	const re = new RegExp(findValue, "gm");
 	let currentLine = "";
@@ -231,12 +241,12 @@ async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFin
 			}
 			editor.selections.forEach(selection => {
 
-				if (moveCursor) {
+				if (cursorMoveSelect) {
 
 					lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
 					currentLine = editor.document.lineAt(selection.active.line).text;  // ??
 
-					const matches = [...currentLine.matchAll(new RegExp(moveCursor, "gm"))];
+					const matches = [...currentLine.matchAll(new RegExp(cursorMoveSelect, "gm"))];
 
 					for (const match of matches) {
 						const matchStartPos = editor.document.positionAt(lineIndex + match.index);
@@ -281,14 +291,14 @@ async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFin
 				}
 				editor.selections.forEach(selection => {
 
-					if (moveCursor) {
+					if (cursorMoveSelect) {
 
 						lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
 						subStringIndex = selection.active.character;
 						fullLine = editor.document.lineAt(selection.active.line).text;
 						currentLine = fullLine.substring(selection.active.character);
 
-						const matches = [...currentLine.matchAll(new RegExp(moveCursor, "gm"))];
+						const matches = [...currentLine.matchAll(new RegExp(cursorMoveSelect, "gm"))];
 
 						if (matches.length) {
 							const matchStartPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index);
@@ -303,15 +313,92 @@ async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFin
 }
 
 /**
+ * Replace the next find match in the entire document
+ * Select or not
+ *
+ * @param {vscode.window.activeTextEditor} editor
+ * @param {vscode.TextEditorEdit} edit
+ * @param {String} findValue
+ * @param {String} replaceValue
+ * @param {String} restrictFind
+ */
+async function _replaceNextInWholeDocument(editor, edit, findValue, replaceValue, restrictFind) {
+
+	// make work for multiple selections ??
+
+	let replacement;
+	let matchEndPos;
+	let documentBeforeCursor;
+	const foundSelections = [];
+
+	// let cursorIndex = editor.document.offsetAt(editor.selection.end);
+	let cursorIndex = editor.document.offsetAt(editor.selection.start);
+
+	// if wanted 'next...' commands to apply to current word
+	// if (editor.selection.isEmpty) {
+	// 	let wordRange = editor.document.getWordRangeAtPosition(editor.selection.start);
+	// 	cursorIndex = editor.document.offsetAt(wordRange.start);
+	// }
+
+	const re = new RegExp(findValue, "gm");
+	const docString = editor.document.getText();
+	let restOfDocument = docString.substring(cursorIndex);  // text after cursor
+
+	let matches = [...restOfDocument.matchAll(re)];
+	if (!matches.length) {                                 // check text before the cursor, so it will wrap
+		documentBeforeCursor = docString.substring(0, cursorIndex);
+		cursorIndex = 0;
+		matches = [...documentBeforeCursor.matchAll(re)];
+	}
+	if (!matches.length) return;  // no match before or after cursor
+	
+	editor.edit(function (edit) {
+
+		if (replaceValue) {
+			replacement = _buildReplaceValue(replaceValue, matches[0]);
+
+			const matchStartPos = editor.document.positionAt(cursorIndex + matches[0].index);
+			const matchEndPos = editor.document.positionAt(cursorIndex + matches[0].index + matches[0][0].length);
+			const matchRange = new vscode.Range(matchStartPos, matchEndPos)
+			edit.replace(matchRange, replacement);
+		}
+	}).then(success => {
+		if (!success) {
+			return;
+		}
+		if (restrictFind === "nextSelect") {
+			const matchStartPos = editor.document.positionAt(cursorIndex + matches[0].index);
+			if (replaceValue) {
+				matchEndPos = editor.document.positionAt(cursorIndex + matches[0].index + replacement.length);
+			}
+			else matchEndPos = editor.document.positionAt(cursorIndex + matches[0].index + matches[0][0].length);
+
+			foundSelections.push(new vscode.Selection(matchStartPos, matchEndPos));
+			editor.selections = foundSelections;
+		}
+		else if (restrictFind === "nextMoveCursor") {
+			if (replaceValue) {
+				matchEndPos = editor.document.positionAt(cursorIndex + matches[0].index + replacement.length);
+			}
+			else matchEndPos = editor.document.positionAt(cursorIndex + matches[0].index + matches[0][0].length);
+
+			foundSelections.push(new vscode.Selection(matchEndPos, matchEndPos));
+			editor.selections = foundSelections;
+		}
+		else if (restrictFind === "nextDontMoveCursor") {}   // do nothing, edit already made
+	});
+}
+
+/**
  * Replace all find matches in the entire document
  *
  * @param {vscode.window.activeTextEditor} editor
  * @param {vscode.TextEditorEdit} edit
  * @param {String} findValue
  * @param {String} replaceValue
- * @param {String} moveCursor
+ * @param {String} cursorMoveSelect
  */
-async function _replaceWholeDocument(editor, edit, findValue, replaceValue, moveCursor) {
+async function _replaceWholeDocument(editor, edit, findValue, replaceValue, cursorMoveSelect) {
 
 	const re = new RegExp(findValue, "gm");
 	const docString = editor.document.getText();
@@ -331,10 +418,10 @@ async function _replaceWholeDocument(editor, edit, findValue, replaceValue, move
 		if (!success) {
 			return;
 		}
-		if (moveCursor) {
+		if (cursorMoveSelect) {
 			const foundSelections = [];
 
-			const re = new RegExp(moveCursor, "gm");
+			const re = new RegExp(cursorMoveSelect, "gm");
 			const docString = editor.document.getText();
 			const matches = [...docString.matchAll(re)];
 
@@ -357,9 +444,9 @@ async function _replaceWholeDocument(editor, edit, findValue, replaceValue, move
  * @param {vscode.TextEditorEdit} edit
  * @param {String} findValue
  * @param {String} replaceValue
- * @param {String} moveCursor
+ * @param {String} cursorMoveSelect
  */
-function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, moveCursor) {
+function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMoveSelect) {
 
 	const re = new RegExp(findValue, "gm");
 
@@ -418,7 +505,7 @@ function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, moveCurso
 		if (!success) {
 			return;
 		}
-		if (moveCursor) {
+		if (cursorMoveSelect) {
 			// currentLine = editor.document.lineAt(editor.selection.active.line).text;
 
 			editor.selections.forEach(selection => {
@@ -427,7 +514,7 @@ function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, moveCurso
 				const selectedRange = new vscode.Range(selection.start, selection.end);
 				const docString = editor.document.getText(selectedRange);
 
-				const matches = [...docString.matchAll(new RegExp(moveCursor, "gm"))];
+				const matches = [...docString.matchAll(new RegExp(cursorMoveSelect, "gm"))];
 
 				for (const match of matches) {
 					const matchStartPos = editor.document.positionAt(selectionIndex + match.index);
@@ -566,7 +653,7 @@ function _stringBetweenIdentifiers(identifiers, i, replaceValue) {
  */
 exports.getKeys = function () {
 	// return ["title", "find", "replace", "restrictFind"];
-	return ["title", "find", "replace", "restrictFind", "moveCursor"];
+	return ["title", "find", "replace", "restrictFind", "cursorMoveSelect"];
 }
 
 /**
@@ -579,6 +666,6 @@ exports.getDefaults = function () {
 		"find": "",
 		"replace": "",
 		"restrictFind": "document",
-		"moveCursor": ""
+		"cursorMoveSelect": ""
 	};
 }

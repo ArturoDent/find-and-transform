@@ -39,7 +39,7 @@ async function activate(context) {
 				{ "find": args.find },
 				{ "replace": args.replace },
 				{ "restrictFind": args.restrictFind },
-				{ "moveCursor": args.moveCursor }
+				{ "cursorMoveSelect": args.cursorMoveSelect },
 			];
 		}
 		else argsArray = [

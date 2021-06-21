@@ -4,13 +4,14 @@ Find and transform text in a single file, folder, workspace or custom group.
 
 1.   &emsp; Any number of find/replace combinations can be saved in settings and triggered either by the Command Palette or a keybinding.
 2.   &emsp; Replacements can include case modifiers, like `\U`.  
-3.   &emsp; Find in the entire document, within selections only, the first occurrence or the line only.       
+3.   &emsp; Find in the entire document, within selections only, the first occurrence or the line only.  
+     &emsp; Or find the next occurrence and optionally select it and/or replace it.      
 4.   &emsp; Keybindings can be quite generic, not necessarily even including `find` or `replace` keys!    
 5.   &emsp; A command can be created right in a keybinding, without using a setting at all.  
 6.   &emsp; Can also use pre-defined searches using the Search Panel.  
 7.   &emsp; Supports using various path variables in the Search Panel.  
 8.   &emsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See [running commands on save](codeActions.md).
-9.   &emsp; After replacing some text, optionally move the cursor to a designated location with `cursorMove`.     
+9.   &emsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.     
 
  The replace transforms can include ***case modifiers*** like:  
 
@@ -41,7 +42,7 @@ This extension provides a way to save and re-use find/replace regex's and use ca
 
 or  
 
-1.  Make a keybinding with `args` including `find`, `replace`, `restrictFind` and/or `cursorMove` values.  
+1.  Make a keybinding with `args` including `find`, `replace`, `restrictFind` and/or `cursorMoveSelect` values.  
 3.  Optionally select some code or words in your file.       
 2.  Trigger that keybinding.  
 
@@ -60,11 +61,103 @@ For more on this `codeActionsOnSave` usage see [running commands on save](codeAc
 
 <br/>  
 
-> Note: commands can be removed by deleting or commenting out the associated settings and re-saving the `settings.json` file and reloading VS Code.  
+> Note: commands can be removed by deleting or commenting out the associated settings and re-saving the `settings.json` file and reloading VS Code. 
+
+------------------
+
+## Details on the `restrictFind` argument.
+
+Example keybinding:  
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "FIXME",    		// or use the word at the cursor
+    "replace": "DONE",
+    "restrictFind": "nextDontMoveCursor",
+    // "cursorMoveSelect": "FIXME"   // will be ignored with the 'next...` options
+  }
+}
+```
+
+<br/>
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextDontMoveFind.jpg?raw=true" width="525" height="150" alt="notification to save after changing settings"/>
+
+<br/>
+1. `"restrictFind": "nextDontMoveCursor"` make the next replacement but leave the cursor at the original position.  
+2. `"restrictFind": "nextCursor"` make the next replacement and move the cursor to that next replaced match. Does not select.
+3. `"restrictFind": "nextSelect"` make the next replacement and select that next replaced match. 
+
+When using the above `restrictFind` options the `cursorMoveSelect` option will be ignored.  
+
+You can use the `cursorMoveSelect` option with the below `restrictFind` options.  
+
+4. `"restrictFind": "document"` the default, make all replacements in the document, select all of them.  
+5. `"restrictFind": "once"` make the next replacement on the **same line** only.  
+6. `"restrictFind": "line"` make all replacements on the current line. Doesn't matter where the cursor is located.
+7.  `"restrictFind": "selections"` make all replacements in the selections only. 
+
+The `cursorMoveSelect` option takes any text as its value.  That text, which can be part of the replacement text or any text, will be searched for after the replacement and the cursor will move there and that text will be selected.  
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "FIXME",
+    "replace": "DONE!",
+    "restrictFind": "nextMoveCursor",
+  }
+}
+```
+<br/>
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextMoveCursorFind.jpg?raw=true" width="525" height="150" alt="nextMoveCursor with find and replace"/>
+
+<br/>
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "FIXME",
+    "replace": "DONE!",
+    "restrictFind": "nextSelect",
+  }
+}
+```
+<br/>
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextSelectFind.jpg?raw=true" width="525" height="150" alt="nextSelect with find and replace"/>
+
+<br/>
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    // "find": "FIXME",   // !! no find or replace !!
+    // "replace": "DONE",
+    "restrictFind": "nextMoveCursor"   // or try `nextSelect` here  
+  }
+}
+```
+<br/>
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextSelectFind.jpg?raw=true" width="525" height="150" alt="nextMoveCursor with no find or replace"/>
+
+<br/>
+
+### Explanation: With no `find` argument, the current word at the cursor will be used as the `find` value.  So, in the above example `FIXME` will be used as the find query.  And with `nextMoveCursor` the cursor will move to the next match.  `nextSelect` could be used here as well.  
 
 -------------------
 
-## Sample Usage
+## Sample Usages
 
 In your `settings.json`:  
 
@@ -87,7 +180,7 @@ In your `settings.json`:
       "find": ">",
       "replace": " class=\"@\">",
       "restrictFind": "selections",
-      "moveCursor": "@"                  // after the replacement, move to and select this text
+      "cursorMoveSelect": "@"                  // after the replacement, move to and select this text
     }
 },
 
@@ -137,7 +230,7 @@ Examples of possible keybindings (in your `keybindings.json`):
 		"find": "^(iif)",                 // all the "args" are optional
 		"replace": "\\U$1",
 		"restrictFind": "selections",
-		"cursorMove": "IIF"               // this text will be selected; "$" goes to the end of the line
+		"cursorMoveSelect": "IIF"               // this text will be selected; "$" goes to the end of the line
 	}
 },
 
@@ -185,7 +278,7 @@ An example of keybinding with **NO associated setting**, in `keybindings.json`:
 		"replace": "$1\\U$2",
 
 		"restrictFind": "selections"     	// find only in selections
-		// "cursorMove": "<go to and select some text after making the replacement>"
+		// "cursorMoveSelect": "<go to and select some text after making the replacement>"
 	}
 },
 ```  
@@ -304,14 +397,14 @@ The downside to this method is that the various commands are not kept in one pla
 		"find": "(create|table|exists)",
 		"replace": "_\\U$1_",
 		"restrictFind": "selections",  
-		"cursorMove": "TABLE"
+		"cursorMoveSelect": "TABLE"
 	}
 }
 ``` 
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceSelectionDemo.gif?raw=true" width="650" height="300" alt="demo of using restrictFind arg to 'selection'"/>  
 
-### Explanation: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  Selections can be multiple and selections include "words at cursors". Using `cursorMove` to select all instances of `TABLE`.  
+### Explanation: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  Selections can be multiple and selections include "words at cursors". Using `cursorMoveSelect` to select all instances of `TABLE`.  
 
 <br/>  
 
@@ -328,7 +421,7 @@ The above keybinding is no different than this setting (in your `settings.json`)
 		"find": "(create|table|exists)",
 		"replace": "_\\U$1_",
 		"restrictFind": "selections",
-		"cursorMove": "TABLE"
+		"cursorMoveSelect": "TABLE"
 	}
 }
 ```
@@ -340,7 +433,7 @@ except that a **reload of vscode is required** prior to using the generated comm
 
 <br/>  
 
-* demonstrating `cursorMove` after replacement  
+* demonstrating `cursorMoveSelect` after replacement  
 
 ```jsonc
 "findInCurrentFile": {               // in settings.json
@@ -349,7 +442,7 @@ except that a **reload of vscode is required** prior to using the generated comm
     "find": ">",
     "replace": " class=\"@\">",
     "restrictFind": "once",   // other options: `once`, `line` or `document`
-    "moveCursor": "@"               // select all `@`s in selections in the document  
+    "cursorMoveSelect": "@"               // select all `@`s in selections in the document  
   }
 }
 ```
@@ -366,15 +459,15 @@ except that a **reload of vscode is required** prior to using the generated comm
   },
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMove arg with restrictFind of 'once'"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMoveSelect arg with restrictFind of 'once'"/>
 
-### Explanation: Find any `>` within selection(s) and replace them with ` class=\"@\">`.  Then move the cursor(s) to the `@` and select it.  `moveCursor` value can be any text, even the regex delimiters `^` and `$` which mean line or selection start and end.    
+### Explanation: Find any `>` within selection(s) and replace them with ` class=\"@\">`.  Then move the cursor(s) to the `@` and select it.  `cursorMoveSelect` value can be any text, even the regex delimiters `^` and `$` which mean line or selection start and end.    
 
 <br/>
 
-* `"restrictFind": "once"` => find the first instance of the `find` query AFTER the cursor, replace it and then go to and select the `moveCursor` value if any.  Works the same for multiple cursors.  
+* `"restrictFind": "once"` => find the first instance of the `find` query AFTER the cursor, replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.  
 
-* `"restrictFind": "line"` => find all instances of the `find` query on the line with the cursor, replace them and then go to and select all `moveCursor` values if any.  Works on eaach line if multiple cursors.  
+* `"restrictFind": "line"` => find all instances of the `find` query on the line with the cursor, replace them and then go to and select all `cursorMoveSelect` values if any.  Works on eaach line if multiple cursors.  
 
 <br/> 
 
@@ -599,7 +692,7 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 * Explore more string operations (e.g., `substring()`, `trim()`, `++`) in the replace settings/args?    
 * Explore replacing with current match index?
 * Explore supporting conditionals, like snippets: `${2:+yada}`  
-* Explore supporting `cursorMove` argument in searches across files.     
+* Explore supporting `cursorMoveSelect` argument in searches across files.     
 
 
 ## Release Notes
@@ -619,7 +712,7 @@ They should have the same resolved values as found at [vscode's pre-defined vari
   &emsp;&emsp; Added supported for empty selections to `runInSearchPanel` query creation.  
 * 0.6.0	Added support for `CodeActions` so commands from settings can be run on save.   
   &emsp;&emsp; Added `${CLIPBOARD}` support to `runInSearchPanel` `find` value.  
-* 0.7.0	Added support for `cursorMove` argument for `findInCurrentFile` settings and keybindings.  
+* 0.7.0	Added support for `cursorMoveSelect` argument for `findInCurrentFile` settings and keybindings.  
   &emsp;&emsp; Added `once` and `line` support to `findInCurrentFile` `restrictFind` options.       
 
 -----------------------------------------------------------------------------------------------------------  

@@ -39,7 +39,7 @@ exports.getDefaults = function () {
 		"find": "",
 		"replace": "",
 		"restrictFind": "document",   	// else "selections", "line" or "once"
-		"cursorMove": "",
+		"cursorMoveSelect": "",
 		"triggerSearch": true,
 		"isRegex": true,
 		"filesToInclude": "",               	// default is current workspace

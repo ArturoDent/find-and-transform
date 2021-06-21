@@ -20,7 +20,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 			// 	"args": {
 			// 		"find"              : "<string>",
 			// 		"replace"           : "<string>",
-			// 		"restrictFind"      : "selections",        // or "document", "line", "once"
+			// 		"restrictFind"      : "selections",  // or document/line/once/nextSelect/nextMoveCursor/nextDontMoveCursor
 			// 		"cursorMove"        : "<string>"
 			// 	}
 			// }
@@ -82,7 +82,10 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 					_makeCompletionItem("selections", position, "document"),
 					_makeCompletionItem("line", position, "document"),
 					_makeCompletionItem("once", position, "document"),
-					_makeCompletionItem("document", position, "document")
+					_makeCompletionItem("document", position, "document"),
+					_makeCompletionItem("nextSelect", position, "document"),
+					_makeCompletionItem("nextMoveCursor", position, "document"),
+					_makeCompletionItem("nextDontMoveCursor", position, "document")
 				];
 			}
 
@@ -168,12 +171,16 @@ exports.makeSettingsCompletionProvider = function(context) {
 					keysText = document.getText(keysRange);
 				}
 
+				// is this duplicated above?
 				if (linePrefix.search(/"restrictFind":\s*"$/m) !== -1) {
 					return [
 						_makeCompletionItem("selections", position, "document"),
 						_makeCompletionItem("line", position, "document"),
 						_makeCompletionItem("once", position, "document"),
-						_makeCompletionItem("document", position, "document")
+						_makeCompletionItem("document", position, "document"),
+						_makeCompletionItem("nextSelect", position, "document"),
+						_makeCompletionItem("nextMoveCursor", position, "document"),
+						_makeCompletionItem("nextDontMoveCursor", position, "document")
 					];
 				}
 				else if (linePrefix.search(/"filesToExclude":\s*"$/m) !== -1) {
@@ -301,8 +308,8 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	// const defaults = {
 	// 	"find": "",
 	// 	"replace": "",
-	// 	"restrictFind": "document",   				// else "selections", "line", "once"
-	//  "cursorMove": "",
+	// 	"restrictFind": "document",   // else selections/line/once/nextSelect/nextMoveCursor/nextDontMoveCursor
+	//  "cursorMoveSelect": "",
 	// 	"triggerSearch": true,                    	// default is true
 	// 	"isRegex": true,                           	// default is true
 	// 	"filesToInclude": "",               	    // default is "" = current workspace
