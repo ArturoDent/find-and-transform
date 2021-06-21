@@ -713,6 +713,7 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 * 0.6.0	Added support for `CodeActions` so commands from settings can be run on save.   
   &emsp;&emsp; Added `${CLIPBOARD}` support to `runInSearchPanel` `find` value.  
 * 0.7.0	Added support for `cursorMoveSelect` argument for `findInCurrentFile` settings and keybindings.  
+  &emsp;&emsp; Renamed `cursorMove` option to `cursorMoveSelect` = a **BREAKING CHANGE**.  
   &emsp;&emsp; Added `once` and `line` support to `restrictFind` options.  
 * 0.8.0	Added `nextSelectFind`, `nextMoveCursorFind`, and `nextDontMoveCursorFind` support to `restrictFind` options.   
      
