@@ -84,7 +84,7 @@ Example keybinding:
 
 <br/>
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextDontMoveFind.jpg?raw=true" width="525" height="150" alt="notification to save after changing settings"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextDontMoveFind.gif?raw=true" width="650" height="300" alt="notification to save after changing settings"/>
 
 <br/>
 1. `"restrictFind": "nextDontMoveCursor"` make the next replacement but leave the cursor at the original position.  
@@ -115,7 +115,7 @@ The `cursorMoveSelect` option takes any text as its value.  That text, which can
 ```
 <br/>
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextMoveCursorFind.jpg?raw=true" width="525" height="150" alt="nextMoveCursor with find and replace"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextMoveCursorFind.gif?raw=true" width="650" height="300" alt="nextMoveCursor with find and replace"/>
 
 <br/>
 
@@ -132,7 +132,7 @@ The `cursorMoveSelect` option takes any text as its value.  That text, which can
 ```
 <br/>
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextSelectFind.jpg?raw=true" width="525" height="150" alt="nextSelect with find and replace"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextSelectFind.gif?raw=true" width="650" height="300" alt="nextSelect with find and replace"/>
 
 <br/>
 
@@ -149,7 +149,7 @@ The `cursorMoveSelect` option takes any text as its value.  That text, which can
 ```
 <br/>
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextSelectFind.jpg?raw=true" width="525" height="150" alt="nextMoveCursor with no find or replace"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextMoveCursorNoFindNoReplace.jpg?raw=true" width="650" height="300" alt="nextMoveCursor with no find or replace"/>
 
 <br/>
 

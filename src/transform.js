@@ -331,8 +331,8 @@ async function _replaceNextInWholeDocument(editor, edit, findValue, replaceValue
 	let documentBeforeCursor;
 	const foundSelections = [];
 
-	// let cursorIndex = editor.document.offsetAt(editor.selection.end);
-	let cursorIndex = editor.document.offsetAt(editor.selection.start);
+	let cursorIndex = editor.document.offsetAt(editor.selection.end);
+	// let cursorIndex = editor.document.offsetAt(editor.selection.start);
 
 	// if wanted 'next...' commands to apply to current word
 	// if (editor.selection.isEmpty) {
