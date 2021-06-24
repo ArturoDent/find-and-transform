@@ -100,7 +100,7 @@ You can use the `cursorMoveSelect` option with the below `restrictFind` options.
 
 4. `"restrictFind": "document"` the default, make all replacements in the document, select all of them.  
 5. `"restrictFind": "once"` make the next replacement on the **same line** only.  
-6. `"restrictFind": "line"` make all replacements on the current line. Doesn't matter where the cursor is located.
+6. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
 7.  `"restrictFind": "selections"` make all replacements in the selections only. 
 
 The `cursorMoveSelect` option takes any text as its value.  That text, which can be part of the replacement text or any text, will be searched for after the replacement and the cursor will move there and that text will be selected.
@@ -166,7 +166,7 @@ In your `settings.json`:
 		"title": "swap iif <==> hello",  	// title that will appear in the Command Palette
 		"find": "(iif) (hello)",
 		"replace": "_\\u$2_ _\\U$1_",  		// double-escaped case modifiers
-		"restrictFind": "selections"   		// or "document" (the default), "line", or "once"
+		"restrictFind": "selections"
 	},
 	"capitalizeIIF": {
 		"title": "capitalize 'iif'",     	// all settings must have a "title" field
@@ -498,7 +498,7 @@ except that a **reload of vscode is required** prior to using the generated comm
 
 * `"restrictFind": "once"` => find the first instance of the `find` query AFTER the cursor, replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.  
 
-* `"restrictFind": "line"` => find all instances of the `find` query on the line with the cursor, replace them and then go to and select all `cursorMoveSelect` values if any.  Works on eaach line if multiple cursors.  
+* `"restrictFind": "line"` => find all instances of the `find` query on the line with the cursor, replace them and then go to and select all `cursorMoveSelect` values if any.  Works on each line if multiple cursors.  But it only considers the line where the cursor(s) is, so if there is a multi-line selection, only the line with the cursor is searched.   
 
 <br/> 
 
