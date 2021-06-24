@@ -97,13 +97,13 @@ function _makeFind(selections, restrictFind) {
 			selectedText = document.getText(selectedRange);
 		}
 
-		// wrap with word boundaries \\b must be double-escaped
+		// wrap with word boundaries \b must be escaped to \\b
 		if (index < selections.length-1) find += `\\b${ selectedText }\\b|`;  // add an | or pipe to end
 		else find += `\\b${ selectedText }\\b`;
 
 	});
 
-	find = `(${ find })`;  // e.g. "(\\baword\\b|\\bsome words\\b|\\bmore\\b)"
+	find = `(${ find })`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
 	return find;
 }
 
@@ -512,11 +512,10 @@ function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMov
 			return;
 		}
 		if (cursorMoveSelect) {
-			// currentLine = editor.document.lineAt(editor.selection.active.line).text;
 
 			editor.selections.forEach(selection => {
 
-				const selectionIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, selection.active.character));
+				const selectionIndex = editor.document.offsetAt(new vscode.Position(selection.start.line, selection.start.character));
 				const selectedRange = new vscode.Range(selection.start, selection.end);
 				const docString = editor.document.getText(selectedRange);
 

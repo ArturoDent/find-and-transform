@@ -309,15 +309,15 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	// 	"find": "",
 	// 	"replace": "",
 	// 	"restrictFind": "document",   // else selections/line/once/nextSelect/nextMoveCursor/nextDontMoveCursor
-	//  "cursorMoveSelect": "",
+	//  "cursorMoveSelect": "",                     // ignored if no replace
 	// 	"triggerSearch": true,                    	// default is true
 	// 	"isRegex": true,                           	// default is true
-	// 	"filesToInclude": "",               	    // default is "" = current workspace
+	// 	"filesToInclude": "",               	      // default is "" = current workspace
 	// 	"preserveCase": true,                      	// default is true
 	// 	"useExcludeSettingsAndIgnoreFiles": true,  	// default is true
 	// 	"isCaseSensitive": true,                   	// default is true
 	// 	"matchWholeWord": false,                    // default is false
-	// 	"filesToExclude": ""                		// default is ""
+	// 	"filesToExclude": ""                		    // default is ""
 	// };
 
 	const defaults = searchCommands.getDefaults();

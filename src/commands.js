@@ -201,6 +201,7 @@ exports.registerFindCommands = function (findArray, context, disposables) {
 
 	/**
  * Get the settings and register TextEditorCommands for them
+ * 
  * @param {Array} searchArray
  * @param {vscode.ExtensionContext} context
  * @param {Array<vscode.Disposable>} disposables

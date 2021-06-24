@@ -62,12 +62,13 @@ exports.useSearchPanel = async function (findArray) {
 	if (isfilesToInclude) {
 		obj["filesToInclude"] = await _parseVariables(isfilesToInclude.filesToInclude);
 	}
+	// else obj["filesToInclude"] = '';
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
 	if (find?.find === "${CLIPBOARD}") {
 		obj["query"] = await _parseQuery(find.find);
 	}
-	else if (find.find) obj["query"] = find.find;
+	else if (find?.find) obj["query"] = find.find;
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];
@@ -77,15 +78,20 @@ exports.useSearchPanel = async function (findArray) {
 		}
 	});
 
+	// respect search.seedWithNearestWord' setting
 	// if no find key use selections[0] or getWordRangeAtPosition()
-	if (!obj['query']) {
-		const document = vscode.window.activeTextEditor.document;
-		const selections = vscode.window.activeTextEditor.selections;
-		if (selections.length === 1 && selections[0].isEmpty) {
-			const wordRange = document.getWordRangeAtPosition(selections[0].start);
-			obj['query'] = document.getText(wordRange);
+
+	const seed = vscode.workspace.getConfiguration().get("search.seedWithNearestWord");
+	if (seed) {
+		if (!obj['query']) {
+			const document = vscode.window.activeTextEditor.document;
+			const selections = vscode.window.activeTextEditor.selections;
+			if (selections.length === 1 && selections[0].isEmpty) {
+				const wordRange = document.getWordRangeAtPosition(selections[0].start);
+				if (wordRange) obj['query'] = document.getText(wordRange);
+			}
+			else obj['query'] = document.getText(selections[0]);
 		}
-		else obj['query'] = document.getText(selections[0]);
 	}
 
 	vscode.commands.executeCommand('workbench.action.findInFiles',

@@ -5,11 +5,14 @@ Find and transform text in a single file, folder, workspace or custom group.
 1.   &emsp; Any number of find/replace combinations can be saved in settings and triggered either by the Command Palette or a keybinding.
 2.   &emsp; Replacements can include case modifiers, like `\U`.  
 3.   &emsp; Find in the entire document, within selections only, the first occurrence or the line only.  
-     &emsp; Or find the next occurrence and optionally select it and/or replace it.      
+     &emsp; Or find the next occurrence and optionally select it and/or replace it.  
+
 4.   &emsp; Keybindings can be quite generic, not necessarily even including `find` or `replace` keys!    
 5.   &emsp; A command can be created right in a keybinding, without using a setting at all.  
-6.   &emsp; Can also use pre-defined searches using the Search Panel.  
-7.   &emsp; Supports using various path variables in the Search Panel.  
+
+6.   &emsp; Can also use pre-defined searches using the Search Panel with command `runInSearchPanel`.  
+7.   &emsp; Supports using various path variables in the Search Panel, include the current file only.  
+
 8.   &emsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See [running commands on save](codeActions.md).
 9.   &emsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.     
 
@@ -148,7 +151,7 @@ The `cursorMoveSelect` option takes any text as its value.  That text, which can
 ```
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextMoveCursorNoFindNoReplace.gif?raw=true" width="650" height="300" alt="nextMoveCursor with no find or replace"/>
 
-### Explanation: With no `find` argument, the current word at the cursor will be used as the `find` value.  So, in the above example `FIXME` will be used as the find query.  And with `nextMoveCursor` the cursor will move to the next match.  `nextSelect` could be used here as well.  
+### Explanation: With no `find` argument, the current nearest word to the cursor (see more on this below) will be used as the `find` value.  So, in the above example `FIXME` will be used as the find query.  And with `nextMoveCursor` the cursor will move to the next match.  `nextSelect` could be used here as well.  
 
 -------------------
 
@@ -239,11 +242,36 @@ Examples of possible keybindings (in your `keybindings.json`):
 		"matchWholeWord": false,
 		"isRegex": true,
 		"filesToInclude": "${file}",
+		// "filesToInclude": "<relative or absolute paths supported>",  // but see below**
 		"triggerSearch": true
 	}
 }
-
 ```  
+
+`filesToInclude` can take a relative path or absolute path with some caveats. **These work**:
+
+```jsonc
+"filesToInclude": "zip\\new.html",                           // note the escaped backward slash  
+"filesToInclude": "zip/new.html"                             // forward slash, not escaped  
+"filesToInclude": "zip//new.html"                            // forward slash, escaped 
+"filesToInclude": "Users/Arturo/Test Bed/zip/new.html"       // absolute path with 'C:/' removed
+"filesToInclude": "Users\\Arturo\\Test Bed\\zip\\new.html"
+"filesToInclude": "Users\\Arturo\\Test Bed\\zip\\new.html" 
+```
+
+**These do not work** (at least on Windows):  
+
+```jsonc
+// this first entry works if you directly paste that into the Search Panel 'files to include' field
+// but in settings or keybindings the backslash MUST be escaped, see above  
+"filesToInclude": "zip\new.html",                               // must escape all backward slashes  
+
+"filesToInclude": "C:\Users\Arturo\Test Bed\zip\new.html"       // absolute paths with scheme, remove the 'C:\`
+"filesToInclude": "C:\\Users\\Arturo\\Test Bed\\zip\\new.html"  // remove the 'C:\\`
+"filesToInclude": "C:/Users/Arturo/Test Bed/zip/new.html"       // remove the 'C:/`
+```
+
+--------------------  
 
 When you **save** a change to the settings, you will get the message notification below.  This extension will detect a change in its settings and create corresponding commands.  The commands will not appear in the Command  Palette **without saving the new setting**.  
 
@@ -296,9 +324,9 @@ The downside to this method is that the various commands are not kept in one pla
 
 <br/>  
 
->  Important:  &nbsp; What are &nbsp; **`"words at cursors"`**? &nbsp; In VS Code, a cursor next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a command with no `find` arg it will treat any and all "words at cursors" as if you were asking to find those words.  Actual selections and "words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  It appears that a word at a cursor is defined generally as this: `[a-zA-Z0-9_}` although some languages may define it differently.  
+>  Important:  &nbsp; What are &nbsp; **`"nearest words at cursors"`**? &nbsp; In VS Code, a cursor immediately next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a `findInCurrentFile` command with no `find` arg it will treat any and all "nearest words at cursors" as if you were asking to find those words.  Actual selections and "nearest words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  It appears that a word at a cursor is defined generally as this: `[a-zA-Z0-9_}` although some languages may define it differently.  
 
-> So with the cursor at the start or end of `FIXME` or any within the word, the `FIXME` is the word at the cursor.  `FIXME-Soon` consists of two words.  If the cursor followed the `*` in `FIXME*` then `FIXME` is **not** the word at the cursor.  
+> So with the cursor at the start or end of `FIXME` or anywhere within the word, the `FIXME` is the word at the cursor.  `FIXME-Soon` consists of two words.  If the cursor followed the `*` in `FIXME*` then `FIXME` is **not** the word at the cursor.  
 
 This is demonstrated in some of the demos below.  
 
@@ -315,7 +343,7 @@ This is demonstrated in some of the demos below.
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindNoReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of no find and no replace keys in args"/> 
 
-### Explanation: With no `find` key, find matches of selections or words at cursors (multi-cursors work) and select all those matches.  Blue text are selections in the demo gif.     
+### Explanation: With no `find` key, find matches of selections or nearest words at cursors (multi-cursors work) and select all those matches.  Blue text are selections in the demo gif.     
 
 ---------------
 
@@ -359,7 +387,7 @@ This is demonstrated in some of the demos below.
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of find and replace keys in args"/>  
 
-### Explanation: Find using its value in `args` and replace each with its value in the `args` field.  Sincer there is no `restrictFind` key, the default `document` will be used.   
+### Explanation: Find using its value in `args` and replace each with its value in the `args` field.  Since there is no `restrictFind` key, the default `document` will be used.   
 
 ----------------
 
@@ -380,7 +408,7 @@ This is demonstrated in some of the demos below.
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of replace but no find keys in args"/>  
 
-### Explanation: With no `find` key will find the words at the cursors or selections and apply the replacement.  
+### Explanation: With no `find` key find all the words at the cursors or selections and apply the replacement.  
 
 ---------------
 
@@ -393,17 +421,21 @@ This is demonstrated in some of the demos below.
 	"key": "alt+y",
 	"command": "findInCurrentFile",
 	"args": {
-		"find": "(create|table|exists)",
-		"replace": "_\\U$1_",
-		"restrictFind": "selections",  
-		"cursorMoveSelect": "TABLE"
+		"find": "(create|table|exists)",   // find each of these words
+		"replace": "_\\U$1_",              // capitalize _capture group 1_
+		"restrictFind": "selections",
+		"cursorMoveSelect": "TABLE"      // will select 'TABLE' only if it is within a selection 
 	}
 }
 ``` 
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceSelectionDemo.gif?raw=true" width="650" height="300" alt="demo of using restrictFind arg to 'selection'"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceSelectionDemo.gif?raw=true" width="650" height="300" alt="demo of using restrictFind 'selection' and 'cursorMoveSelect"/>  
 
-### Explanation: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  Selections can be multiple and selections include "words at cursors". Using `cursorMoveSelect` to select all instances of `TABLE`.  
+### Explanation: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  Selections can be multiple and selections do include "nearest words at cursors". Using `cursorMoveSelect` to select all instances of `TABLE`.  
+
+<br/>
+
+> Note a subtle difference in the above demo.  If you make an actual full selection of a word or words, only text within that selection will be searched.  But if you make a "nearest word"-type selection (a cursor in or next to a word) then all matching words in the document will be searched for, even if they are not in a selection of their own.  If you want to restrict the search to a selection, make an actual selection - do not rely on the nearest word functionality.  
 
 <br/>  
 
@@ -440,8 +472,8 @@ except that a **reload of vscode is required** prior to using the generated comm
     "title": "Add Class to Html Element",
     "find": ">",
     "replace": " class=\"@\">",
-    "restrictFind": "once",   // other options: `once`, `line` or `document`
-    "cursorMoveSelect": "@"               // select all `@`s in selections in the document  
+    "restrictFind": "once",          // see above for other options
+    "cursorMoveSelect": "@"          // select the next'@'
   }
 }
 ```
@@ -460,7 +492,7 @@ except that a **reload of vscode is required** prior to using the generated comm
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMoveSelect arg with restrictFind of 'once'"/>
 
-### Explanation: Find any `>` within selection(s) and replace them with ` class=\"@\">`.  Then move the cursor(s) to the `@` and select it.  `cursorMoveSelect` value can be any text, even the regex delimiters `^` and `$` which mean line or selection start and end.    
+### Explanation: Find the first `>` within selection(s) and replace them with ` class=\"@\">`.  Then move the cursor(s) to `@` and select it.  `cursorMoveSelect` value can be any text, even the regex delimiters `^` and `$` which mean line or selection start and end.    
 
 <br/>
 
@@ -491,14 +523,14 @@ except that a **reload of vscode is required** prior to using the generated comm
 
 <br/>  
 
-If you have set `"restrictFind": "document"` any actual selections in the file will be ignored and the find/replace will be applied to the entire file.  Likewise, if you have `"restrictFind"` key at all, any selections will be ignored (because the default for ``"restrictFind"` is `document`).  
+If you have set `"restrictFind": "document"` any actual selections in the file will be ignored and the find/replace will be applied to the entire file.    
 
 ----------------------  
 ---------------------- 
 
 <br/>
 
-## Using the Search Panel for searches with `runInSearchPanel` commands   
+## Using the Search Panel for searches with the `runInSearchPanel` command   
 
 <br/>
 
@@ -507,11 +539,11 @@ If you have set `"restrictFind": "document"` any actual selections in the file w
 
 	"removeDigits": {
 		"title": "Remove digits from Arturo",
-		"find": "^(\\s*Arturo)\\d+",
+		"find": "^(\\s*Arturo)\\d+",  // using the '^' to indicate start of a line
 		"replace": "$1",              // all the args options will be shown by intellisense
 		"isRegex": true,
 		"triggerSearch": true,
-		"filesToInclude": "${file}"   // some variables are supported
+		"filesToInclude": "${file}"   // some variables are supported, see below
 	}
 }
 ```
@@ -536,7 +568,7 @@ Just like with `findInCurrentFile` keybindings if you add arguments to a command
 {
 	"key": "alt+z",
 	"command": "runInSearchPanel.removeDigits",  // assume this exists in settings
-	"args": {                     // then all args are ignored, the settings options are applied instead
+	"args": {                     // then all args are ignored, the settings args are applied instead
 		"find": "(?<=Arturo)\\d+",
 		"replace": "###"
 	}
@@ -565,15 +597,17 @@ You can also create commands solely in a keybinding like:
 
 <br/>
 
-> Note: Regex lookbehinds that are **not fixed-length** (also called fixed-width sometimes), like `(?<=^Art[\w]*)` are not supported in the Search Panel.  But non-fixed-length lookbehinds are supported in vscode's Find in a file (as in using the Find widget) so they can be used in `findInCurrentFile` settings or keybindings.  This works:  
+> Note: Regex lookbehinds that are **not fixed-length** (also called fixed-width sometimes), like `(?<=^Art[\w]*)` are not supported in the Search Panel.  But non-fixed-length lookbehinds are supported in vscode's Find in a file (as in using the Find widget) so they can be used in `findInCurrentFile` settings or keybindings.  
+
+This works:    
 
 
 ```jsonc
 {
 	"key": "alt+y",
-	"command": "findInCurrentFile",        // findInCurrentFile here
+	"command": "findInCurrentFile",         // findInCurrentFile
 	"args": {
-		"find": "(?<=^Art[\\w]*)\\d+",    // not fixed-length
+		"find": "(?<=^Art[\\w]*)\\d+",      // not fixed-length, but okay in findInCurrentFile
 		"replace": "###"
 	}
 }
@@ -584,9 +618,9 @@ but the same keybinding in `runInSearchPanel` will error and not run:
 ```jsonc
 {
 	"key": "alt+y",
-	"command": "runInSearchPanel",        // runInSearchPanel here
+	"command": "runInSearchPanel",            // runInSearchPanel
 	"args": {
-		"find": "(?<=^Art[\\w]*)\\d+",    // not fixed-length: ERROR will not run
+		"find": "(?<=^Art[\\w]*)\\d+",        // not fixed-length: ERROR will not run
 		"replace": "###"
 	}
 }
@@ -608,7 +642,9 @@ but the same keybinding in `runInSearchPanel` will error and not run:
 }
 ```
 
-If there is no `"find"` entry, this extension will either use the first selection in the current file or the current word at the cursor as the search query.  This behavior is different from `findInCurrentFile` which will use **ALL** selections and words at cursors as the `find` values.  In `runInSearchPanel` commands, only the **FIRST** selection/current word for the search query.  
+If there is no `"find"` entry for a `runInSearchPanel` command, this extension will respect the user's `Search: Seed WIth Nearest Word` setting.  VS Code then handles how to determinae the nearest word.  It will either use the first selection in the current file or , if there in only a single cursor, the current word at the cursor as the search query.  If there are multiple cursors, it will choose the first selection, otherwise it will choose nothing.    
+
+This behavior is different from `findInCurrentFile` which will use **ALL** selections and nearest words at cursors as the `find` values.  In `runInSearchPanel` commands, only the **FIRST** selection/current word for the search query.  
 
 In the demo below, text with a ***blue background*** is selected:  
 
@@ -650,10 +686,34 @@ You will get intellisense presenting these arguments.   And the completions will
 
 <br/>
 
-> As noted above, if you have a `runInSearchPanel` command with no `find` key at all, then the selected text will be used as the query term.  Likewise, if you have a `find` key but with a value of the empty string `""`, the selected text will be used.    
+> As noted above, if you have a `runInSearchPanel` command with no `find` key at all, then the selected text will be used as the query term.  Likewise, if you have a `find` key but with a value of the empty string `""`, the selected text or nearest word will be used.    
 
-> Note: The Search Panel remembers your option selections, like `matchWholeWord` `true/false` for example.  Thus, that option value will persist from call to call of the Search Panel.  If you want to change a value in a setting or keybinding then realize that value will remain as set the next time `runInSearchPanel` is run.  That is how vscode operates.  You can either set a value in the keybinding or setting or manually change it once the Search Panel pops up.   
+> Note: The Search Panel remembers your option selections, like `matchWholeWord` `true/false` for example.  Thus, that option value will persist from call to call of the Search Panel.  If you want to change a value in a setting or keybinding then realize that value will remain as set the next time `runInSearchPanel` is run.  That is how vscode operates.  You can either set a value in the keybinding or setting or manually change it once the Search Panel pops up.
 
+--------  
+
+However, specifically for the `"filesToInclude"` setting an empty string (`"filesToInclude": "",`) will **clear** the old value for the `filesToInclude` input box in the Search Panel.  So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:   
+
+```jsonc
+{
+  "key": "alt+shift+f",           // whatever keybinding you wish
+  "command": "runInSearchPanel",
+  "args": {
+    "filesToInclude": "${file}",  // open Search Panel with current file as the `files to include`
+  }
+},
+{
+  "key": "ctrl+shift+f",       // the default 'Search: Find in Files' command
+  "command": "runInSearchPanel",
+  "args": {
+    "filesToInclude": "",     // clear the `files to include` input box
+  }
+}
+```
+
+With those keybindings, the default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> would open up the Search Panel with the `filesToInclude` input box empty - thus using the default of all workspace files.  <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> would open a Search Panel with the current filename in the `filesToInclude` input.  
+
+------------  
 <br/>
 
 The `filesToInclude` argument supports these variables as values:  
@@ -703,7 +763,7 @@ They should have the same resolved values as found at [vscode's pre-defined vari
   &emsp;&emsp; Work on capture groups without case modifiers.  
 * 0.4.0	Added intellisense for settings and keybindings.  
   &emsp;&emsp; Added `restrictFind` argument.  
-	&emsp;&emsp; If no find or replace, will select all matches of word at cursor or selection.  
+	&emsp;&emsp; If no find or replace, will select all matches of nearest words at cursor or selection.  
 	&emsp;&emsp; Added many README examples and explanations.   
 * 0.5.0	Added option to use Search Panel with confirmation and all supported options.  
 	&emsp;&emsp; Added intellisense for `runInSearchPanel` args with filtering.  
@@ -715,7 +775,8 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 * 0.7.0	Added support for `cursorMoveSelect` argument for `findInCurrentFile` settings and keybindings.  
   &emsp;&emsp; Renamed `cursorMove` option to `cursorMoveSelect` = a **BREAKING CHANGE**.  
   &emsp;&emsp; Added `once` and `line` support to `restrictFind` options.  
-* 0.8.0	Added `nextSelectFind`, `nextMoveCursorFind`, and `nextDontMoveCursorFind` support to `restrictFind` options.   
+* 0.8.0	Added `nextSelectFind`, `nextMoveCursorFind`, and `nextDontMoveCursorFind` support to `restrictFind` options.  
+* 0.8.5	Enable clearing `files to include` in Search Panel.  Use `Search: Seed With Nearest Word`.  
      
 
 -----------------------------------------------------------------------------------------------------------  

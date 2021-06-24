@@ -15,9 +15,9 @@ let disposables = [];
  */
 async function activate(context) {
 
-	process.on('warning', (warning) => {
-		console.log(warning.stack);
-	});
+	// process.on('warning', (warning) => {
+	// 	console.log(warning.stack);
+	// });
 
 	await _loadSettingsAsCommands(context, disposables);
 

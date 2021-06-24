@@ -2,7 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find text and transform it with case modifiers",
- "version": "0.8.1",
+ "version": "0.8.5",
  "preview": true,
  "engines": {
   "vscode": "^1.57.0"
@@ -17,11 +17,18 @@
   "Other"
  ],
  "activationEvents": [
-  "onStartupFinished"
+  "onStartupFinished",
+  "onCommand:findInCurrentFile.addClassToElement"
  ],
  "main": "./src/extension.js",
  "contributes": {
-  "commands": [],
+  "commands": [
+   {
+    "command": "findInCurrentFile.addClassToElement",
+    "title": "Add Class to Html Element",
+    "category": "Find-Transform"
+   }
+  ],
   "configuration": [
    {
     "properties": {
