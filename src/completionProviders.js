@@ -89,7 +89,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 				];
 			}
 
-			const searchArgsRegex = /^\s*"(find|replace|triggerSearch|isRegex|filesToInclude|preserveCase|useExcludeSettingsAndIgnoreFiles|isCaseSensitive|matchWholeWord|filesToExclude)"\s*:\s*"/;
+			const searchArgsRegex = /^\s*"(find|replace|triggerSearch|triggerReplaceAll|isRegex|filesToInclude|preserveCase|useExcludeSettingsAndIgnoreFiles|isCaseSensitive|matchWholeWord|filesToExclude)"\s*:\s*"/;
 
 			if (search && argsRange.contains(position) && linePrefix.search(searchArgsRegex) !== -1)
 				return _makeSearchArgsCompletions(position, linePrefix);
@@ -222,6 +222,7 @@ function _makeSearchArgsCompletions(position, linePrefix) {
 		// find: "",
 		// replace: "",
 		// triggerSearch: true,                     // default is true
+		// triggerReplaceAll: false,                // default is false
 		// isRegex: true,                           // default is true
 		// filesToInclude: "",                      // default is "" = current workspace
 		// preserveCase: true,                      // default is true
@@ -231,6 +232,12 @@ function _makeSearchArgsCompletions(position, linePrefix) {
 		// filesToExclude: "./*.css"                // default is ""
 
 	// if (linePrefix.endsWith('"triggerSearch": "')) {
+	// 	return [
+	// 		_makeCompletionItem("true", position, true, "01"),
+	// 		_makeCompletionItem("false", position, true, "02")
+	// 	];
+	// }
+	// else if (linePrefix.endsWith('"triggerReplaceAll": "')) {
 	// 	return [
 	// 		_makeCompletionItem("true", position, true, "01"),
 	// 		_makeCompletionItem("false", position, true, "02")
@@ -311,6 +318,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	// 	"restrictFind": "document",   // else selections/line/once/nextSelect/nextMoveCursor/nextDontMoveCursor
 	//  "cursorMoveSelect": "",                     // ignored if no replace
 	// 	"triggerSearch": true,                    	// default is true
+	// 	"triggerReplaceAll": false,                 // default is false
 	// 	"isRegex": true,                           	// default is true
 	// 	"filesToInclude": "",               	      // default is "" = current workspace
 	// 	"preserveCase": true,                      	// default is true
@@ -329,6 +337,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 		"restrictFind": "03",
 		"cursorMove": "031",
 		"triggerSearch": "04",
+		"triggerReplaceAll": "041",
 		"isRegex": "05",
 		"filesToInclude": "06",
 		"preserveCase": "07",

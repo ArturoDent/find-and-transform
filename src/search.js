@@ -25,7 +25,7 @@ exports.getObjectFromArgs = function (args) {
  * @returns {Array}
  */
 exports.getKeys = function () {
-	return ["title", "find", "replace", "triggerSearch", "isRegex", "filesToInclude", "preserveCase",
+	return ["title", "find", "replace", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude", "preserveCase",
 					"useExcludeSettingsAndIgnoreFiles", "isCaseSensitive", "matchWholeWord", "filesToExclude"];
 }
 
@@ -38,9 +38,10 @@ exports.getDefaults = function () {
 		"title": "",
 		"find": "",
 		"replace": "",
-		"restrictFind": "document",   	// else "selections", "line" or "once"
+		"restrictFind": "document",   	      
 		"cursorMoveSelect": "",
 		"triggerSearch": true,
+		"triggerReplaceAll": false,
 		"isRegex": true,
 		"filesToInclude": "",               	// default is current workspace
 		"preserveCase": true,
@@ -58,11 +59,17 @@ exports.getDefaults = function () {
 exports.useSearchPanel = async function (findArray) {
 
 	const obj = new Object();
+
 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 	if (isfilesToInclude) {
 		obj["filesToInclude"] = await _parseVariables(isfilesToInclude.filesToInclude);
 	}
 	// else obj["filesToInclude"] = '';
+
+	const replaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
+	if (replaceAll) {
+		obj["triggerReplaceAll"] = true;
+	}
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
 	if (find?.find === "${CLIPBOARD}") {
@@ -96,7 +103,7 @@ exports.useSearchPanel = async function (findArray) {
 
 	vscode.commands.executeCommand('workbench.action.findInFiles',
 		obj	).then(() => {
-			if (obj['triggerSearch'])
+			if (obj['triggerReplaceAll'])
 				setTimeout(() => {
 					vscode.commands.executeCommand('search.action.replaceAll');
 				}, 1000);

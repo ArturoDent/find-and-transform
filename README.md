@@ -539,18 +539,23 @@ If you have set `"restrictFind": "document"` any actual selections in the file w
 
 	"removeDigits": {
 		"title": "Remove digits from Arturo",
-		"find": "^(\\s*Arturo)\\d+",  // using the '^' to indicate start of a line
-		"replace": "$1",              // all the args options will be shown by intellisense
+		"find": "^(\\s*Arturo)\\d+",   // using the '^' to indicate start of a line
+		"replace": "$1",               // all the args options will be shown by intellisense
 		"isRegex": true,
 		"triggerSearch": true,
-		"filesToInclude": "${file}"   // some variables are supported, see below
+		"triggerReplaceAll": true,     // explained below
+		"filesToInclude": "${file}"    // some variables are supported, see below
 	}
 }
 ```
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchIntellisense.gif?raw=true" width="750" height="400" alt="demo of search panel setting with intellisense"/>
 
-### Explanation: The `runInSearchPanel` command will do a search using the Search Panel.  This allows you to search the current file, folder or the entire workspace, for example.  
+### Explanation: The `runInSearchPanel` command will do a search using the Search Panel.  This allows you to search the current file, folder or the entire workspace, for example. 
+
+<br/>
+
+> Note that the `Replace All` confirmation box pops up in the demo above.  That is because `triggerReplaceAll` is set to `true`.  
 
 <br/>
 
@@ -587,13 +592,50 @@ You can also create commands solely in a keybinding like:
 		"matchWholeWord": false,
 		"isRegex": true,
 		"filesToInclude": "${file}",  // resolves to current file
-		"triggerSearch": true
+		"triggerSearch": true,
+		"triggerReplaceAll": true     // if using this, must have triggerSearch: true
 	}
 }
 ```
+
+This is the same as creating a command in the settings like so (and then triggering it from the Command Palette or using the keybinding which follows):  
+
+```jsonc
+"runInSearchPanel": {                        // in settings.json
+  "removeArturosDigits":  {
+      "title": "Remove Arturo's Digits",
+      "find": "(?<=^Arturo)\\d+",
+      "replace": "###",
+      "matchWholeWord": false,
+      "isRegex": true,
+      "filesToInclude": "${file}",
+      "triggerSearch": true,
+      "triggerReplaceAll": true        // if using this, must have triggerSearch: true
+  }
+},
+```
+
+```jsonc
+{
+  "key": "alt+e",                          // whatever keybinding you like
+  "command": "runInSearchPanel.removeArturosDigits"
+}
+```
+
+
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchGeneric1.gif?raw=true" width="750" height="400" alt="demo of search panel setting with intellisense"/>
 
-### Explanation: Creating a Search Panel command in the keybindings only.  In this case, search for `^Arturo` preceding some digits and replace in the current file.  
+### Explanation: Creating a Search Panel command in the keybindings only.  In this case, search for `^Arturo` preceding some digits and replace in the current file. 
+
+<br/>
+
+> `triggerSearch` is a built-in vscode search across files option.  It triggers the search, and thus shows the results, but does not trigger a replace or replace all.  I would think in most cases you would want `"triggerSearch": true` to see your results right away.  But if you know you will be modifying the search in some way, you may not want to `triggerSearch`.  
+
+> `triggerReplaceAll` is an option added solely by this extension.  Its action is the same as clicking the `Replace All` icon in the results.  VS Code will always pop up a confirmation dialog before actually performing the replacement, so you will still have to confirm the replacement.  `triggerReplaceAll` must have results shown in order to work, that is why if you want `triggerReplaceAll` then you must also have `triggerSearch` set to `true`.  
+
+<br/>
+
+------------  
 
 <br/>
 
@@ -613,7 +655,7 @@ This works:
 }
 ```
 
-but the same keybinding in `runInSearchPanel` will error and not run:  
+but the same keybinding in `runInSearchPanel` **will error and not run**:  
 
 ```jsonc
 {
@@ -665,11 +707,15 @@ In the demo below, text with a ***blue background*** is selected:
 
 "replace": "<some string>",
 
-"triggerSearch": <boolean>,      // boolean, same as the "Replace All" button, confirmation box will still open
+"triggerSearch": <boolean>,      // boolean, searches and shows the results
+
+"triggerReplaceAll": <boolean>,  // boolean, same as the "Replace All" button, confirmation box will still open
 
 "isRegex": <boolean>,
 
 "filesToInclude": "",            // default is "" = current workspace
+// using the empty string `""` as the value for `filesToInclude` will clear any prior value for 
+// the `files to include` input box in the Search Panel and result in the default
 
 "preserveCase": <boolean>,
 
@@ -777,6 +823,7 @@ They should have the same resolved values as found at [vscode's pre-defined vari
   &emsp;&emsp; Added `once` and `line` support to `restrictFind` options.  
 * 0.8.0	Added `nextSelectFind`, `nextMoveCursorFind`, and `nextDontMoveCursorFind` support to `restrictFind` options.  
 * 0.8.5	Enable clearing `files to include` in Search Panel.  Use `Search: Seed With Nearest Word`.  
+* 0.8.6	Added `triggerReplaceAll` option to `runInSearchPanel`.  Corrected `triggerSearch` operation.  
      
 
 -----------------------------------------------------------------------------------------------------------  
