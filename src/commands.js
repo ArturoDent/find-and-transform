@@ -151,11 +151,13 @@ function _makeSettingsEventsFromSettingsCommands (settingsCommands) {
  */
 function _commandArraysAreEquivalent(settings, packages) {
 
-  if (settings.length !== packages.length) return false;
+  if (settings.length !== (packages.length-1)) return false;
 
   return settings.every(setting => packages.some(pcommand => {
-    return (pcommand.command === setting.command) && (pcommand.title === setting.title) &&
-    (pcommand.category === setting.category);
+		if (pcommand.command !== "find-and-transform.searchInFile") {
+			return (pcommand.command === setting.command) && (pcommand.title === setting.title) &&
+			(pcommand.category === setting.category);
+		}
   }));
 }
 

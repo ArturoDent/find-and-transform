@@ -21,7 +21,29 @@
  ],
  "main": "./src/extension.js",
  "contributes": {
-  "commands": [],
+   "menus": {
+    "editor/context": [
+      {
+        "command": "find-and-transform.searchInFile",
+        "when": "editorIsOpen",
+        "group": "4_search"
+      }
+    ],
+    "editor/title/context": [
+      {
+        "command": "find-and-transform.searchInFile",
+        "when": "editorIsOpen",
+        "group": "4_search"
+      }
+    ]
+  },
+  "commands": [
+    {
+      "command": "find-and-transform.searchInFile",
+      "title": "Search in this File",
+      "category": "Find-Transform"
+    }
+  ],
   "configuration": [
    {
     "properties": {

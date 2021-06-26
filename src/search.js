@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const path = require('path');
+const utilities = require('./utilities');
 
 
 /**
@@ -60,7 +61,9 @@ exports.useSearchPanel = async function (findArray) {
 
 	const obj = new Object();
 
-	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
+	const isfilesToInclude = findArray.find(arg => {
+		return Object.keys(arg)[0] === 'filesToInclude'
+	});
 	if (isfilesToInclude) {
 		obj["filesToInclude"] = await _parseVariables(isfilesToInclude.filesToInclude);
 	}
@@ -79,25 +82,31 @@ exports.useSearchPanel = async function (findArray) {
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];
-		if (key !== "filesToInclude") {
-			if (!obj[`query`]) obj[`query`] = Object.values(arg)[0];
-			else obj[`${ key }`] = Object.values(arg)[0];
+		if (key !== "filesToInclude" &&  key !== "find") {
+			// if (!obj[`query`]) obj[`query`] = Object.values(arg)[0];
+			// else obj[`${ key }`] = Object.values(arg)[0];
+			obj[`${ key }`] = Object.values(arg)[0];
 		}
 	});
 
 	// respect search.seedWithNearestWord' setting
-	// if no find key use selections[0] or getWordRangeAtPosition()
+	// need this - without it the context menu command is not wprking !! 
 
-	const seed = vscode.workspace.getConfiguration().get("search.seedWithNearestWord");
-	if (seed) {
-		if (!obj['query']) {
-			const document = vscode.window.activeTextEditor.document;
-			const selections = vscode.window.activeTextEditor.selections;
-			if (selections.length === 1 && selections[0].isEmpty) {
-				const wordRange = document.getWordRangeAtPosition(selections[0].start);
-				if (wordRange) obj['query'] = document.getText(wordRange);
+	if (!obj['query']) {
+		const seed = vscode.workspace.getConfiguration().get("search.seedWithNearestWord");
+		const document = vscode.window.activeTextEditor.document;
+		const selections = vscode.window.activeTextEditor.selections;
+		if (seed) {			 // enabled
+				if (selections[0].isEmpty) {
+					const wordRange = document.getWordRangeAtPosition(selections[0].start);
+					if (wordRange) obj['query'] = document.getText(wordRange);
+				}
+				else obj['query'] = document.getText(selections[0]);
 			}
-			else obj['query'] = document.getText(selections[0]);
+		else if (!seed)  {  //  just get the first selection, if empty do nothing
+			if (!selections[0].isEmpty) {
+				obj['query'] = document.getText(selections[0]);
+			}
 		}
 	}
 
@@ -168,7 +177,9 @@ async function _parseVariables(include) {
 		switch (item[1]) {
 
 			case "${file}":
-				resolved = filePath.substring(4);
+				// resolved = filePath.substring(4);
+				// resolved = relativePath;  // doesn't work for settings/keybindings
+				resolved = utilities.getRelativePath(filePath);
 				break;
 
 			case "${relativeFile}":
@@ -176,7 +187,8 @@ async function _parseVariables(include) {
 				break;
 
 			case "${fileDirname}":
-				resolved = path.dirname(filePath);
+				// resolved = path.dirname(filePath);
+				resolved = path.dirname(relativePath);
 				break;
 
 			case "${fileWorkspaceFolder}":

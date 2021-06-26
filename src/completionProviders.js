@@ -14,7 +14,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
       {
         provideCompletionItems(document, position) {
 
-           	// {
+      // {
 			// 	"key": "alt+r",
 			// 	"command": "findInCurrentFile",  // runInSearchPanel
 			// 	"args": {
@@ -26,6 +26,13 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 			// }
 
 			const linePrefix = document.lineAt(position).text.substr(0, position.character);
+
+			// ---------------    $ completion for 'filesToInclude' completions   ------
+
+			let re$ = /^\s*"filesToInclude"\s*:\s*".*\$$/;
+			if (linePrefix.substring(0, position.character).search(re$) !== -1)  {
+				return _completeIncludeVariables(position, '$');
+			}
 
 			// ---------------    command completion start   ----------------------------
 
@@ -54,7 +61,6 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 			}
 			// ---------------    command completion end   ----------------------------
 
-
 			// ---------------    args completion start   ----------------------------
 
 			const rootNode = jsonc.parseTree(document.getText());
@@ -77,22 +83,20 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 
 			if (!argsRange.contains(position) || linePrefix.search(/^\s*"/m) === -1) return undefined;
 
-			if (find && argsRange.contains(position) && linePrefix.endsWith('"restrictFind": "')) {
-				return [
-					_makeCompletionItem("selections", position, "document"),
-					_makeCompletionItem("line", position, "document"),
-					_makeCompletionItem("once", position, "document"),
-					_makeCompletionItem("document", position, "document"),
-					_makeCompletionItem("nextSelect", position, "document"),
-					_makeCompletionItem("nextMoveCursor", position, "document"),
-					_makeCompletionItem("nextDontMoveCursor", position, "document")
-				];
+			let reRestrictFind = /^\s*"restrictFind"\s*:\s*"$/;
+			if (find && argsRange.contains(position) && linePrefix.search(reRestrictFind) !== -1)
+				return _completeRestrictFindValues(position);
+
+			// linePrefix.endsWith('$', position.character)
+			re$ = /^\s*"filesToInclude"\s*:\s*"$/;
+			if (search && argsRange.contains(position) && linePrefix.substring(0, position.character).search(re$) !== -1) {
+				return _completeIncludeVariables(position, "");
 			}
 
-			const searchArgsRegex = /^\s*"(find|replace|triggerSearch|triggerReplaceAll|isRegex|filesToInclude|preserveCase|useExcludeSettingsAndIgnoreFiles|isCaseSensitive|matchWholeWord|filesToExclude)"\s*:\s*"/;
-
-			if (search && argsRange.contains(position) && linePrefix.search(searchArgsRegex) !== -1)
-				return _makeSearchArgsCompletions(position, linePrefix);
+			// not included because only 'filesToExclude' handled in _makeSearchArgsCompletions()
+			// const searchArgsRegex = /^\s*"(find|replace|triggerSearch|triggerReplaceAll|isRegex|filesToInclude|preserveCase|useExcludeSettingsAndIgnoreFiles|isCaseSensitive|matchWholeWord|filesToExclude)"\s*:\s*"/;
+			// if (search && argsRange.contains(position) && linePrefix.search(searchArgsRegex) !== -1)
+			// 	return _makeSearchArgsCompletions(position, linePrefix);
 
 			const runFindArgs = findCommands.getKeys().slice(1);       // remove title
 			const runSearchArgs = searchCommands.getKeys().slice(1); // remove title
@@ -107,7 +111,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 			else return undefined;
         }
       },
-      '.', '"'   // trigger intellisense/completion
+      '.', '"', '$'   // trigger intellisense/completion
     );
 
   context.subscriptions.push(configCompletionProvider);
@@ -171,26 +175,14 @@ exports.makeSettingsCompletionProvider = function(context) {
 					keysText = document.getText(keysRange);
 				}
 
-				// is this duplicated above?
-				if (linePrefix.search(/"restrictFind":\s*"$/m) !== -1) {
-					return [
-						_makeCompletionItem("selections", position, "document"),
-						_makeCompletionItem("line", position, "document"),
-						_makeCompletionItem("once", position, "document"),
-						_makeCompletionItem("document", position, "document"),
-						_makeCompletionItem("nextSelect", position, "document"),
-						_makeCompletionItem("nextMoveCursor", position, "document"),
-						_makeCompletionItem("nextDontMoveCursor", position, "document")
-					];
-				}
+				if (linePrefix.search(/"restrictFind":\s*"$/m) !== -1) 
+					return _completeRestrictFindValues(position);
 				else if (linePrefix.search(/"filesToExclude":\s*"$/m) !== -1) {
 					return [
 						_makeCompletionItem("", position, ""),
 					];
 				}
 
-				// const runFindArgs = findCommands.getKeys().slice(1);     // remove title
-				// const runSearchArgs = searchCommands.getKeys().slice(1); // remove title
 				const runFindArgs = findCommands.getKeys();     // remove title
 				const runSearchArgs = searchCommands.getKeys(); // remove title
 
@@ -211,25 +203,23 @@ exports.makeSettingsCompletionProvider = function(context) {
 }
 
 
-/**
- * Make the Completions for the searchInFindPanel args keys (if not simply boolean)
- * @param   {vscode.Position} position
- * @param   {String} linePrefix
- * @returns {Array | undefined}
- */
-function _makeSearchArgsCompletions(position, linePrefix) {
+// /**
+//  * Make the Completions for the searchInFindPanel args keys (if not simply boolean)
+//  * @param   {vscode.Position} position
+//  * @param   {String} linePrefix
+//  * @returns {Array | undefined}
+//  */
+// function _makeSearchArgsCompletions(position, linePrefix) {
 
-		// find: "",
-		// replace: "",
-		// triggerSearch: true,                     // default is true
-		// triggerReplaceAll: false,                // default is false
-		// isRegex: true,                           // default is true
-		// filesToInclude: "",                      // default is "" = current workspace
-		// preserveCase: true,                      // default is true
-		// useExcludeSettingsAndIgnoreFiles: true,  // default is true
-		// isCaseSensitive: true,                   // default is true
-		// matchWholeWord: true,                   // default is true
-		// filesToExclude: "./*.css"                // default is ""
+// 	let re = /^\s*"filesToExclude"\s*:\s*"$/;
+
+// 	// if (linePrefix.endsWith('"filesToExclude": "')) {
+// 	if (linePrefix.search(re) !== -1) {
+// 		return [
+// 			_makeCompletionItem("", position, ""),
+// 		];
+// 	}
+// 	else return undefined;
 
 	// if (linePrefix.endsWith('"triggerSearch": "')) {
 	// 	return [
@@ -237,51 +227,8 @@ function _makeSearchArgsCompletions(position, linePrefix) {
 	// 		_makeCompletionItem("false", position, true, "02")
 	// 	];
 	// }
-	// else if (linePrefix.endsWith('"triggerReplaceAll": "')) {
-	// 	return [
-	// 		_makeCompletionItem("true", position, true, "01"),
-	// 		_makeCompletionItem("false", position, true, "02")
-	// 	];
-	// }
-	// else if (linePrefix.endsWith('"isRegex": "')) {
-	// 	return [
-	// 		_makeCompletionItem("true", position, true, "01"),
-	// 		_makeCompletionItem("false", position, true, "02")
-	// 	];
-	// }
-	// else if (linePrefix.endsWith('"preserveCase": "')) {
-	// 	return [
-	// 		_makeCompletionItem("true", position, true, "01"),
-	// 		_makeCompletionItem("false", position, true, "02")
-	// 	];
-	// }
-	// else if (linePrefix.endsWith('"useExcludeSettingsAndIgnoreFiles": "')) {
-	// 	return [
-	// 		_makeCompletionItem("true", position, true, "01"),
-	// 		_makeCompletionItem("false", position, true, "02")
-	// 	];
-	// }
-	// else if (linePrefix.endsWith('"isCaseSensitive": "')) {
-	// 	return [
-	// 		_makeCompletionItem("true", position, true, "01"),
-	// 		_makeCompletionItem("false", position, true, "02")
-	// 	];
-	// }
-	// else if (linePrefix.endsWith('"matchWholeWord": "')) {
-	// 	return [
-	// 		_makeCompletionItem("true", position, false, "02"),
-	// 		_makeCompletionItem("false", position, false, "01")
-	// 	];
-	// }
 	// else
-
-	if (linePrefix.endsWith('"filesToExclude": "')) {
-		return [
-			_makeCompletionItem("", position, ""),
-		];
-	}
-	else return undefined;
-}
+// }
 
 /**
  * From a string input make a CompletionItemKind.Text
@@ -312,22 +259,6 @@ function _makeCompletionItem(key, position, defaultValue, sortText) {
  */
 function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 
-	// const defaults = {
-	// 	"find": "",
-	// 	"replace": "",
-	// 	"restrictFind": "document",   // else selections/line/once/nextSelect/nextMoveCursor/nextDontMoveCursor
-	//  "cursorMoveSelect": "",                     // ignored if no replace
-	// 	"triggerSearch": true,                    	// default is true
-	// 	"triggerReplaceAll": false,                 // default is false
-	// 	"isRegex": true,                           	// default is true
-	// 	"filesToInclude": "",               	      // default is "" = current workspace
-	// 	"preserveCase": true,                      	// default is true
-	// 	"useExcludeSettingsAndIgnoreFiles": true,  	// default is true
-	// 	"isCaseSensitive": true,                   	// default is true
-	// 	"matchWholeWord": false,                    // default is false
-	// 	"filesToExclude": ""                		    // default is ""
-	// };
-
 	const defaults = searchCommands.getDefaults();
 
 	const priority = {
@@ -357,4 +288,50 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	});
 
 	return completionArray;
+}
+
+/**
+ * Make completion items for 'filesToInclude' values starting with a '$' sign
+ * 
+ * @param   {vscode.Position} position
+ * @param   {String} dollarSign - triggered by '$' so include its range
+ * @returns {Array<vscode.CompletionItem>}
+ */
+function _completeIncludeVariables(position, dollarSign) {
+
+	// triggered by 1 '$', so include it to complete w/o two '$${file}'
+	if (dollarSign) position = new vscode.Position(position.line, position.character-1);
+
+	return [
+		_makeCompletionItem("${file}", position, ""),
+		_makeCompletionItem("${fileDirname}", position, ""),
+		_makeCompletionItem("${fileWorkspaceFolder}", position, ""),
+		_makeCompletionItem("${workspaceFolder}", position, ""),
+		_makeCompletionItem("${relativeFileDirname}", position, ""),
+		_makeCompletionItem("${workspaceFolderBasename}", position, ""),
+		_makeCompletionItem("${selectedText}", position, ""),
+		_makeCompletionItem("${CLIPBOARD}", position, ""),
+		_makeCompletionItem("${pathSeparator}", position, "")
+	];
+}
+
+/**
+ * Make completion items for 'restrictFind' values with priority
+ * 
+ * @param   {vscode.Position} position
+ * @returns {Array<vscode.CompletionItem>}
+ */
+function _completeRestrictFindValues(position) {
+
+	return [
+		_makeCompletionItem("document", position, "document", "01"),
+		_makeCompletionItem("selections", position, "document", "02"),
+
+		_makeCompletionItem("once", position, "document", "03"),
+		_makeCompletionItem("line", position, "document", "04"),
+
+		_makeCompletionItem("nextSelect", position, "document", "05"),
+		_makeCompletionItem("nextMoveCursor", position, "document", "06"),
+		_makeCompletionItem("nextDontMoveCursor", position, "document", "07")
+	];
 }

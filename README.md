@@ -35,7 +35,6 @@ This extension provides a way to save and re-use find/replace regex's and use ca
 
 -------------
 
-
 ## Features
 
 1.  Make a setting with `title`, `find`, `replace`, `restrictFind`, and/or `cursurMove` values and some name (with no spaces) for that setting.  
@@ -65,6 +64,12 @@ For more on this `codeActionsOnSave` usage see [running commands on save](codeAc
 <br/>  
 
 > Note: commands can be removed by deleting or commenting out the associated settings and re-saving the `settings.json` file and reloading VS Code. 
+
+-----------------
+
+Below you will find information on using the `findInCurrentFile` command - which performs a find within the current file, like using the Find Widget but with the ability to save these file/replaces as settings or keybindings.  Some of the information here will be useful to using the `runInSearchPanel` as well - so you should read both.  
+
+In [Search using the Panel](searchInPanel.md) you will find information on using the `runInSearchPanel` command - where you can save or manipulate searches that use the Search Panel and can be done across files, folders or limited to the current or a specific file.  
 
 ------------------
 
@@ -213,11 +218,6 @@ Examples of possible keybindings (in your `keybindings.json`):
 	"command": "findInCurrentFile.upcaseKeywords"   // from the settings
 },                                                	// any "args" here will be ignored, they are in the settings
 
-{
-	"key": "alt+s",
-	"command": "runInSearchPanel.upcaseSwap"        // from the settings
-},                                                	// any "args" here will be ignored, they are in the settings
-                                               	
  
 // below: a generic "findInCurrentFile" keybinding commands, no need for any settings to run these
 
@@ -231,47 +231,9 @@ Examples of possible keybindings (in your `keybindings.json`):
 		"cursorMoveSelect": "IIF"               // this text will be selected; "$" goes to the end of the line
 	}
 },
-
-// below: a generic "runInSearchPanel" keybinding commands, no need for any settings to run these
-{
-	"key": "alt+z",
-	"command": "runInSearchPanel",       // note: no second part of a command name
-	"args": {                            // args not set here will use their last values set in the Search Panel 
-		"find": "(?<=Arturo)\\d+",
-		"replace": "###",
-		"matchWholeWord": false,
-		"isRegex": true,
-		"filesToInclude": "${file}",
-		// "filesToInclude": "<relative or absolute paths supported>",  // but see below**
-		"triggerSearch": true
-	}
-}
 ```  
 
-`filesToInclude` can take a relative path or absolute path with some caveats. **These work**:
-
-```jsonc
-"filesToInclude": "zip\\new.html",                           // note the escaped backward slash  
-"filesToInclude": "zip/new.html"                             // forward slash, not escaped  
-"filesToInclude": "zip//new.html"                            // forward slash, escaped 
-"filesToInclude": "Users/Arturo/Test Bed/zip/new.html"       // absolute path with 'C:/' removed
-"filesToInclude": "Users\\Arturo\\Test Bed\\zip\\new.html"
-"filesToInclude": "Users\\Arturo\\Test Bed\\zip\\new.html" 
-```
-
-**These do not work** (at least on Windows):  
-
-```jsonc
-// this first entry works if you directly paste that into the Search Panel 'files to include' field
-// but in settings or keybindings the backslash MUST be escaped, see above  
-"filesToInclude": "zip\new.html",                               // must escape all backward slashes  
-
-"filesToInclude": "C:\Users\Arturo\Test Bed\zip\new.html"       // absolute paths with scheme, remove the 'C:\`
-"filesToInclude": "C:\\Users\\Arturo\\Test Bed\\zip\\new.html"  // remove the 'C:\\`
-"filesToInclude": "C:/Users/Arturo/Test Bed/zip/new.html"       // remove the 'C:/`
-```
-
---------------------  
+------------
 
 When you **save** a change to the settings, you will get the message notification below.  This extension will detect a change in its settings and create corresponding commands.  The commands will not appear in the Command  Palette **without saving the new setting**.  
 
@@ -525,117 +487,7 @@ except that a **reload of vscode is required** prior to using the generated comm
 
 If you have set `"restrictFind": "document"` any actual selections in the file will be ignored and the find/replace will be applied to the entire file.    
 
-----------------------  
 ---------------------- 
-
-<br/>
-
-## Using the Search Panel for searches with the `runInSearchPanel` command   
-
-<br/>
-
-```jsonc
-"runInSearchPanel": {
-
-	"removeDigits": {
-		"title": "Remove digits from Arturo",
-		"find": "^(\\s*Arturo)\\d+",   // using the '^' to indicate start of a line
-		"replace": "$1",               // all the args options will be shown by intellisense
-		"isRegex": true,
-		"triggerSearch": true,
-		"triggerReplaceAll": true,     // explained below
-		"filesToInclude": "${file}"    // some variables are supported, see below
-	}
-}
-```
-
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchIntellisense.gif?raw=true" width="750" height="400" alt="demo of search panel setting with intellisense"/>
-
-### Explanation: The `runInSearchPanel` command will do a search using the Search Panel.  This allows you to search the current file, folder or the entire workspace, for example. 
-
-<br/>
-
-> Note that the `Replace All` confirmation box pops up in the demo above.  That is because `triggerReplaceAll` is set to `true`.  
-
-<br/>
-
-The `runInSearchPanel` settings commands can be used in keybindings just like the `findInCurrentFile` commands discussed above.  The above `removeDigits` command could be used in a keybinding like this:  
-
-```jsonc
-{
-	"key": "alt+z",
-	"command": "runInSearchPanel.removeDigits"
-}
-```
-Just like with `findInCurrentFile` keybindings if you add arguments to a command that already exists in a setting, the keybinding arguments will be ignored.  
-
-```jsonc
-{
-	"key": "alt+z",
-	"command": "runInSearchPanel.removeDigits",  // assume this exists in settings
-	"args": {                     // then all args are ignored, the settings args are applied instead
-		"find": "(?<=Arturo)\\d+",
-		"replace": "###"
-	}
-}
-```
-
-You can also create commands solely in a keybinding like:
-
-```jsonc
-{
-	"key": "alt+z",
-	"command": "runInSearchPanel",
-	"args": {
-		"find": "(?<=^Arturo)\\d+",   // fixed-width lookbehinds and multiline supported
-		"replace": "###",
-		"matchWholeWord": false,
-		"isRegex": true,
-		"filesToInclude": "${file}",  // resolves to current file
-		"triggerSearch": true,
-		"triggerReplaceAll": true     // if using this, must have triggerSearch: true
-	}
-}
-```
-
-This is the same as creating a command in the settings like so (and then triggering it from the Command Palette or using the keybinding which follows):  
-
-```jsonc
-"runInSearchPanel": {                        // in settings.json
-  "removeArturosDigits":  {
-      "title": "Remove Arturo's Digits",
-      "find": "(?<=^Arturo)\\d+",
-      "replace": "###",
-      "matchWholeWord": false,
-      "isRegex": true,
-      "filesToInclude": "${file}",
-      "triggerSearch": true,
-      "triggerReplaceAll": true        // if using this, must have triggerSearch: true
-  }
-},
-```
-
-```jsonc
-{
-  "key": "alt+e",                          // whatever keybinding you like
-  "command": "runInSearchPanel.removeArturosDigits"
-}
-```
-
-
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchGeneric1.gif?raw=true" width="750" height="400" alt="demo of search panel setting with intellisense"/>
-
-### Explanation: Creating a Search Panel command in the keybindings only.  In this case, search for `^Arturo` preceding some digits and replace in the current file. 
-
-<br/>
-
-> `triggerSearch` is a built-in vscode search across files option.  It triggers the search, and thus shows the results, but does not trigger a replace or replace all.  I would think in most cases you would want `"triggerSearch": true` to see your results right away.  But if you know you will be modifying the search in some way, you may not want to `triggerSearch`.  
-
-> `triggerReplaceAll` is an option added solely by this extension.  Its action is the same as clicking the `Replace All` icon in the results.  VS Code will always pop up a confirmation dialog before actually performing the replacement, so you will still have to confirm the replacement.  `triggerReplaceAll` must have results shown in order to work, that is why if you want `triggerReplaceAll` then you must also have `triggerSearch` set to `true`.  
-
-<br/>
-
-------------  
 
 <br/>
 
@@ -667,121 +519,6 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 	}
 }
 ```
-
--------------  
-
-**What if you have no `find` entry in a keybinding or setting?** 
-
-```jsonc
-{
-	"key": "alt+z",
-	"command": "runInSearchPanel",
-	"args": {
-		//"find": "<someText>",  // assume no "find" entry
-		"replace": "###",        // optional
-		"triggerSearch": true    // optional
-	}
-}
-```
-
-If there is no `"find"` entry for a `runInSearchPanel` command, this extension will respect the user's `Search: Seed WIth Nearest Word` setting.  VS Code then handles how to determinae the nearest word.  It will either use the first selection in the current file or , if there in only a single cursor, the current word at the cursor as the search query.  If there are multiple cursors, it will choose the first selection, otherwise it will choose nothing.    
-
-This behavior is different from `findInCurrentFile` which will use **ALL** selections and nearest words at cursors as the `find` values.  In `runInSearchPanel` commands, only the **FIRST** selection/current word for the search query.  
-
-In the demo below, text with a ***blue background*** is selected:  
-
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindSearch.gif?raw=true" width="750" height="600" alt="demo of search panel setting with intellisense"/>  
-
-<br/>
-
------------------------
-
-### -- `runInSearchPanel` arguments and types:  
-
-<br/>
-
-```jsonc
-"title": "<some string>",        // can have spaces, will be shown in the Command Palette: "Find-Transform:My Title"
-
-"find": "<some string>",         // if no find key or empty value, will use the selected text (as vscode does natively)
-
-"replace": "<some string>",
-
-"triggerSearch": <boolean>,      // boolean, searches and shows the results
-
-"triggerReplaceAll": <boolean>,  // boolean, same as the "Replace All" button, confirmation box will still open
-
-"isRegex": <boolean>,
-
-"filesToInclude": "",            // default is "" = current workspace
-// using the empty string `""` as the value for `filesToInclude` will clear any prior value for 
-// the `files to include` input box in the Search Panel and result in the default
-
-"preserveCase": <boolean>,
-
-"useExcludeSettingsAndIgnoreFiles": <boolean>,
-
-"isCaseSensitive": <boolean>,
-
-"matchWholeWord": <boolean>,
-
-"filesToExclude": "<some string>"
-```
-
-You will get intellisense presenting these arguments.   And the completions will be filtered to remove any options arlready used in that setting or keybinding.  
-
-<br/>
-
-> As noted above, if you have a `runInSearchPanel` command with no `find` key at all, then the selected text will be used as the query term.  Likewise, if you have a `find` key but with a value of the empty string `""`, the selected text or nearest word will be used.    
-
-> Note: The Search Panel remembers your option selections, like `matchWholeWord` `true/false` for example.  Thus, that option value will persist from call to call of the Search Panel.  If you want to change a value in a setting or keybinding then realize that value will remain as set the next time `runInSearchPanel` is run.  That is how vscode operates.  You can either set a value in the keybinding or setting or manually change it once the Search Panel pops up.
-
---------  
-
-However, specifically for the `"filesToInclude"` setting an empty string (`"filesToInclude": "",`) will **clear** the old value for the `filesToInclude` input box in the Search Panel.  So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:   
-
-```jsonc
-{
-  "key": "alt+shift+f",           // whatever keybinding you wish
-  "command": "runInSearchPanel",
-  "args": {
-    "filesToInclude": "${file}",  // open Search Panel with current file as the `files to include`
-  }
-},
-{
-  "key": "ctrl+shift+f",       // the default 'Search: Find in Files' command
-  "command": "runInSearchPanel",
-  "args": {
-    "filesToInclude": "",     // clear the `files to include` input box
-  }
-}
-```
-
-With those keybindings, the default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> would open up the Search Panel with the `filesToInclude` input box empty - thus using the default of all workspace files.  <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> would open a Search Panel with the current filename in the `filesToInclude` input.  
-
-------------  
-<br/>
-
-The `filesToInclude` argument supports these variables as values:  
-
-* "${file}"  
-* "${relativeFile}"  
-* "${fileDirname}"  
-* "${fileWorkspaceFolder}"  
-* "${workspaceFolder}"  
-* "${relativeFileDirname}"  
-* "${workspaceFolderBasename}"  
-* "${selectedText}"  
-* "${pathSeparator}"  
-* "${CLIPBOARD}"   
-
-<br/>
-
-The `find` argument (only in the `runInSearchPanel` setting or keybinding) supports this variable as values:  
-
-* "${CLIPBOARD}"  
-
-They should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
 
 -----------------------  
 
@@ -824,6 +561,7 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 * 0.8.0	Added `nextSelectFind`, `nextMoveCursorFind`, and `nextDontMoveCursorFind` support to `restrictFind` options.  
 * 0.8.5	Enable clearing `files to include` in Search Panel.  Use `Search: Seed With Nearest Word`.  
 * 0.8.6	Added `triggerReplaceAll` option to `runInSearchPanel`.  Corrected `triggerSearch` operation.  
+* 0.9.0	Added `Search in this File` context menu option.  Refactor completions.  
      
 
 -----------------------------------------------------------------------------------------------------------  

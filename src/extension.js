@@ -1,9 +1,12 @@
 const vscode = require('vscode');
+const path = require('path');
+
 const commands = require('./commands');
 const findCommands = require('./transform');
 const searchCommands = require('./search');
 const providers = require('./completionProviders');
 const codeActions = require('./codeActions');
+const utilities = require('./utilities');
 
 /** @type { Array<vscode.Disposable> } */
 let disposables = [];
@@ -23,6 +26,43 @@ async function activate(context) {
 
 	await providers.makeKeybindingsCompletionProvider(context);
 	await providers.makeSettingsCompletionProvider(context);
+
+	// -------------------------------------------------------------------------------------------
+
+	// make a context menu "runInSearchPanel" command for searches in the Search Panel
+	// with 'files to include' this ${file} only
+	let contextMenuCommand = vscode.commands.registerCommand('find-and-transform.searchInFile', async (args) => {
+
+		let argsArray = [];
+
+		if (args) {
+
+			// let relativePath;
+			// const basename = path.posix.basename(args.path);
+			// if (basename === "settings.json" || basename === "keybindings.json") {
+			// 		relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
+			// 		relativePath = relativePath.substring(3);
+			// }
+			// else {
+			// 		const wsFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(args.path)).uri.path;
+			// 		relativePath = path.posix.relative(wsFolder, args.path);
+			// }
+
+			const relativePath = utilities.getRelativePath(args.path);
+
+			argsArray = [
+				{ "triggerSearch": true },         // make triggerSearch the default
+				{ "filesToInclude": relativePath }
+			];
+		}
+				// { "filesToInclude": "${file}"}
+
+		searchCommands.useSearchPanel(argsArray);
+	});
+
+
+
+	context.subscriptions.push(contextMenuCommand);
 
 	// ---------------------------------------------------------------------------------------------------------------------
 
@@ -65,6 +105,8 @@ async function activate(context) {
 
 		searchCommands.useSearchPanel(argsArray);
 	});
+
+	 
 
 	context.subscriptions.push(runInSearchPanelDisposable);
 
