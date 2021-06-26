@@ -100,3 +100,16 @@ function createCommand() {
 	// newCommand.title = "Uppercase all Keywords";
 	// newCommand.category = category;
 	// settingsJSON.push(newCommand);
+
+	-------------------------------
+
+	    {
+      "command": "find-and-transform.searchInFile",
+      "title": "Search in this File",
+      "category": "Find-Transform"
+    },
+    {
+      "command": "find-and-transform.searchInFolder",
+      "title": "Search in this Folder",
+      "category": "Find-Transform"
+    }

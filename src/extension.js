@@ -27,11 +27,34 @@ async function activate(context) {
 	await providers.makeKeybindingsCompletionProvider(context);
 	await providers.makeSettingsCompletionProvider(context);
 
+	// ---------------------------------------------------------------------------------------------
+
+	// make a context menu "runInSearchPanel" command for searches in the Search Panel
+	// with 'files to include' this ${file} only
+	let contextMenuCommandFolder = vscode.commands.registerCommand('find-and-transform.searchInFolder', async (args) => {
+
+		let argsArray = [];
+
+		if (args) {
+
+			const relativeFolderPath = utilities.getRelativeFolderPath(args.path);
+
+			argsArray = [
+				{ "triggerSearch": true },         // make triggerSearch the default
+				{ "filesToInclude": relativeFolderPath }
+			];
+		}
+
+		searchCommands.useSearchPanel(argsArray);
+	});
+
+	context.subscriptions.push(contextMenuCommandFolder);
+
 	// -------------------------------------------------------------------------------------------
 
 	// make a context menu "runInSearchPanel" command for searches in the Search Panel
 	// with 'files to include' this ${file} only
-	let contextMenuCommand = vscode.commands.registerCommand('find-and-transform.searchInFile', async (args) => {
+	let contextMenuCommandFile = vscode.commands.registerCommand('find-and-transform.searchInFile', async (args) => {
 
 		let argsArray = [];
 
@@ -48,7 +71,7 @@ async function activate(context) {
 			// 		relativePath = path.posix.relative(wsFolder, args.path);
 			// }
 
-			const relativePath = utilities.getRelativePath(args.path);
+			const relativePath = utilities.getRelativeFilePath(args.path);
 
 			argsArray = [
 				{ "triggerSearch": true },         // make triggerSearch the default
@@ -60,9 +83,7 @@ async function activate(context) {
 		searchCommands.useSearchPanel(argsArray);
 	});
 
-
-
-	context.subscriptions.push(contextMenuCommand);
+	context.subscriptions.push(contextMenuCommandFile);
 
 	// ---------------------------------------------------------------------------------------------------------------------
 

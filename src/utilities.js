@@ -8,7 +8,7 @@ const os = require('os');
  * @param {String} filePath 
  * @returns {String} relativePath
  */
-exports.getRelativePath = function (filePath) {
+exports.getRelativeFilePath = function (filePath) {
 
 	// const isWindows = process.platform === 'win32';
 	// const env = process.env;
@@ -27,4 +27,19 @@ exports.getRelativePath = function (filePath) {
 	// }
 
 	return relativePath;
+}
+
+/**
+ * Get the relative path to the workspace folder
+ * @param {String} filePath 
+ * @returns {String} relativePath
+ */
+exports.getRelativeFolderPath = function (filePath) {
+
+	// const isWindows = process.platform === 'win32';
+	// const env = process.env;
+	// const homedir = os.homedir();
+
+	const dirname = path.posix.dirname(filePath);
+	return vscode.workspace.asRelativePath(dirname);
 }

@@ -561,7 +561,7 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 * 0.8.0	Added `nextSelectFind`, `nextMoveCursorFind`, and `nextDontMoveCursorFind` support to `restrictFind` options.  
 * 0.8.5	Enable clearing `files to include` in Search Panel.  Use `Search: Seed With Nearest Word`.  
 * 0.8.6	Added `triggerReplaceAll` option to `runInSearchPanel`.  Corrected `triggerSearch` operation.  
-* 0.9.0	Added `Search in this File` context menu option.  Refactor completions.  
+* 0.8.8	Added `Search in this File` and `Search in this Folder` context menu options.  Refactor completions.  
      
 
 -----------------------------------------------------------------------------------------------------------  

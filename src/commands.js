@@ -151,10 +151,11 @@ function _makeSettingsEventsFromSettingsCommands (settingsCommands) {
  */
 function _commandArraysAreEquivalent(settings, packages) {
 
-  if (settings.length !== (packages.length-1)) return false;
+	// subtrat 2 for `find-and-transform.searchInFile` and `find-and-transform.searchInFolder` commands
+  if (settings.length !== (packages.length-2)) return false;
 
   return settings.every(setting => packages.some(pcommand => {
-		if (pcommand.command !== "find-and-transform.searchInFile") {
+		if ((pcommand.command !== "find-and-transform.searchInFile") && (pcommand.command !== "find-and-transform.searchInFolder")) {
 			return (pcommand.command === setting.command) && (pcommand.title === setting.title) &&
 			(pcommand.category === setting.category);
 		}

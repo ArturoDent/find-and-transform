@@ -348,8 +348,17 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 
 <br/>
 
-* `Search in this File` quickly performs a search, using the Search Panel, of either the current file when using the editor context menu, or the designated file when using the context menu of an editor **tab**. &emsp;  Demo:  
+* `Search in this File` quickly performs a search, using the Search Panel, of either the current file when using the editor context menu, or the designated file when using the context menu of an editor **tab**.  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextMenus1.gif?raw=true" width="650" height="300" alt="demo of using 'Search in this File' context menus"/>
+* `Search in this Folder` quickly performs a search, using the Search Panel, of either the current file's parent folder when using the editor context menu, or the editor tab's parent folder  when using the context menu of an editor **tab**.&emsp;  Demo:  
 
-### Explanation: The old 'files to include' entry will be replaced by either the current file or the file of the editor tab.  The `find` query will be the selected word of the active text editor - which can be different than the editor tab's context menu.  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextMenus1.gif?raw=true" width="700" height="500" alt="demo of using 'Search in this File' context menus"/>
+
+### Explanation: The old 'files to include' entry will be replaced by either the current file or the file of the editor tab.  The `find` query will be the selected word of the active text editor - which can be different than the editor tab's context menu. 
+
+Showing the context keys can be disabled (the default is to show them) with this setting:
+
+* `Find-and-transform: Enable Context Keys` in the Settings UI or `"find-and-transform.enableContextKeys": false` in `settings.json`  
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableContextMenuSetting.jpg?raw=true" width="300" height="500" alt="enable context menu setting"/>  
+
