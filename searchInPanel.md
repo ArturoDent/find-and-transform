@@ -360,5 +360,5 @@ Showing the context keys can be disabled (the default is to show them) with this
 
 * `Find-and-transform: Enable Context Keys` in the Settings UI or `"find-and-transform.enableContextKeys": false` in `settings.json`  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableContextMenuSetting.jpg?raw=true" width="300" height="500" alt="enable context menu setting"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableContextMenuSetting.jpg?raw=true" width="850" height="300" alt="enable context menu setting"/>  
 
