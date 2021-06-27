@@ -527,7 +527,7 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 ## TODO
 
 * Add more error messages, like if a capture group used in replace but none in the find.
-* Add notifications for mispellings in the options.  .    
+* Add notifications for mispellings in the options.      
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?    
 * Explore adding settings to change default values for `filesToInclude` usage or other keys.
@@ -561,8 +561,8 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 * 0.8.0	Added `nextSelectFind`, `nextMoveCursorFind`, and `nextDontMoveCursorFind` support to `restrictFind` options.  
 * 0.8.5	Enable clearing `files to include` in Search Panel.  Use `Search: Seed With Nearest Word`.  
 * 0.8.6	Added `triggerReplaceAll` option to `runInSearchPanel`.  Corrected `triggerSearch` operation.  
-* 0.8.8	Added `Search in this File` and `Search in this Folder` context menu options.  Refactor completions.  
-     
+* 0.8.8	Added `Search in this File` and `Search in this Folder` editor/tab context menu options.  Refactor completions.  
+* 0.9.0	Added `Search in this File` and `Search in this Folder` Explorer context menu options.  Fix empty selections seed issues.
 
 -----------------------------------------------------------------------------------------------------------  
 

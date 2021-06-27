@@ -233,11 +233,7 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 }
 ```
 
-If there is no `"find"` entry for a `runInSearchPanel` command, this extension will respect the user's `Search: Seed With Nearest Word` setting.  VS Code then handles how to determine the nearest word.  
-
-If `Search: Seed With Nearest Word` is **disabled**, VS Code will use "the first fully selected word" in the current file only.  If there are multiple selections, it will still choose the first selection made (which may be later in the document than another selection). VS Code will not choose any nearest words to empty selections.  
-
-If `Search: Seed With Nearest Word` is **enabled**, VS Code will choose either the first fully selected word or the first "nearest word" (to an empty selection) if there are multiple "selections".  It will even choose an nearest word empty selection if it was made before a fully selected word.  
+If there is no `"find"` entry for a `runInSearchPanel` command, this extension will create a `find` query using  either the first fully selected word or the first "nearest word" (to an empty selection) if there are multiple "selections".  It will even choose an nearest word empty selection if it was made before a fully selected word.  
 
 This behavior is different from `findInCurrentFile` which will use **ALL** selections and nearest words at cursors as the `find` values.  In `runInSearchPanel` commands, only the **FIRST** selection/current word for the search query.  
 
@@ -348,17 +344,36 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 
 <br/>
 
-* `Search in this File` quickly performs a search, using the Search Panel, of either the current file when using the editor context menu, or the designated file when using the context menu of an editor **tab**.  
+### 1.  Editor Context Menu  
 
-* `Search in this Folder` quickly performs a search, using the Search Panel, of either the current file's parent folder when using the editor context menu, or the editor tab's parent folder  when using the context menu of an editor **tab**.&emsp;  Demo:  
+* `Search in this File`  opens the Search Panel with the current filename.  
+* `Search in this Folder`  opens the Search Panel with of the current file's parent folder.  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextMenus1.gif?raw=true" width="700" height="500" alt="demo of using 'Search in this File' context menus"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextEditor.gif?raw=true" width="700" height="500" alt="demo of editor context menus"/>
 
-### Explanation: The old 'files to include' entry will be replaced by either the current file or the file of the editor tab.  The `find` query will be the selected word of the active text editor - which can be different than the editor tab's context menu. 
+<br/>
 
-Showing the context keys can be disabled (the default is to show them) with this setting:
+### 2.  Editor Tab Context Menu
 
-* `Find-and-transform: Enable Context Keys` in the Settings UI or `"find-and-transform.enableContextKeys": false` in `settings.json`  
+* `Search in this File`  opens the Search Panel with the chosen filename when using the context menu of an editor **tab**.  
+* `Search in this Folder`  opens the Search Panel with the chosen editor tab's parent foldername when using the context menu of an editor **tab**.  
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextTab.gif?raw=true" width="700" height="500" alt="demo of editor tabs context menuss"/>
+
+### 3.  Explorer Context Menu
+
+* `Search in this File`  opens the Search Panel with the (hovered over) filename of that hovered over.   
+* `Search in this Folder` opens the Search Panel with the (hovered over) file's parent folder.   
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextExplorer.gif?raw=true" width="700" height="500" alt="demo of Explorer file context menus"/>
+
+### Explanation: The old 'files to include' entry will be replaced.  The `find` query will be the selected word of the active text editor - which can be different than the editor tab's context menu.  
+
+<br/>
+
+Showing the context keys can be disabled (the **default** is to show them) with this setting:
+
+* `Find-and-transform: Enable Context Keys` in the Settings UI or `"find-and-transform.enableContextKeys"` true/false in `settings.json`  
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableContextMenuSetting.jpg?raw=true" width="850" height="300" alt="enable context menu setting"/>  
 

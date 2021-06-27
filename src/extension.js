@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const path = require('path');
+// const path = require('path');
 
 const commands = require('./commands');
 const findCommands = require('./transform');
@@ -44,7 +44,6 @@ async function activate(context) {
 				{ "filesToInclude": relativeFolderPath }
 			];
 		}
-
 		searchCommands.useSearchPanel(argsArray);
 	});
 
@@ -78,8 +77,6 @@ async function activate(context) {
 				{ "filesToInclude": relativePath }
 			];
 		}
-				// { "filesToInclude": "${file}"}
-
 		searchCommands.useSearchPanel(argsArray);
 	});
 

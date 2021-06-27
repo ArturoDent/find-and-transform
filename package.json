@@ -2,10 +2,10 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find text and transform it with case modifiers",
- "version": "0.8.9",
+ "version": "0.9.0",
  "preview": true,
  "engines": {
-  "vscode": "^1.57.0"
+  "vscode": "^1.56.0"
  },
  "publisher": "ArturoDent",
  "license": "MIT",
@@ -43,6 +43,18 @@
       {
         "command": "find-and-transform.searchInFolder",
         "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
+        "group": "4_search"
+      }
+    ],
+    "explorer/context": [
+      {
+        "command": "find-and-transform.searchInFile",
+        "when": "config.find-and-transform.enableContextMenus",
+        "group": "4_search"
+      },
+      {
+        "command": "find-and-transform.searchInFolder",
+        "when": "config.find-and-transform.enableContextMenus",
         "group": "4_search"
       }
     ]

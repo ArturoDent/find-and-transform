@@ -75,7 +75,7 @@ exports.useSearchPanel = async function (findArray) {
 	}
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
-	if (find?.find === "${CLIPBOARD}") {
+	if (find?.find === "${CLIPBOARD}") {                    // ${selectedText} ?
 		obj["query"] = await _parseQuery(find.find);
 	}
 	else if (find?.find) obj["query"] = find.find;
@@ -90,25 +90,41 @@ exports.useSearchPanel = async function (findArray) {
 	});
 
 	// respect search.seedWithNearestWord' setting
-	// need this - without it the context menu command is not wprking !! 
+	// need this - without it the context menu command is not working !! 
+
+	// if (!obj['query']) {
+	// 	const seed = await vscode.workspace.getConfiguration().get("search.seedWithNearestWord");
+	// 	const document = vscode.window.activeTextEditor.document;
+	// 	const selections = vscode.window.activeTextEditor.selections;
+	// 	if (seed) {			 // enabled
+	// 			if (selections[0].isEmpty) {
+	// 				const wordRange = document.getWordRangeAtPosition(selections[0].start);
+	// 				if (wordRange) obj['query'] = document.getText(wordRange);
+	// 			}
+	// 			else obj['query'] = document.getText(selections[0]);
+	// 		}
+	// 	else if (!seed)  {  //  just get the first selection, if empty do nothing
+	// 		if (!selections[0].isEmpty) {
+	// 			obj['query'] = document.getText(selections[0]);
+	// 		}
+	// 		else obj['query'] = "";
+	// 	}
+	// }
 
 	if (!obj['query']) {
-		const seed = vscode.workspace.getConfiguration().get("search.seedWithNearestWord");
-		const document = vscode.window.activeTextEditor.document;
-		const selections = vscode.window.activeTextEditor.selections;
-		if (seed) {			 // enabled
-				if (selections[0].isEmpty) {
-					const wordRange = document.getWordRangeAtPosition(selections[0].start);
-					if (wordRange) obj['query'] = document.getText(wordRange);
-				}
-				else obj['query'] = document.getText(selections[0]);
+		const document = vscode.window.activeTextEditor?.document;
+		if (!document) obj['query'] = "";
+		else {
+			const selections = vscode.window.activeTextEditor?.selections;
+			if (selections[0].isEmpty) {
+				const wordRange = document.getWordRangeAtPosition(selections[0].start);
+				if (wordRange) obj['query'] = document.getText(wordRange);
+				else obj['query'] = "";  // no word at cursor
 			}
-		else if (!seed)  {  //  just get the first selection, if empty do nothing
-			if (!selections[0].isEmpty) {
-				obj['query'] = document.getText(selections[0]);
-			}
+			else obj['query'] = document.getText(selections[0]);
 		}
 	}
+
 
 	vscode.commands.executeCommand('workbench.action.findInFiles',
 		obj	).then(() => {
@@ -160,7 +176,7 @@ async function _parseQuery(find) {
 async function _parseVariables(include) {
 
 	if (typeof include !== 'string') return "";
-	const re = /(\${file}|\${relativeFile}|\${fileDirname}|\${fileWorkspaceFolder}|\${workspaceFolder}|\${relativeFileDirname}|\${workspaceFolderBasename}|\${selectedText}|\${pathSeparator}|\${CLIPBOARD})/g;
+	const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*CLIPBOARD\s*})/g;
 
 	const matches = [...include.matchAll(re)];
 	if (!matches.length) return include;
@@ -177,47 +193,59 @@ async function _parseVariables(include) {
 		switch (item[1]) {
 
 			case "${file}":
+			case "${ file }":
 				// resolved = filePath.substring(4);
 				// resolved = relativePath;  // doesn't work for settings/keybindings
-				resolved = utilities.getRelativePath(filePath);
+				resolved = utilities.getRelativeFilePath(filePath);
 				break;
 
 			case "${relativeFile}":
+			case "${ relativeFile }":
 				resolved = relativePath;
 				break;
 
 			case "${fileDirname}":
+			case "${ fileDirname }":
+
 				// resolved = path.dirname(filePath);
 				resolved = path.dirname(relativePath);
 				break;
 
 			case "${fileWorkspaceFolder}":
+			case "${ fileWorkspaceFolder }":
 				resolved = relativePath.replace(/(^[^/\\]*).*/, "$1");
 				break;
 
 			case "${workspaceFolder}":
+			case "${ workspaceFolder }":
 				resolved = vscode.workspace.workspaceFolders[0].uri.fsPath;
 				break;
 
 			case "${relativeFileDirname}":
+			case "${ relativeFileDirname }":
+
 				resolved = path.dirname(relativePath);
 				break;
 
 			case "${workspaceFolderBasename}":
+			case "${ workspaceFolderBasename }":
 				resolved = path.basename(vscode.workspace.workspaceFolders[0].uri.fsPath);
 				break;
 
+			case "${ selectedText }":
 			case "${selectedText}":
 				resolved = vscode.window.activeTextEditor.document.getText(vscode.window.activeTextEditor.selections[0]);
 				break;
 
 			case "${CLIPBOARD}":
+			case "${ CLIPBOARD }":
 				await vscode.env.clipboard.readText().then(string => {
 					resolved = string;
 				});
 				break;
 
 			case "${pathSeparator}":
+			case "${ pathSeparator }":
 				resolved = path.sep;
 				break;
 
