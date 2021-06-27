@@ -349,7 +349,7 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 * `Search in this File`  opens the Search Panel with the current filename.  
 * `Search in this Folder`  opens the Search Panel with of the current file's parent folder.  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextEditor.gif?raw=true" width="700" height="500" alt="demo of editor context menus"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextEditor.gif?raw=true" width="700" height="650" alt="demo of editor context menus"/>
 
 <br/>
 
@@ -358,18 +358,20 @@ They should have the same resolved values as found at [vscode's pre-defined vari
 * `Search in this File`  opens the Search Panel with the chosen filename when using the context menu of an editor **tab**.  
 * `Search in this Folder`  opens the Search Panel with the chosen editor tab's parent foldername when using the context menu of an editor **tab**.  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextTab.gif?raw=true" width="700" height="500" alt="demo of editor tabs context menuss"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextTab.gif?raw=true" width="700" height="650" alt="demo of editor tabs context menuss"/>
 
 ### 3.  Explorer Context Menu
 
 * `Search in this File`  opens the Search Panel with the (hovered over) filename of that hovered over.   
 * `Search in this Folder` opens the Search Panel with the (hovered over) file's parent folder.   
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextExplorer.gif?raw=true" width="700" height="500" alt="demo of Explorer file context menus"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextExplorer.gif?raw=true" width="700" height="650" alt="demo of Explorer file context menus"/>
 
 ### Explanation: The old 'files to include' entry will be replaced.  The `find` query will be the selected word of the active text editor - which can be different than the editor tab's context menu.  
 
 <br/>
+
+-------------------  
 
 Showing the context keys can be disabled (the **default** is to show them) with this setting:
 
@@ -377,3 +379,4 @@ Showing the context keys can be disabled (the **default** is to show them) with 
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableContextMenuSetting.jpg?raw=true" width="850" height="300" alt="enable context menu setting"/>  
 
+<br/><br/>
