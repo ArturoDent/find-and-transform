@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const path = require('path');
+// const path = require('path');
 const utilities = require('./utilities');
 
 
@@ -61,30 +61,26 @@ exports.useSearchPanel = async function (findArray) {
 
 	const obj = new Object();
 
-	const isfilesToInclude = findArray.find(arg => {
-		return Object.keys(arg)[0] === 'filesToInclude'
-	});
+	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 	if (isfilesToInclude) {
-		obj["filesToInclude"] = await _parseVariables(isfilesToInclude.filesToInclude);
+		obj["filesToInclude"] = await utilities.parseVariables(isfilesToInclude.filesToInclude, false);
 	}
-	// else obj["filesToInclude"] = '';
+
+	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
+	if (replace?.replace) obj["replace"] = await utilities.parseVariables(replace.replace, false);
 
 	const replaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
 	if (replaceAll) {
-		obj["triggerReplaceAll"] = true;
+		obj["triggerSearch"] = true;
 	}
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
-	if (find?.find === "${CLIPBOARD}") {                    // ${selectedText} ?
-		obj["query"] = await _parseQuery(find.find);
-	}
-	else if (find?.find) obj["query"] = find.find;
+	// if (find?.find) obj["query"] = find.find;
+	if (find?.find) obj["query"] = await utilities.parseVariables(find.find, true);
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];
-		if (key !== "filesToInclude" &&  key !== "find") {
-			// if (!obj[`query`]) obj[`query`] = Object.values(arg)[0];
-			// else obj[`${ key }`] = Object.values(arg)[0];
+		if (key.search(/^(filesToInclude|find|replace|triggerSearch)$/) === -1) {
 			obj[`${ key }`] = Object.values(arg)[0];
 		}
 	});
@@ -141,119 +137,31 @@ exports.useSearchPanel = async function (findArray) {
  * @param {*} find - the "find" value
  * @returns {Promise<String>}
  */
-async function _parseQuery(find) {
+// async function _parseQuery(find) {
 
-	if (typeof find !== 'string') return "";
-	const re = /(\${CLIPBOARD})/g;
-	const matches = [...find.matchAll(re)];
-	if (!matches.length) return find;
+// 	if (typeof find !== 'string') return "";
+// 	const re = /(\${CLIPBOARD})/g;
+// 	const matches = [...find.matchAll(re)];
+// 	if (!matches.length) return find;
 
-	for (const item of matches) {
+// 	for (const item of matches) {
 
-		let resolved = "";
+// 		let resolved = "";
 
-		switch (item[1]) {
-			case "${CLIPBOARD}":
-				await vscode.env.clipboard.readText().then(string => {
-					resolved = string;
-				});
-				break;
+// 		switch (item[1]) {
+// 			case "${CLIPBOARD}":
+// 				await vscode.env.clipboard.readText().then(string => {
+// 					resolved = string;
+// 				});
+// 				break;
 
-			default:
-				break;
-		}
-		find = find.replace(item[1], resolved);
-	}
-	return find;
-}
+// 			default:
+// 				break;
+// 		}
+// 		find = find.replace(item[1], resolved);
+// 	}
+// 	return find;
+// }
 
 
-/**
- * If the "filesToInclude" value uses a variable(s) return the resolved value
- * @param {String} include - the "filesToInclude" value
- * @returns {Promise<String>}
- */
-async function _parseVariables(include) {
 
-	if (typeof include !== 'string') return "";
-	const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*CLIPBOARD\s*})/g;
-
-	const matches = [...include.matchAll(re)];
-	if (!matches.length) return include;
-
-	const filePath = vscode.window.activeTextEditor.document.uri.path;
-	const relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
-
-	// if no filePath message to open an editor TODO
-
-	for (const item of matches) {
-
-		let resolved = "";
-
-		switch (item[1]) {
-
-			case "${file}":
-			case "${ file }":
-				// resolved = filePath.substring(4);
-				// resolved = relativePath;  // doesn't work for settings/keybindings
-				resolved = utilities.getRelativeFilePath(filePath);
-				break;
-
-			case "${relativeFile}":
-			case "${ relativeFile }":
-				resolved = relativePath;
-				break;
-
-			case "${fileDirname}":
-			case "${ fileDirname }":
-
-				// resolved = path.dirname(filePath);
-				resolved = path.dirname(relativePath);
-				break;
-
-			case "${fileWorkspaceFolder}":
-			case "${ fileWorkspaceFolder }":
-				resolved = relativePath.replace(/(^[^/\\]*).*/, "$1");
-				break;
-
-			case "${workspaceFolder}":
-			case "${ workspaceFolder }":
-				resolved = vscode.workspace.workspaceFolders[0].uri.fsPath;
-				break;
-
-			case "${relativeFileDirname}":
-			case "${ relativeFileDirname }":
-
-				resolved = path.dirname(relativePath);
-				break;
-
-			case "${workspaceFolderBasename}":
-			case "${ workspaceFolderBasename }":
-				resolved = path.basename(vscode.workspace.workspaceFolders[0].uri.fsPath);
-				break;
-
-			case "${ selectedText }":
-			case "${selectedText}":
-				resolved = vscode.window.activeTextEditor.document.getText(vscode.window.activeTextEditor.selections[0]);
-				break;
-
-			case "${CLIPBOARD}":
-			case "${ CLIPBOARD }":
-				await vscode.env.clipboard.readText().then(string => {
-					resolved = string;
-				});
-				break;
-
-			case "${pathSeparator}":
-			case "${ pathSeparator }":
-				resolved = path.sep;
-				break;
-
-			default:
-				break;
-		}
-		include = include.replace(item[1], resolved);
-	}
-
-	return include;
-}

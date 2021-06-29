@@ -57,7 +57,7 @@ This extension will generate a command for each of the settings, they will appea
 
 ```jsonc
 "filesToInclude": "zip/new.html, ${file}, ${fileDirname}" // or any combination and order
-        // you should get intellisense for completion of the variables upon typing the `$`
+        // you should get intellisense for completion of the variables upon typing the `${`
 "filesToInclude": "zip${pathSeparator}new.html"
 ```  
 <br/>
@@ -180,7 +180,7 @@ This is the same as creating a command in the settings like so (and then trigger
 
 > `triggerSearch` is a built-in vscode search across files option.  It triggers the search, and thus shows the results, but does not trigger a replace or replace all.  I would think in most cases you would want `"triggerSearch": true` to see your results right away.  But if you know you will be modifying the search in some way, you may not want to `triggerSearch`.  
 
-> `triggerReplaceAll` is an option added solely by this extension.  Its action is the same as clicking the `Replace All` icon in the results.  VS Code will always pop up a confirmation dialog before actually performing the replacement, so you will still have to confirm the replacement.  `triggerReplaceAll` must have results shown in order to work, that is why if you want `triggerReplaceAll` then you must also have `triggerSearch` set to `true`.  
+> `triggerReplaceAll` is an option added solely by this extension.  Its action is the same as clicking the `Replace All` icon in the search results.  VS Code will always pop up a confirmation dialog before actually performing the replacement, so you will still have to confirm the replacement.  `triggerReplaceAll` must have results shown in order to work, that is why if you want `triggerReplaceAll` then you must also have `triggerSearch` set to `true`. If you do not have  "`triggerSearch": "true"` it will automatically be added for you.   
 
 <br/>
 
@@ -313,26 +313,25 @@ With those keybindings, the default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd
 ------------  
 <br/>
 
-The `filesToInclude` argument supports these variables as values:  
+The `filesToInclude`,`find` and `replace` arguments in the `runInSearchPanel` support these variables:  
 
-* "${file}"  
-* "${relativeFile}"  
-* "${fileDirname}"  
-* "${fileWorkspaceFolder}"  
-* "${workspaceFolder}"  
-* "${relativeFileDirname}"  
-* "${workspaceFolderBasename}"  
-* "${selectedText}"  
-* "${pathSeparator}"  
-* "${CLIPBOARD}"   
+* ${file}
+* ${fileBasename}
+* ${fileBasenameNoExtension}
+* ${fileExtname}
+* ${fileDirname}
+* ${fileWorkspaceFolder}
+* ${workspaceFolder}
+* ${relativeFileDirname}
+* ${workspaceFolderBasename}
+* ${selectedText}
+* ${CLIPBOARD}
+* ${pathSeparator}
+* ${lineNumber}
 
 <br/>
 
-The `find` argument (only in the `runInSearchPanel` setting or keybinding) supports this variable as values:  
-
-* "${CLIPBOARD}"  
-
-They should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
+These variables should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   These resolved variables are automatically escaped so they can be used in regular expressions.  
 
 <br/>
 

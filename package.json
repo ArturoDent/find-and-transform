@@ -32,6 +32,11 @@
         "command": "find-and-transform.searchInFolder",
         "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
         "group": "4_search"
+      },
+      {
+        "command": "find-and-transform.searchInResults",
+        "when": "config.find-and-transform.enableContextMenus",
+        "group": "4_search"
       }
     ],
     "editor/title/context": [
@@ -68,6 +73,11 @@
     {
       "command": "find-and-transform.searchInFolder",
       "title": "Search in this Folder",
+      "category": "Find-Transform"
+    },
+    {
+      "command": "find-and-transform.searchInResults",
+      "title": "Search in the Results Files",
       "category": "Find-Transform"
     }
   ],

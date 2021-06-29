@@ -24,8 +24,8 @@ async function activate(context) {
 
 	await _loadSettingsAsCommands(context, disposables);
 
-	await providers.makeKeybindingsCompletionProvider(context);
-	await providers.makeSettingsCompletionProvider(context);
+	providers.makeKeybindingsCompletionProvider(context);
+	providers.makeSettingsCompletionProvider(context);
 
 	// ---------------------------------------------------------------------------------------------
 
@@ -59,21 +59,10 @@ async function activate(context) {
 
 		if (args) {
 
-			// let relativePath;
-			// const basename = path.posix.basename(args.path);
-			// if (basename === "settings.json" || basename === "keybindings.json") {
-			// 		relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
-			// 		relativePath = relativePath.substring(3);
-			// }
-			// else {
-			// 		const wsFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(args.path)).uri.path;
-			// 		relativePath = path.posix.relative(wsFolder, args.path);
-			// }
-
 			const relativePath = utilities.getRelativeFilePath(args.path);
 
 			argsArray = [
-				{ "triggerSearch": true },         // make triggerSearch the default
+				{ "triggerSearch": true },            // make triggerSearch the default
 				{ "filesToInclude": relativePath }
 			];
 		}
@@ -81,6 +70,28 @@ async function activate(context) {
 	});
 
 	context.subscriptions.push(contextMenuCommandFile);
+
+	// ---------------------------------------------------------------------------------------------------------------------
+
+	// make a context menu "runInSearchPanel" command for searches in the Search Panel
+	// with 'files to include' this ${file} only
+	let contextMenuCommandResults = vscode.commands.registerCommand('find-and-transform.searchInResults', async (args) => {
+
+		let argsArray = [];
+
+		if (args) {
+
+			// const relativePath = utilities.getRelativeFilePath(args.path);
+
+			argsArray = [
+				{ "triggerSearch": false },           
+				{ "filesToInclude": utilities.getSearchResultsFiles() }
+			];
+		}
+		searchCommands.useSearchPanel(argsArray);
+	});
+
+	context.subscriptions.push(contextMenuCommandResults);
 
 	// ---------------------------------------------------------------------------------------------------------------------
 

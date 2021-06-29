@@ -1,4 +1,6 @@
 const vscode = require('vscode');
+const utilities = require('./utilities');
+
 
 /**
  * Find and transform any case identifiers with or without capture groups
@@ -6,17 +8,20 @@ const vscode = require('vscode');
  * @param {vscode.TextEditorEdit} edit
  * @param {String[] | any[]} findReplaceArray - this setting
  */
-exports.findTransform = function (editor, edit, findReplaceArray) {
+exports.findTransform = async function (editor, edit, findReplaceArray) {
 
 	let restrictFind = "document";  // effectively making "document" the default
 	const restrictItem = Object.entries(findReplaceArray).filter(item => (item[1].restrictFind || item[0] === 'restrictFind'));
 	if (restrictItem.length) restrictFind = restrictItem[0][1].restrictFind ?? restrictItem[0][1];
 
 	let findValue = "";
-	const findItem = Object.entries(findReplaceArray).filter(item => {
-		return (item[1].find || item[0] === 'find');
-	});  // returns an empty [] if nothing
-	if (findItem.length) findValue = findItem[0][1].find ?? findItem[0][1];
+	  // returns an empty [] if no 'find'
+	const findItem = Object.entries(findReplaceArray).filter(item => (item[1].find || item[0] === 'find'));
+	if (findItem.length) {
+		findValue = findItem[0][1].find ?? findItem[0][1];
+		// true in parseVariables(..., true) will escape resolved variables for use in a regex
+		findValue = await utilities.parseVariables(findValue, true);
+	}
 	// no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
 	// TODO  what if find === "" empty string?
 	else findValue = _makeFind(editor.selections, restrictFind);
@@ -24,10 +29,6 @@ exports.findTransform = function (editor, edit, findReplaceArray) {
 	let cursorMoveSelect = "";  // effectively making "" the default
 	const cursorMoveSelectItem = Object.entries(findReplaceArray).filter(item => (item[1].cursorMoveSelect || item[0] === 'cursorMoveSelect'));
 	if (cursorMoveSelectItem.length)	cursorMoveSelect = cursorMoveSelectItem[0][1].cursorMoveSelect ?? cursorMoveSelectItem[0][1];  // from keybinding or setting
-
-	// let next = "";  // effectively making "" the default
-	// const nextItem = Object.entries(findReplaceArray).filter(item => (item[1].next || item[0] === 'next'));
-	// if (nextItem.length) next = nextItem[0][1].next ?? nextItem[0][1];  // from keybinding or setting
 
 	let replaceValue = null;
 	// lots of extra work because string.replace is a function and so true
@@ -39,8 +40,16 @@ exports.findTransform = function (editor, edit, findReplaceArray) {
 		else return item[1].replace;   // from keybinding not from a setting
 	});
 	if (replaceItem.length) {
-		if (typeof replaceItem[0][1] === 'string') replaceValue = replaceItem[0][1];
-		else replaceValue = replaceItem[0][1].replace;
+		if (typeof replaceItem[0][1] === 'string') {
+			replaceValue = replaceItem[0][1];
+			// if (restrictFind === "selections" && replaceValue !== null) don't parse here, parse later 
+			replaceValue = await utilities.parseVariables(replaceValue, false);  // TODO necessary, setting?
+		}
+		else {
+			replaceValue = replaceItem[0][1].replace;
+			// if (restrictFind === "selections" && replaceValue !== null) don't parse here, parse later 
+			replaceValue = await utilities.parseVariables(replaceValue, false);
+		}
 	}
 	else if (!findItem.length) replaceValue = "$1";  // if no replace key, set to $1
 
@@ -551,6 +560,8 @@ function _buildReplaceValue(replaceValue, groups) {
 	let identifiers;
 
 	if (replaceValue === "") return replaceValue;
+
+	// replaceValue = String(utilities.parseVariables(replaceValue, false));
 
 	if (replaceValue !== null)
 		identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)/g)];

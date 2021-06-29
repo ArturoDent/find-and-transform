@@ -113,3 +113,15 @@ function createCommand() {
       "title": "Search in this Folder",
       "category": "Find-Transform"
     }
+
+		-------------------------------------
+
+		"search.filter": [
+    { "config": ["**/*.config", "src/**/*.cscfg"] },
+    { "deploy": ["**/deploy", "@config" },
+    { "test": ["**/test", "!**/test/log", "!**/test/out"] },
+    { "modified": ["@staged", "@unstaged", "@untracked"] },
+    { "unmodified": ["!@modified"] },
+    { "src": ["!@deploy", "!@test", "@modified"] },
+    { "prod": ["@src", "@deploy", "!@modified"] }
+]

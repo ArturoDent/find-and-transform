@@ -1,5 +1,7 @@
 # find-and-transform
 
+[VS Code version 1.56 or greater required.]  
+
 Find and transform text in a single file, folder, workspace or custom group.    
 
 1.   &emsp; Any number of find/replace combinations can be saved in settings and triggered either by the Command Palette or a keybinding.
@@ -11,10 +13,11 @@ Find and transform text in a single file, folder, workspace or custom group.
 5.   &emsp; A command can be created right in a keybinding, without using a setting at all.  
 
 6.   &emsp; Can also use pre-defined searches using the Search Panel with command `runInSearchPanel`.  
-7.   &emsp; Supports using various path variables in the Search Panel, include the current file only.  
+7.   &emsp; Supports using path variables in the Search Panel `find/replace/filesToInclude`, including the current file only.  
+8.  &emsp; Supports using path variables in the find commands fields `find/replace/filesToInclude`.  
 
-8.   &emsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See [running commands on save](codeActions.md).
-9.   &emsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.     
+9.   &emsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See [running commands on save](codeActions.md).
+10.   &emsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.     
 
  The replace transforms can include ***case modifiers*** like:  
 
@@ -30,6 +33,27 @@ This extension provides a way to save and re-use find/replace regex's and use ca
 <br/>
 
 > Note, the above case modifiers must be double-escaped in the settings or keybindings.  So `\U$1` should be `\\U$1` in the settings.  VS Code will show an error if you do not double-escape the modifiers (similar to other escaped regex items like `\\w`).  
+<br/>
+
+The special variables that can be used in the `find` or `replace` fields of the `findInCurrentFile` command or in the `find`, `replace`, and perhaps most importantly, the `filesToInclude` field of the `runInSearchPanel` are these:
+
+```
+* ${file}                    easily limit a search ti the current file
+* ${fileBasename}
+* ${fileBasenameNoExtension}
+* ${fileExtname}
+* ${fileDirname}             the current file's parent directory
+* ${fileWorkspaceFolder}
+* ${workspaceFolder}
+* ${relativeFileDirname}
+* ${workspaceFolderBasename}
+* ${selectedText}
+* ${CLIPBOARD}
+* ${pathSeparator}
+* ${lineNumber}              only resolved once for first cursor, TODO resolve for each selection/cursor
+```
+
+These variables should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
 
 <br/>
 
@@ -530,12 +554,11 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 * Add notifications for mispellings in the options.      
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?    
-* Explore adding settings to change default values for `filesToInclude` usage or other keys.
-* Explore support for some snippet variables, like `Clipboard`, `Line Number`, etc.    
 * Explore more string operations (e.g., `substring()`, `trim()`, `++`) in the replace settings/args?    
 * Explore replacing with current match index?
-* Explore supporting conditionals, like snippets: `${2:+yada}`  
-* Explore supporting `cursorMoveSelect` argument in searches across files.     
+* Explore supporting conditionals, like in snippets: `${2:+yada}`  
+* Explore supporting `cursorMoveSelect` argument in searches across files.  Run a `findInCurentFile` afterwards?    
+* Resolve `${lineNumber}` for each cursor/selection.    
 
 
 ## Release Notes
@@ -561,8 +584,9 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 * 0.8.0	Added `nextSelectFind`, `nextMoveCursorFind`, and `nextDontMoveCursorFind` support to `restrictFind` options.  
 * 0.8.5	Enable clearing `files to include` in Search Panel.  Use `Search: Seed With Nearest Word`.  
 * 0.8.6	Added `triggerReplaceAll` option to `runInSearchPanel`.  Corrected `triggerSearch` operation.  
-* 0.8.8	Added `Search in this File` and `Search in this Folder` editor/tab context menu options.  Refactor completions.  
-* 0.9.0	Added `Search in this File` and `Search in this Folder` Explorer context menu options.  Fix empty selections seed issues.
+* 0.8.8	Added `Search in this File` and `Search in this Folder` editor/tab context menu options.  
+* 0.9.0	Added `Search in this File` and `Search in this Folder` Explorer context menu options.  
+* 0.9.1	Added support for special variables in `find/replace` in `findInCurrentFile` and `runInSearchPanel`.  
 
 -----------------------------------------------------------------------------------------------------------  
 

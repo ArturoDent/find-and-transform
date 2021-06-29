@@ -27,11 +27,12 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 
 			const linePrefix = document.lineAt(position).text.substr(0, position.character);
 
-			// ---------------    $ completion for 'filesToInclude' completions   ------
+			// ---------------    $ completion for 'filesToInclude/find/replace' completions   ------
 
-			let re$ = /^\s*"filesToInclude"\s*:\s*".*\$$/;
+			// these are not strictly limited to this extension's keybindings, but is to "file": "${" so okay for now
+			let re$ = /^\s*"(find|replace|filesToInclude)"\s*:\s*".*\${$/;
 			if (linePrefix.substring(0, position.character).search(re$) !== -1)  {
-				return _completeIncludeVariables(position, '$');
+				return _completeVariables(position, '${');
 			}
 
 			// ---------------    command completion start   ----------------------------
@@ -51,10 +52,10 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 				packageCommands.forEach(pcommand => {
 					// "command": "findInCurrentFile.upcaseSwap2",
 					if (find && pcommand.command.startsWith("findInCurrentFile")) {
-						completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), position, null));
+						completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null));
 					}
 					else if (search && pcommand.command.startsWith("runInSearchPanel")) {
-						completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), position, null));
+						completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null));
 					}
 				});
 				return completionArray;
@@ -90,7 +91,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 			// linePrefix.endsWith('$', position.character)
 			re$ = /^\s*"filesToInclude"\s*:\s*"$/;
 			if (search && argsRange.contains(position) && linePrefix.substring(0, position.character).search(re$) !== -1) {
-				return _completeIncludeVariables(position, "");
+				return _completeVariables(position, "");
 			}
 
 			// not included because only 'filesToExclude' handled in _makeSearchArgsCompletions()
@@ -111,7 +112,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 			else return undefined;
         }
       },
-      '.', '"', '$'   // trigger intellisense/completion
+      '.', '"', '{'   // trigger intellisense/completion
     );
 
   context.subscriptions.push(configCompletionProvider);
@@ -179,7 +180,7 @@ exports.makeSettingsCompletionProvider = function(context) {
 					return _completeRestrictFindValues(position);
 				else if (linePrefix.search(/"filesToExclude":\s*"$/m) !== -1) {
 					return [
-						_makeCompletionItem("", position, ""),
+						_makeCompletionItem("", new vscode.Range(position, position), ""),
 					];
 				}
 
@@ -234,15 +235,16 @@ exports.makeSettingsCompletionProvider = function(context) {
  * From a string input make a CompletionItemKind.Text
  *
  * @param   {String} key
- * @param   {vscode.Position} position
+ * @param   {vscode.Range} replaceRange
  * @param   {String|Boolean} defaultValue - default value for this option
  * @returns {vscode.CompletionItem} - CompletionItemKind.Text
  */
-function _makeCompletionItem(key, position, defaultValue, sortText) {
+function _makeCompletionItem(key, replaceRange, defaultValue, sortText) {
 
 	const item = new vscode.CompletionItem(key, vscode.CompletionItemKind.Text);
 
-	item.range = new vscode.Range(position, position);
+	// item.range = new vscode.Range(replaceRange, replaceRange);
+	item.range = replaceRange;
 	if (defaultValue) item.detail = `default: ${ defaultValue }`;
 	if (sortText) item.sortText = sortText;
 
@@ -284,7 +286,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	// account for commented options (in keybindings and settings)
 	argArray.forEach(option => {
 		if (argsText.search(new RegExp(`^[ \t]*"${option}"`, "gm")) === -1)
-			completionArray.push(_makeCompletionItem(option, position, defaults[`${ option }`], priority[`${ option }`]));
+			completionArray.push(_makeCompletionItem(option, new vscode.Range(position, position), defaults[`${ option }`], priority[`${ option }`]));
 	});
 
 	return completionArray;
@@ -297,21 +299,28 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
  * @param   {String} dollarSign - triggered by '$' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
-function _completeIncludeVariables(position, dollarSign) {
+function _completeVariables(position, dollarSign) {
 
 	// triggered by 1 '$', so include it to complete w/o two '$${file}'
-	if (dollarSign) position = new vscode.Position(position.line, position.character-1);
+	// if (dollarSign) position = new vscode.Position(position.line, position.character - dollarSign.length);
+	let replaceRange;
+	if (dollarSign) replaceRange = new vscode.Range(position.line, position.character - dollarSign.length, position.line, position.character);
+	else replaceRange = new vscode.Range(position, position);
 
 	return [
-		_makeCompletionItem("${file}", position, ""),
-		_makeCompletionItem("${fileDirname}", position, ""),
-		_makeCompletionItem("${fileWorkspaceFolder}", position, ""),
-		_makeCompletionItem("${workspaceFolder}", position, ""),
-		_makeCompletionItem("${relativeFileDirname}", position, ""),
-		_makeCompletionItem("${workspaceFolderBasename}", position, ""),
-		_makeCompletionItem("${selectedText}", position, ""),
-		_makeCompletionItem("${CLIPBOARD}", position, ""),
-		_makeCompletionItem("${pathSeparator}", position, "")
+		_makeCompletionItem("${file}", replaceRange, "", "01"),
+		_makeCompletionItem("${fileBasename}", replaceRange, "", "02"),
+		_makeCompletionItem("${fileBasenameNoExtension}", replaceRange, "", "03"),
+		_makeCompletionItem("${fileExtname}", replaceRange, "", "04"),
+		_makeCompletionItem("${fileDirname}", replaceRange, "", "05"),
+		_makeCompletionItem("${fileWorkspaceFolder}", replaceRange, "", "06"),
+		_makeCompletionItem("${workspaceFolder}", replaceRange, "", "07"),
+		_makeCompletionItem("${relativeFileDirname}", replaceRange, "", "08"),
+		_makeCompletionItem("${workspaceFolderBasename}", replaceRange, "", "09"),
+		_makeCompletionItem("${selectedText}", replaceRange, "", "091"),
+		_makeCompletionItem("${CLIPBOARD}", replaceRange, "", "092"),
+		_makeCompletionItem("${pathSeparator}", replaceRange, "", "093"),
+		_makeCompletionItem("${lineNumber}", replaceRange, "", "094"),
 	];
 }
 
@@ -324,14 +333,14 @@ function _completeIncludeVariables(position, dollarSign) {
 function _completeRestrictFindValues(position) {
 
 	return [
-		_makeCompletionItem("document", position, "document", "01"),
-		_makeCompletionItem("selections", position, "document", "02"),
+		_makeCompletionItem("document", new vscode.Range(position, position), "document", "01"),
+		_makeCompletionItem("selections", new vscode.Range(position, position), "document", "02"),
 
-		_makeCompletionItem("once", position, "document", "03"),
-		_makeCompletionItem("line", position, "document", "04"),
+		_makeCompletionItem("once", new vscode.Range(position, position), "document", "03"),
+		_makeCompletionItem("line", new vscode.Range(position, position), "document", "04"),
 
-		_makeCompletionItem("nextSelect", position, "document", "05"),
-		_makeCompletionItem("nextMoveCursor", position, "document", "06"),
-		_makeCompletionItem("nextDontMoveCursor", position, "document", "07")
+		_makeCompletionItem("nextSelect", new vscode.Range(position, position), "document", "05"),
+		_makeCompletionItem("nextMoveCursor", new vscode.Range(position, position), "document", "06"),
+		_makeCompletionItem("nextDontMoveCursor", new vscode.Range(position, position), "document", "07")
 	];
 }
