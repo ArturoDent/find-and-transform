@@ -2,7 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find text and transform it with case modifiers",
- "version": "0.9.0",
+ "version": "0.9.1",
  "preview": true,
  "engines": {
   "vscode": "^1.56.0"
@@ -21,84 +21,90 @@
  ],
  "main": "./src/extension.js",
  "contributes": {
-   "menus": {
-    "editor/context": [
-      {
-        "command": "find-and-transform.searchInFile",
-        "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
-        "group": "4_search"
-      },
-      {
-        "command": "find-and-transform.searchInFolder",
-        "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
-        "group": "4_search"
-      },
-      {
-        "command": "find-and-transform.searchInResults",
-        "when": "config.find-and-transform.enableContextMenus",
-        "group": "4_search"
-      }
-    ],
-    "editor/title/context": [
-      {
-        "command": "find-and-transform.searchInFile",
-        "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
-        "group": "4_search"
-      },
-      {
-        "command": "find-and-transform.searchInFolder",
-        "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
-        "group": "4_search"
-      }
-    ],
-    "explorer/context": [
-      {
-        "command": "find-and-transform.searchInFile",
-        "when": "config.find-and-transform.enableContextMenus",
-        "group": "4_search"
-      },
-      {
-        "command": "find-and-transform.searchInFolder",
-        "when": "config.find-and-transform.enableContextMenus",
-        "group": "4_search"
-      }
-    ]
+  "menus": {
+   "commandPalette": [
+    {
+     "command": "find-and-transform.searchInResults",
+     "when": "hasSearchResult && config.find-and-transform.enableContextMenus"
+    }
+   ],
+   "editor/context": [
+    {
+     "command": "find-and-transform.searchInFile",
+     "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
+     "group": "4_search"
+    },
+    {
+     "command": "find-and-transform.searchInFolder",
+     "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
+     "group": "4_search"
+    },
+    {
+     "command": "find-and-transform.searchInResults",
+     "when": "hasSearchResult && config.find-and-transform.enableContextMenus",
+     "group": "4_search"
+    }
+   ],
+   "editor/title/context": [
+    {
+     "command": "find-and-transform.searchInFile",
+     "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
+     "group": "4_search"
+    },
+    {
+     "command": "find-and-transform.searchInFolder",
+     "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
+     "group": "4_search"
+    }
+   ],
+   "explorer/context": [
+    {
+     "command": "find-and-transform.searchInFile",
+     "when": "config.find-and-transform.enableContextMenus",
+     "group": "4_search"
+    },
+    {
+     "command": "find-and-transform.searchInFolder",
+     "when": "config.find-and-transform.enableContextMenus",
+     "group": "4_search"
+    }
+   ]
   },
   "commands": [
-    {
-      "command": "find-and-transform.searchInFile",
-      "title": "Search in this File",
-      "category": "Find-Transform"
-    },
-    {
-      "command": "find-and-transform.searchInFolder",
-      "title": "Search in this Folder",
-      "category": "Find-Transform"
-    },
-    {
-      "command": "find-and-transform.searchInResults",
-      "title": "Search in the Results Files",
-      "category": "Find-Transform"
-    }
+   {
+    "command": "find-and-transform.searchInFile",
+    "title": "Search in this File",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "find-and-transform.searchInFolder",
+    "title": "Search in this Folder",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "find-and-transform.searchInResults",
+    "title": "Search in the Results Files",
+    "category": "Find-Transform"
+   }
   ],
   "configuration": [
    {
     "title": "Find and Transform",
     "properties": {
-      "findInCurrentFile": {
-        "scope": "machine",
-        "description": "Find in the current file."
-      },
-      "runInSearchPanel": {
-        "scope": "machine",
-        "description": "Search using the Search Panel."
-      },
-      "find-and-transform.enableContextMenus": {
-        "type": "boolean",
-        "scope": "machine",
-        "default": true,
-        "markdownDescription": "Show `Search in this File` and `Search in this Folder` context menus."
-      }
+     "findInCurrentFile": {
+      "scope": "machine",
+      "description": "Find in the current file."
+     },
+     "runInSearchPanel": {
+      "scope": "machine",
+      "description": "Search using the Search Panel."
+     },
+     "find-and-transform.enableContextMenus": {
+      "type": "boolean",
+      "scope": "machine",
+      "default": true,
+      "markdownDescription": "Show `Search in this File` and `Search in this Folder` context menus."
+     }
     }
    }
   ]

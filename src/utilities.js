@@ -14,11 +14,11 @@ exports.getRelativeFilePath = function (filePath) {
 	// const env = process.env;
 	// const homedir = os.homedir();
 
-	const basename = path.posix.basename(filePath);
+	const basename = path.basename(filePath);
 	let relativePath = vscode.workspace.asRelativePath(filePath);
 
 	if (basename === "settings.json" || basename === "keybindings.json") {
-		if (os.type() === "Windows_NT") relativePath = filePath.substring(4);  // for Windows
+		if (os.type() === "Windows_NT") relativePath = filePath.substring(3);  // for Windows
 		// else relativePath = filePath.substring(1); // test for linux/mac
 	}
 	// else {
@@ -54,7 +54,7 @@ exports.getRelativeFolderPath = function (filePath) {
 exports.parseVariables = async function (resolvedVariable, find) {
 
 	if (typeof resolvedVariable !== 'string') return "";
-	const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*})/g;
+	const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})/g;
 
 	const matches = [...resolvedVariable.matchAll(re)];
 	if (!matches.length) return resolvedVariable;
@@ -148,6 +148,11 @@ exports.parseVariables = async function (resolvedVariable, find) {
 				});
 				break;
 
+			case "${resultsFiles}":
+			case "${ resultsFiles }":
+				resolved = await this.getSearchResultsFiles();
+				break;
+
 			default:
 				break;
 		}
@@ -158,18 +163,28 @@ exports.parseVariables = async function (resolvedVariable, find) {
 	else return resolvedVariable;
 }
 
-
+/**
+ * run 'runInSearchPanel' with the relative paths of the current serach results
+ * @returns nothing
+ */
 exports.getSearchResultsFiles = async function () {
 
-	// handle no results
 	await vscode.commands.executeCommand('search.action.copyAll');
-	// await vscode.env.clipboard.readText().then(results => {
-	// 	console.log(`results = ${results}`);
-	// });
 	let results = await vscode.env.clipboard.readText();
-	console.log(results);
-	results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
-	console.log(results);
-	let resultsArray = results.split(/[\r\n]{1,2}/);
-	console.log(resultsArray);
+
+	// handle no results
+	if (results)  {
+		results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
+		let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
+
+		let pathArray = resultsArray.filter(result => result !== "");
+		pathArray = pathArray.map(path => this.getRelativeFilePath(path))
+
+		return pathArray.join(", ");
+	}
+	else {
+		// notifyMessage
+		return undefined;
+	}
+
 }

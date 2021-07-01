@@ -29,7 +29,7 @@ async function activate(context) {
 
 	// ---------------------------------------------------------------------------------------------
 
-	// make a context menu "runInSearchPanel" command for searches in the Search Panel
+	// make a context menu "searchInFolder" command for searches in the Search Panel
 	// with 'files to include' this ${file} only
 	let contextMenuCommandFolder = vscode.commands.registerCommand('find-and-transform.searchInFolder', async (args) => {
 
@@ -51,7 +51,7 @@ async function activate(context) {
 
 	// -------------------------------------------------------------------------------------------
 
-	// make a context menu "runInSearchPanel" command for searches in the Search Panel
+	// make a context menu "searchInFile" command for searches in the Search Panel
 	// with 'files to include' this ${file} only
 	let contextMenuCommandFile = vscode.commands.registerCommand('find-and-transform.searchInFile', async (args) => {
 
@@ -73,21 +73,37 @@ async function activate(context) {
 
 	// ---------------------------------------------------------------------------------------------------------------------
 
-	// make a context menu "runInSearchPanel" command for searches in the Search Panel
+	// make a context menu "searchInResults" command for searches in the Search Panel
 	// with 'files to include' this ${file} only
 	let contextMenuCommandResults = vscode.commands.registerCommand('find-and-transform.searchInResults', async (args) => {
 
 		let argsArray = [];
 
+		// args is undefined if coming from Command Palette or keybinding with no args
+		// args.path, args.scheme coming from editor context menu
+
+		// if (args) argsArray = searchCommands.getObjectFromArgs(args);
 		if (args) {
-
-			// const relativePath = utilities.getRelativeFilePath(args.path);
-
-			argsArray = [
-				{ "triggerSearch": false },           
-				{ "filesToInclude": utilities.getSearchResultsFiles() }
-			];
+			for (const [key, value] of Object.entries(args)) {
+				const obj = new Object();
+				// so override these keys if there are in the keybinding or setting ?
+				if (key !== "triggerSearch" && key !== "filesToInclude") {
+				// if (key !== "filesToInclude") {
+					obj[`${key}`] = value;
+					argsArray.push(obj);
+				}
+			}
 		}
+
+			// argsArray = [
+			// 	{ "triggerSearch": true },           
+			// 	{ "filesToInclude": await utilities.getSearchResultsFiles() }
+			// ];
+
+		// override triggerSearch? override filesToInclude? or add the settingkeybinding to it? 
+		argsArray.push({ "triggerSearch": true }),
+		argsArray.push({ "filesToInclude": await utilities.getSearchResultsFiles() });
+
 		searchCommands.useSearchPanel(argsArray);
 	});
 

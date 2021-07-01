@@ -43,13 +43,13 @@ exports.getDefaults = function () {
 		"cursorMoveSelect": "",
 		"triggerSearch": true,
 		"triggerReplaceAll": false,
-		"isRegex": true,
+		// "isRegex": true,
 		"filesToInclude": "",               	// default is current workspace
-		"preserveCase": true,
-		"useExcludeSettingsAndIgnoreFiles": true,
-		"isCaseSensitive": true,
-		"matchWholeWord": true,                    // default is false
-		"filesToExclude": ""
+		// "preserveCase": true,
+		// "useExcludeSettingsAndIgnoreFiles": true,
+		// "isCaseSensitive": true,
+		// "matchWholeWord": true,                    // default is false
+		// "filesToExclude": ""
 	};
 }
 
@@ -72,6 +72,10 @@ exports.useSearchPanel = async function (findArray) {
 	const replaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
 	if (replaceAll) {
 		obj["triggerSearch"] = true;
+	}
+	else {
+		let triggerSearch = findArray.find(arg => Object.keys(arg)[0] === 'triggerSearch');
+		if (triggerSearch) obj["triggerSearch"] = triggerSearch.triggerSearch;
 	}
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');

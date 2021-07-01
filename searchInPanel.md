@@ -325,13 +325,14 @@ The `filesToInclude`,`find` and `replace` arguments in the `runInSearchPanel` su
 * ${relativeFileDirname}
 * ${workspaceFolderBasename}
 * ${selectedText}
-* ${CLIPBOARD}
+* ${CLIPBOARD}           // added by this extension  
 * ${pathSeparator}
 * ${lineNumber}
+* ${resultsFiles}        // added by this extension  
 
 <br/>
 
-These variables should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   These resolved variables are automatically escaped so they can be used in regular expressions.  
+These variables should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   These resolved variables are automatically escaped so they can be used in regular expressions.   
 
 <br/>
 
@@ -377,5 +378,132 @@ Showing the context keys can be disabled (the **default** is to show them) with 
 * `Find-and-transform: Enable Context Keys` in the Settings UI or `"find-and-transform.enableContextKeys"` true/false in `settings.json`  
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableContextMenuSetting.jpg?raw=true" width="850" height="300" alt="enable context menu setting"/>  
+
+<br/><br/>
+
+----------------------------------
+
+# Using the search results files in another search  
+
+This functionality is currently *experimental* - mainly because I cannot test it in other operating systems.  Let me know if something is working for you.  
+
+There are four ways to get and use the current search results' files: 
+
+1.  Editor context menu  
+2.  Command Palette command  
+3.  In a keybinding  
+4.  In a setting, and then from the Command Palette or associated keybinding  
+
+--------------
+
+### Editor context menu  
+
+Demo of using the context menu option to get the files from the search results and use in the next search:  
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/resultsContextMenu.gif?raw=true" width="850" height="300" alt="get files from the search results"/>  
+
+<br/>
+
+The first search for `First` was in the entire workspace and had matches in three files.  Using the context menu command `Search in the Results Files` automatically retrieved and put the relative paths of those three files into the `files to include` input filter.  The second search was triggered by default, this time using the word `Second` because it was at the cursor.  The word `Second` only appears in one of those three files but does appear in other workspace files filtered out.  
+
+The context menu command `Search in the Results Files` will only appear if there are search results.  Likewise, that command will not appear in the `Command Palette` if there are no search results. 
+
+At this point, vscode does not allow the context menu of the search results view itself to be modified.  So the context menu of the editor is used.  It could be any editor.  If you don't want a "word at the cursor" to be used for the next search, put the cursor on an empty space.  
+
+--------------
+
+### Keybinding  
+
+```jsonc
+{
+  "key": "shift+alt+s",                  // whatever keybinding you wish
+  "command": "find-and-transform.searchInResults",
+  "args": {
+    "find": "Second",
+    "replace": "Fourth",
+    "filesToInclude": "${file}",  // will be ignored in this command
+    "triggerSearch": false        // will be ignored, true will be applied
+
+		// other available args
+
+		// "triggerReplaceAll"
+		// "isRegex"
+		// "filesToInclude"
+		// "preserveCase"
+		// "useExcludeSettingsAndIgnoreFiles"
+		// "isCaseSensitive"
+		// "matchWholeWord"
+		// "filesToExclude"
+  },
+  "when": "hasSearchResult"      // I suggest this but it isn't mandatory
+}
+```
+
+* In this command `find-and-transform.searchInResults` any `filesToInclude` will be ignored and all the search results files will be used instead.  
+* The `"triggerSearch"` arg will be ignored as well.  `"triggerSearch": true` will be applied.
+* The `when` clause is not required, but if there no search results, the command will search within the workspace folder.  This is as expected.  
+
+-----------------
+
+## `${resultsFiles}` in a `runInSearchPanel` keybinding  
+
+```jsonc
+{
+  "key": "ctrl+shift+f",            // whatever keybinding you want
+  "command": "runInSearchPanel",    // note runInSearchPanel command here
+  "args": {
+    "find": "Second",               // plus all the other args, see above 
+    "replace": "Third",
+    "filesToInclude": "${resultsFiles}",   // !!
+    "triggerSearch": false                 // this will be respected here
+  },
+	"when": "hasSearchResult"      // I suggest this but it isn't mandatory
+}
+```
+
+* In a `runInSearchPanel` keybinding, you can use the `"filesToInclude": "${resultsFiles}"` arg.  So that this search will first get and scope the search by the previous search's files with matches in them.  
+* The `when` clause is not required, but if there no search results, the command will search within the workspace folder.  This is as expected.
+
+Other usages:
+
+```jsonc
+* "filesToInclude": "${resultsFiles}, noFirst.txt"      // add any file(s) to the scope   
+* "filesToInclude": "${resultsFiles}, ${file}"          // add the current file to the scope
+```
+
+------------------------  
+
+## `${resultsFiles}` in a `runInSearchPanel` setting (in settings.json)  
+
+```jsonc
+"runInSearchPanel": {
+  "reSearchForSecond":  {                 // use this 'name' in a keybinding
+      "title": "reSearch for 'Second'",   // Command Palette as Find-Transform: reSearch for 'Second'
+      "find": "Second",
+      "replace": "Third",
+      "isRegex": true,
+      "filesToInclude": "${resultsFiles}",
+      "triggerSearch": true,
+      // "triggerReplaceAll": true // if using this, must have triggerSearch: true
+  }
+}
+```
+
+* Should get intellisense for this name `reSearchForSecond` in the keybindings.  
+* Look for `Find-Tansform: <your title here>` in the Command Palette.  
+* This setting command can be run from the Command Palette or from an associated keybinding like:
+
+```jsonc
+{
+  "key": "alt+5",                                    // whatever keybinding you wish
+  "command": "runInSearchPanel.reSearchForSecond"    // same 'name' here
+}
+```
+
+--------------------  
+
+* If you search in your `setings.json` or `keybindings.json` on the previous search and then use these  previous results files, special care has to be taken to handle these files for use in the `  files to include  ` input scope filter.  Windows at least doesn't like them and this extension will strip out some leading characters (like `C:\\`) to make them work.  If on a different OS you find that `setings.json` or `keybindings.json` gives you problems - please file an issue.  Thank you.  
+
+* Note that because there is no real extension api to get the results files, this extension needs to use the **clipboard** to store the results text.  Thus, changing your clipboard - there is no alternative at this point.  
 
 <br/><br/>

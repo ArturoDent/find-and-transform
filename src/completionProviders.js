@@ -152,6 +152,16 @@ exports.makeSettingsCompletionProvider = function(context) {
 				let find = false;
 				let search = false;
 
+				// ---------------    $ completion for 'filesToInclude/find/replace' completions   ------
+
+				// these are not strictly limited to this extension's keybindings, but is to "file": "${" so okay for now
+				let re$ = /^\s*"(find|replace|filesToInclude)"\s*:\s*".*\${$/;
+				if (linePrefix.substring(0, position.character).search(re$) !== -1) {
+					return _completeVariables(position, '${');
+				}
+
+				// -----------------------------------------------------------------------
+
 				const rootNode = jsonc.parseTree(document.getText());
 
 				const findCommandNode = rootNode.children?.find(child => child.children[0]?.value === "findInCurrentFile");
@@ -197,7 +207,7 @@ exports.makeSettingsCompletionProvider = function(context) {
 				else return undefined;
       }
     },
-    '"'  // trigger intellisense/completion
+    '"', '{'  // trigger intellisense/completion
   );
 
   context.subscriptions.push(settingsCompletionProvider);
@@ -321,6 +331,7 @@ function _completeVariables(position, dollarSign) {
 		_makeCompletionItem("${CLIPBOARD}", replaceRange, "", "092"),
 		_makeCompletionItem("${pathSeparator}", replaceRange, "", "093"),
 		_makeCompletionItem("${lineNumber}", replaceRange, "", "094"),
+		_makeCompletionItem("${resultsFiles}", replaceRange, "", "095"),
 	];
 }
 

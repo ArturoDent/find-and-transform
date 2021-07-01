@@ -2,7 +2,8 @@
 
 [VS Code version 1.56 or greater required.]  
 
-Find and transform text in a single file, folder, workspace or custom group.    
+Find and transform text in a single file, folder, workspace or custom group.  
+Do a second search only in the files with matches from a previous search.      
 
 1.   &emsp; Any number of find/replace combinations can be saved in settings and triggered either by the Command Palette or a keybinding.
 2.   &emsp; Replacements can include case modifiers, like `\U`.  
@@ -51,9 +52,12 @@ The special variables that can be used in the `find` or `replace` fields of the 
 * ${CLIPBOARD}
 * ${pathSeparator}
 * ${lineNumber}              only resolved once for first cursor, TODO resolve for each selection/cursor
+* ${resultsFiles}
 ```
 
 These variables should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
+
+> ` ${resultsFiles}` is a specially created variable that will scope the next search to those files in the previous search's results. In this way you can run successive searches narrowing the scope each time to the previous search results files.  See [Search using the Panel](searchInPanel.md).  
 
 <br/>
 
@@ -587,6 +591,8 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 * 0.8.8	Added `Search in this File` and `Search in this Folder` editor/tab context menu options.  
 * 0.9.0	Added `Search in this File` and `Search in this Folder` Explorer context menu options.  
 * 0.9.1	Added support for special variables in `find/replace` in `findInCurrentFile` and `runInSearchPanel`.  
+  &emsp;&emsp; Added `${resultsFiles}` variable and `searchInResults` command.    
+
 
 -----------------------------------------------------------------------------------------------------------  
 

@@ -32,20 +32,22 @@ exports.getSettings = async function (setting) {
  */
 exports.loadCommands = function (findSettings, searchSettings, context) {
 
-	let thisExtension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
-	let packageCommands = thisExtension.packageJSON.contributes.commands;
+	const thisExtension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
+	const packageCommands = thisExtension.packageJSON.contributes.commands;
 
-	let findSettingsCommands   =  _makePackageCommandsFromFindSettings(findSettings);
-	let searchSettingsCommands =  _makePackageCommandsFromSearchSettings(searchSettings);
-	let settingsCommands       =  findSettingsCommands.concat(searchSettingsCommands);
+	const builtins = _makeCommandsFromPackageCommands();
 
-  	let packageEvents  =  thisExtension.packageJSON.activationEvents;
-	let settingsEvents =  _makeSettingsEventsFromSettingsCommands(settingsCommands);
+	const findSettingsCommands   =  _makePackageCommandsFromFindSettings(findSettings);
+	const searchSettingsCommands =  _makePackageCommandsFromSearchSettings(searchSettings);
+	const settingsCommands       =  findSettingsCommands.concat(searchSettingsCommands);
+
+  const packageEvents  =  thisExtension.packageJSON.activationEvents;
+	const settingsEvents =  _makeSettingsEventsFromSettingsCommands(settingsCommands);
 
 	if (!_commandArraysAreEquivalent(settingsCommands, packageCommands) ||
 		!_activationEventArraysAreEquivalent(settingsEvents, packageEvents)) {
 
-		thisExtension.packageJSON.contributes.commands = settingsCommands;
+		thisExtension.packageJSON.contributes.commands = builtins.concat(settingsCommands);
 		thisExtension.packageJSON.activationEvents = settingsEvents;
 
 		fs.writeFileSync(path.join(context.extensionPath, 'package.json'), JSON.stringify(thisExtension.packageJSON, null, 1));
@@ -117,6 +119,42 @@ function _makePackageCommandsFromSearchSettings(settings) {
   return settingsJSON;
 };
 
+/**
+ * Transform the built-in commands into package.json-style commands {command: "", title: ""}
+ * @returns {Array<vscode.Command> | Array} - package.json form of builtin 'contributes.commands'
+ */
+function _makeCommandsFromPackageCommands() {
+
+	let builtins = [	{
+			"command": "find-and-transform.searchInFile",
+			"title": "Search in this File",
+			"category": "Find-Transform"
+		},
+		{
+			"command": "find-and-transform.searchInFolder",
+			"title": "Search in this Folder",
+			"category": "Find-Transform"
+		},
+		{
+			"command": "find-and-transform.searchInResults",
+			"title": "Search in the Results Files",
+			"category": "Find-Transform"
+		}
+	];
+
+	let builtinCommandsArray = [];
+	let category = "Find-Transform";
+
+	for (const builtin of builtins) {
+		let newCommand = {};
+		newCommand.command = builtin.command;
+		newCommand.title = builtin.title;
+		newCommand.category = category;
+		builtinCommandsArray.push(newCommand);
+	};
+	return builtinCommandsArray;
+};
+
 
 /**
  * Transform the settings (already transformed to package.json-style commands)
@@ -151,7 +189,7 @@ function _makeSettingsEventsFromSettingsCommands (settingsCommands) {
  */
 function _commandArraysAreEquivalent(settings, packages) {
 
-	// subtrat 2 for `find-and-transform.searchInFile` and `find-and-transform.searchInFolder` commands
+	// subtract 3 for `find-and-transform.searchInFile` and `find-and-transform.searchInFolder` commands
   if (settings.length !== (packages.length-3)) return false;
 
   return settings.every(setting => packages.some(pcommand => {
