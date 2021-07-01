@@ -385,7 +385,7 @@ Showing the context keys can be disabled (the **default** is to show them) with 
 
 # Using the search results files in another search  
 
-This functionality is currently *experimental* - mainly because I cannot test it in other operating systems.  Let me know if something is working for you.  
+This functionality is currently ***experimental*** - mainly because I cannot test it in other operating systems.  Let me know if something is not working for you.  
 
 There are four ways to get and use the current search results' files: 
 
@@ -444,8 +444,11 @@ At this point, vscode does not allow the context menu of the search results view
 * The `when` clause is not required, but if there no search results, the command will search within the workspace folder.  This is as expected.  
 
 -----------------
+<br/>
 
-## `${resultsFiles}` in a `runInSearchPanel` keybinding  
+## `${resultsFiles}` in a `runInSearchPanel` keybinding   
+
+<br/>
 
 ```jsonc
 {
@@ -472,8 +475,11 @@ Other usages:
 ```
 
 ------------------------  
+<br/>
 
 ## `${resultsFiles}` in a `runInSearchPanel` setting (in settings.json)  
+
+<br/>
 
 ```jsonc
 "runInSearchPanel": {
