@@ -400,7 +400,7 @@ There are four ways to get and use the current search results' files:
 
 Demo of using the context menu option to get the files from the search results and use in the next search:  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/resultsContextMenu.gif?raw=true" width="850" height="300" alt="get files from the search results"/>  
+&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/resultsContextMenu.gif?raw=true" width="900" height="700" alt="get files from the search results"/>  
 
 <br/>
 
