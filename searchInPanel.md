@@ -303,7 +303,9 @@ However, specifically for the `"filesToInclude"` setting an empty string (`"file
   "key": "ctrl+shift+f",       // the default 'Search: Find in Files' command
   "command": "runInSearchPanel",
   "args": {
+		// "find"                 // with no find, use word at cursor 
     "filesToInclude": "",     // clear the `files to include` input box
+		// "triggerSearch": true
   }
 }
 ```

@@ -253,8 +253,8 @@ Examples of possible keybindings (in your `keybindings.json`):
 	"key": "alt+y",
 	"command": "findInCurrentFile",       // note no second part of a command name
 	"args": {                             // must set the "args" here since no associated settings command
-		"find": "^(iif)",                 // all the "args" are optional
-		"replace": "\\U$1",
+		"find": "^(iif)",                  //  note the ^ = beginning of line
+		"replace": "\\U$1",                // all the "args" are optional
 		"restrictFind": "selections",
 		"cursorMoveSelect": "IIF"               // this text will be selected; "$" goes to the end of the line
 	}
@@ -535,7 +535,7 @@ This works:
 }
 ```
 
-but the same keybinding in `runInSearchPanel` **will error and not run**:  
+but the same keybinding in `runInSearchPanel` **will error and not produce any results**:  
 
 ```jsonc
 {
@@ -547,6 +547,7 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 	}
 }
 ```
+The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input and `###` into the replace but will error when actually triggered.  
 
 -----------------------  
 

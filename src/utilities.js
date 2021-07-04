@@ -15,10 +15,10 @@ exports.getRelativeFilePath = function (filePath) {
 	// const homedir = os.homedir();
 
 	const basename = path.basename(filePath);
-	let relativePath = vscode.workspace.asRelativePath(filePath);
+	let relativePath = vscode.workspace.asRelativePath(filePath, false);
 
 	if (basename === "settings.json" || basename === "keybindings.json") {
-		if (os.type() === "Windows_NT") relativePath = filePath.substring(3);  // for Windows
+		if (os.type() === "Windows_NT") relativePath = filePath.substring(4);  // for Windows
 		// else relativePath = filePath.substring(1); // test for linux/mac
 	}
 	// else {
@@ -40,7 +40,7 @@ exports.getRelativeFolderPath = function (filePath) {
 	// const env = process.env;
 	// const homedir = os.homedir();
 
-	const dirname = path.posix.dirname(filePath);
+	const dirname = path.dirname(filePath);
 	return vscode.workspace.asRelativePath(dirname);
 }
 
@@ -60,7 +60,13 @@ exports.parseVariables = async function (resolvedVariable, find) {
 	if (!matches.length) return resolvedVariable;
 
 	const filePath = vscode.window.activeTextEditor.document.uri.path;  // TODO or pass in a editor path ??
-	const relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri);
+	let relativePath;
+	
+	if (vscode.workspace.workspaceFolders.length > 1) {
+		relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, true);
+		relativePath = `./${relativePath}`;
+	}
+	else relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, false);
 
 	// if no filePath message to open an editor TODO
 
@@ -84,24 +90,25 @@ exports.parseVariables = async function (resolvedVariable, find) {
 
 			case "${fileBasename}":
 			case "${ fileBasename }":
-				resolved = path.posix.basename(relativePath);
+				resolved = path.basename(relativePath);
 				break;
 
 			case "${fileBasenameNoExtension}":
 			case "${ fileBasenameNoExtension }":
-				resolved = path.posix.basename(relativePath, path.extname(relativePath));
+				resolved = path.basename(relativePath, path.extname(relativePath));
 				break;
 
 			case "${fileExtname}":
 			case "${ fileExtname }":
-				resolved = path.posix.extname(relativePath);
+				resolved = path.extname(relativePath);
 				break;
 
 			case "${fileDirname}":
 			case "${ fileDirname }":
 
 				// resolved = path.dirname(filePath);
-				resolved = path.posix.dirname(relativePath);
+				// resolved = path.posix.dirname(relativePath);
+				resolved = path.dirname(relativePath);
 				break;
 
 			case "${fileWorkspaceFolder}":
@@ -117,12 +124,12 @@ exports.parseVariables = async function (resolvedVariable, find) {
 			case "${relativeFileDirname}":
 			case "${ relativeFileDirname }":
 
-				resolved = path.posix.dirname(relativePath);
+				resolved = path.dirname(relativePath);
 				break;
 
 			case "${workspaceFolderBasename}":
 			case "${ workspaceFolderBasename }":
-				resolved = path.posix.basename(vscode.workspace.workspaceFolders[0].uri.fsPath);
+				resolved = path.basename(vscode.workspace.workspaceFolders[0].uri.fsPath);
 				break;
 
 			case "${selectedText}":
@@ -132,7 +139,7 @@ exports.parseVariables = async function (resolvedVariable, find) {
 
 			case "${pathSeparator}":
 			case "${ pathSeparator }":
-				resolved = path.posix.sep;
+				resolved = path.sep;
 				break;
 
 			case "${lineNumber}":
@@ -160,6 +167,7 @@ exports.parseVariables = async function (resolvedVariable, find) {
 	}
 	// escape .*{}[]?^$ if using in a find 
 	if (find) return resolvedVariable.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+	else if (resolvedVariable === ".") return resolvedVariable = "./";
 	else return resolvedVariable;
 }
 
