@@ -20,7 +20,7 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
 	if (findItem.length) {
 		findValue = findItem[0][1].find ?? findItem[0][1];
 		// true in parseVariables(..., true) will escape resolved variables for use in a regex
-		findValue = await utilities.parseVariables(findValue, true);
+		findValue = await utilities.parseVariables(findValue, "find");
 	}
 	// no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
 	// TODO  what if find === "" empty string?
@@ -43,12 +43,12 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
 		if (typeof replaceItem[0][1] === 'string') {
 			replaceValue = replaceItem[0][1];
 			// if (restrictFind === "selections" && replaceValue !== null) don't parse here, parse later 
-			replaceValue = await utilities.parseVariables(replaceValue, false);  // TODO necessary, setting?
+			replaceValue = await utilities.parseVariables(replaceValue, "replace");  // TODO necessary, setting?
 		}
 		else {
 			replaceValue = replaceItem[0][1].replace;
 			// if (restrictFind === "selections" && replaceValue !== null) don't parse here, parse later 
-			replaceValue = await utilities.parseVariables(replaceValue, false);
+			replaceValue = await utilities.parseVariables(replaceValue, "replace");
 		}
 	}
 	else if (!findItem.length) replaceValue = "$1";  // if no replace key, set to $1

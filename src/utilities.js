@@ -49,9 +49,9 @@ exports.getRelativeFolderPath = function (filePath) {
  * If the "filesToInclude/find/replace" value uses a variable(s) return the resolved value
  * 
  * @param {String} resolvedVariable - the "filesToInclude/find/replace" value
- * @param {Boolean} find - if called from a find.parseVariables
+ * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude
  */
-exports.parseVariables = async function (resolvedVariable, find) {
+exports.parseVariables = async function (resolvedVariable, caller) {
 
 	if (typeof resolvedVariable !== 'string') return "";
 	const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})/g;
@@ -59,12 +59,12 @@ exports.parseVariables = async function (resolvedVariable, find) {
 	const matches = [...resolvedVariable.matchAll(re)];
 	if (!matches.length) return resolvedVariable;
 
-	const filePath = vscode.window.activeTextEditor.document.uri.path;  // TODO or pass in a editor path ??
+	const filePath = vscode.window.activeTextEditor.document.uri.path;
+
 	let relativePath;
-	
-	if (vscode.workspace.workspaceFolders.length > 1) {
+	if (caller === "filesToInclude" && vscode.workspace.workspaceFolders.length > 1) {
 		relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, true);
-		relativePath = `./${relativePath}`;
+		relativePath = `./${ relativePath }`;
 	}
 	else relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, false);
 
@@ -78,9 +78,8 @@ exports.parseVariables = async function (resolvedVariable, find) {
 
 			case "${file}":
 			case "${ file }":
-				// resolved = filePath.substring(4);
-				// resolved = relativePath;  // doesn't work for settings/keybindings
-				resolved = this.getRelativeFilePath(filePath);
+				resolved = filePath;
+				if (os.type() === "Windows_NT") resolved = filePath.substring(4);  // for Windows
 				break;
 
 			case "${relativeFile}":
@@ -105,31 +104,28 @@ exports.parseVariables = async function (resolvedVariable, find) {
 
 			case "${fileDirname}":
 			case "${ fileDirname }":
-
-				// resolved = path.dirname(filePath);
-				// resolved = path.posix.dirname(relativePath);
-				resolved = path.dirname(relativePath);
+				resolved = path.dirname(filePath)
 				break;
 
 			case "${fileWorkspaceFolder}":
 			case "${ fileWorkspaceFolder }":
-				resolved = relativePath.replace(/(^[^/\\]*).*/, "$1");
+				// resolved = relativePath.replace(/(^[^/\\]*).*/, "$1");
+				resolved = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.path;
 				break;
 
 			case "${workspaceFolder}":
 			case "${ workspaceFolder }":
-				resolved = vscode.workspace.workspaceFolders[0].uri.fsPath;
+				resolved = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.path;
 				break;
 
 			case "${relativeFileDirname}":
 			case "${ relativeFileDirname }":
-
 				resolved = path.dirname(relativePath);
 				break;
 
 			case "${workspaceFolderBasename}":
 			case "${ workspaceFolderBasename }":
-				resolved = path.basename(vscode.workspace.workspaceFolders[0].uri.fsPath);
+				resolved = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).name;
 				break;
 
 			case "${selectedText}":
@@ -166,8 +162,8 @@ exports.parseVariables = async function (resolvedVariable, find) {
 		resolvedVariable = resolvedVariable.replace(item[1], resolved);
 	}
 	// escape .*{}[]?^$ if using in a find 
-	if (find) return resolvedVariable.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-	else if (resolvedVariable === ".") return resolvedVariable = "./";
+	if (caller === "find") return resolvedVariable.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+	else if (caller === "filesToInclude" && resolvedVariable === ".") return resolvedVariable = "./";
 	else return resolvedVariable;
 }
 

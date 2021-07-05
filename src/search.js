@@ -63,11 +63,11 @@ exports.useSearchPanel = async function (findArray) {
 
 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 	if (isfilesToInclude) {
-		obj["filesToInclude"] = await utilities.parseVariables(isfilesToInclude.filesToInclude, false);
+		obj["filesToInclude"] = await utilities.parseVariables(isfilesToInclude.filesToInclude, "filesToInclude");
 	}
 
 	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
-	if (replace?.replace) obj["replace"] = await utilities.parseVariables(replace.replace, false);
+	if (replace?.replace) obj["replace"] = await utilities.parseVariables(replace.replace, "replace");
 
 	const replaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
 	if (replaceAll) {
@@ -80,7 +80,7 @@ exports.useSearchPanel = async function (findArray) {
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
 	// if (find?.find) obj["query"] = find.find;
-	if (find?.find) obj["query"] = await utilities.parseVariables(find.find, true);
+	if (find?.find) obj["query"] = await utilities.parseVariables(find.find, "find");
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];
