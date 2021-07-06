@@ -84,7 +84,8 @@ exports.parseVariables = async function (resolvedVariable, caller) {
 
 			case "${relativeFile}":
 			case "${ relativeFile }":
-				resolved = relativePath;
+				// resolved = relativePath;
+				resolved = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, false);
 				break;
 
 			case "${fileBasename}":
@@ -120,12 +121,16 @@ exports.parseVariables = async function (resolvedVariable, caller) {
 
 			case "${relativeFileDirname}":
 			case "${ relativeFileDirname }":
-				resolved = path.dirname(relativePath);
+				// resolved = path.dirname(relativePath);
+				resolved = path.dirname(vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, false));
 				break;
 
 			case "${workspaceFolderBasename}":
 			case "${ workspaceFolderBasename }":
-				resolved = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).name;
+				if (caller === "filesToInclude" && vscode.workspace.workspaceFolders.length > 1) {
+					resolved = `./${ vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).name}`;
+				}
+				else	resolved = "";
 				break;
 
 			case "${selectedText}":
@@ -161,6 +166,10 @@ exports.parseVariables = async function (resolvedVariable, caller) {
 		}
 		resolvedVariable = resolvedVariable.replace(item[1], resolved);
 	}
+	
+	// if more than one match, one is ${resultsFiles}, and one is a negation which follows
+
+
 	// escape .*{}[]?^$ if using in a find 
 	if (caller === "find") return resolvedVariable.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
 	else if (caller === "filesToInclude" && resolvedVariable === ".") return resolvedVariable = "./";

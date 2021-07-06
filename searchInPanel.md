@@ -16,7 +16,7 @@ At the end of this file, see how to use the **context menus** to run a search (u
 		"isRegex": true,
 		"triggerSearch": true,
 		"triggerReplaceAll": true,     // explained below
-		"filesToInclude": "${file}"    // some variables are supported, see below
+		"filesToInclude": "${file}"    // or ${relativeFile}, some variables are supported, see below
 	}
 }
 ``` 
@@ -46,7 +46,7 @@ This extension will generate a command for each of the settings, they will appea
 		"replace": "###",
 		"matchWholeWord": false,
 		"isRegex": true,
-		"filesToInclude": "${file}",
+		"filesToInclude": "${relativeFile}",
 		// "filesToInclude": "<relative or absolute paths supported>",  // but see below**
 		"triggerSearch": true
 	}
@@ -56,9 +56,9 @@ This extension will generate a command for each of the settings, they will appea
 * `filesToInclude` can take multiple, comma-separated, file or folder entries.  For example:  
 
 ```jsonc
-"filesToInclude": "zip/new.html, ${file}, ${fileDirname}" // or any combination and order
+"filesToInclude": "zip/new.html, ${relativeFile}, ${relativeFileDirname}" // or any combination and order
         // you should get intellisense for completion of the variables upon typing the `${`
-"filesToInclude": "zip${pathSeparator}new.html"
+"filesToInclude": "zipFolder${pathSeparator}new.html"
 ```  
 <br/>
 
@@ -140,7 +140,7 @@ You can also create commands solely in a keybinding like:
 		"replace": "###",
 		"matchWholeWord": false,
 		"isRegex": true,
-		"filesToInclude": "${file}",  // resolves to current file
+		"filesToInclude": "${relativeFile}",  // resolves to current file
 		"triggerSearch": true,
 		"triggerReplaceAll": true     // if using this, must have triggerSearch: true
 	}
@@ -157,7 +157,7 @@ This is the same as creating a command in the settings like so (and then trigger
       "replace": "###",
       "matchWholeWord": false,
       "isRegex": true,
-      "filesToInclude": "${file}",
+      "filesToInclude": "${relativeFile}",
       "triggerSearch": true,
       "triggerReplaceAll": true        // if using this, must have triggerSearch: true
   }
@@ -258,9 +258,9 @@ In the demo below, text with a ***blue background*** is selected:
 
 "replace": "<some string>",
 
-"triggerSearch": <boolean>,      // boolean, searches and shows the results
+"triggerSearch": <boolean>,      // searches and shows the results
 
-"triggerReplaceAll": <boolean>,  // boolean, same as the "Replace All" button, confirmation box will still open
+"triggerReplaceAll": <boolean>,  // same as the "Replace All" button, confirmation box will still open
 
 "isRegex": <boolean>,
 
@@ -296,7 +296,7 @@ However, specifically for the `"filesToInclude"` setting an empty string (`"file
   "key": "alt+shift+f",           // whatever keybinding you wish
   "command": "runInSearchPanel",
   "args": {
-    "filesToInclude": "${file}",  // open Search Panel with current file as the `files to include`
+    "filesToInclude": "${relativeFile}",  // open Search Panel with current file as the `files to include`
   }
 },
 {
@@ -321,11 +321,15 @@ The `filesToInclude`,`find` and `replace` arguments in the `runInSearchPanel` su
 * ${fileBasename}
 * ${fileBasenameNoExtension}
 * ${fileExtname}
+* ${relativeFile}  
+
 * ${fileDirname}
+* ${relativeFileDirname}
+
 * ${fileWorkspaceFolder}
 * ${workspaceFolder}
-* ${relativeFileDirname}
 * ${workspaceFolderBasename}
+
 * ${selectedText}
 * ${CLIPBOARD}           // added by this extension  
 * ${pathSeparator}
@@ -423,7 +427,7 @@ At this point, vscode does not allow the context menu of the search results view
   "args": {
     "find": "Second",
     "replace": "Fourth",
-    "filesToInclude": "${file}",  // will be ignored in this command
+    "filesToInclude": "${relativeFile}",  // will be ignored in this command
     "triggerSearch": false        // will be ignored, true will be applied
 
 		// other available args
@@ -473,7 +477,7 @@ Other usages:
 
 ```jsonc
 * "filesToInclude": "${resultsFiles}, noFirst.txt"      // add any file(s) to the scope   
-* "filesToInclude": "${resultsFiles}, ${file}"          // add the current file to the scope
+* "filesToInclude": "${resultsFiles}, ${relativeFile}"          // add the current file to the scope
 ```
 
 ------------------------  

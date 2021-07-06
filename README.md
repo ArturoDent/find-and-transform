@@ -39,20 +39,24 @@ This extension provides a way to save and re-use find/replace regex's and use ca
 The special variables that can be used in the `find` or `replace` fields of the `findInCurrentFile` command or in the `find`, `replace`, and perhaps most importantly, the `filesToInclude` field of the `runInSearchPanel` are these:
 
 ```
-* ${file}                    easily limit a search ti the current file
+* ${file}                    easily limit a search to the current file, full path
 * ${fileBasename}
 * ${fileBasenameNoExtension}
 * ${fileExtname}
-* ${fileDirname}             the current file's parent directory
+* ${relativeFile}            current file relative to the workspaceFolder
+
+* ${fileDirname}             the current file's parent directory, full path
+* ${relativeFileDirname}     the current file's parent directory only
+
 * ${fileWorkspaceFolder}
 * ${workspaceFolder}
-* ${relativeFileDirname}
 * ${workspaceFolderBasename}
+
 * ${selectedText}
 * ${CLIPBOARD}
 * ${pathSeparator}
 * ${lineNumber}              only resolved once for first cursor, TODO resolve for each selection/cursor
-* ${resultsFiles}
+* ${resultsFiles}            explained below
 ```
 
 These variables should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
@@ -563,7 +567,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Explore replacing with current match index?
 * Explore supporting conditionals, like in snippets: `${2:+yada}`  
 * Explore supporting `cursorMoveSelect` argument in searches across files.  Run a `findInCurentFile` afterwards?    
-* Resolve `${lineNumber}` for each cursor/selection.    
+* Resolve `${lineNumber}` for each cursor/selection.  Need new api?  
+* Add negation like: `${resultsFiles}, !{relativeFile}`.    
 
 
 ## Release Notes
@@ -592,7 +597,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 0.8.8	Added `Search in this File` and `Search in this Folder` editor/tab context menu options.  
 * 0.9.0	Added `Search in this File` and `Search in this Folder` Explorer context menu options.  
 * 0.9.1	Added support for special variables in `find/replace` in `findInCurrentFile` and `runInSearchPanel`.  
-  &emsp;&emsp; Added `${resultsFiles}` variable and `searchInResults` command.    
+  &emsp;&emsp; Added `${resultsFiles}` variable and `searchInResults` command.  
+* 0.9.4	A lot of work on variables for multi-root workspaces.        
 
 
 -----------------------------------------------------------------------------------------------------------  

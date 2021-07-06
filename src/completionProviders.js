@@ -319,6 +319,7 @@ function _completeVariables(position, dollarSign) {
 
 	return [
 		_makeCompletionItem("${file}", replaceRange, "", "01"),
+		_makeCompletionItem("${relativeFile}", replaceRange, "", "011"),
 		_makeCompletionItem("${fileBasename}", replaceRange, "", "02"),
 		_makeCompletionItem("${fileBasenameNoExtension}", replaceRange, "", "03"),
 		_makeCompletionItem("${fileExtname}", replaceRange, "", "04"),
