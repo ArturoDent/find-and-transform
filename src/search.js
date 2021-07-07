@@ -66,6 +66,11 @@ exports.useSearchPanel = async function (findArray) {
 		obj["filesToInclude"] = await utilities.parseVariables(isfilesToInclude.filesToInclude, "filesToInclude");
 	}
 
+	const isfilesToExclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToExclude');
+	if (isfilesToExclude) {
+		obj["filesToExclude"] = await utilities.parseVariables(isfilesToExclude.filesToExclude, "filesToExclude");
+	}
+
 	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
 	if (replace?.replace) obj["replace"] = await utilities.parseVariables(replace.replace, "replace");
 
@@ -84,7 +89,7 @@ exports.useSearchPanel = async function (findArray) {
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];
-		if (key.search(/^(filesToInclude|find|replace|triggerSearch)$/) === -1) {
+		if (key.search(/^(filesToInclude|filesToExclude|find|replace|triggerSearch)$/) === -1) {
 			obj[`${ key }`] = Object.values(arg)[0];
 		}
 	});

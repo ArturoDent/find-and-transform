@@ -27,12 +27,12 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 
 			const linePrefix = document.lineAt(position).text.substr(0, position.character);
 
-			// ---------------    $ completion for 'filesToInclude/find/replace' completions   ------
+			// ---------------    $ completion for 'filesToInclude/filesToInclude/find/replace' completions   ------
 
 			// these are not strictly limited to this extension's keybindings, but is to "file": "${" so okay for now
-			let re$ = /^\s*"(find|replace|filesToInclude)"\s*:\s*".*\${$/;
+			let re$ = /^\s*"(find|replace|filesToInclude|filesToExclude)"\s*:\s*".*\$$/;
 			if (linePrefix.substring(0, position.character).search(re$) !== -1)  {
-				return _completeVariables(position, '${');
+				return _completeVariables(position, '$');
 			}
 
 			// ---------------    command completion start   ----------------------------
@@ -88,8 +88,8 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 			if (find && argsRange.contains(position) && linePrefix.search(reRestrictFind) !== -1)
 				return _completeRestrictFindValues(position);
 
-			// linePrefix.endsWith('$', position.character)
-			re$ = /^\s*"filesToInclude"\s*:\s*"$/;
+			// linePrefix.endsWith('$', position.character)  TODO is this all correct
+					re$ = /^\s*"(filesToInclude|filesToExclude)"\s*:\s*"$/;
 			if (search && argsRange.contains(position) && linePrefix.substring(0, position.character).search(re$) !== -1) {
 				return _completeVariables(position, "");
 			}
@@ -112,7 +112,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 			else return undefined;
         }
       },
-      '.', '"', '{'   // trigger intellisense/completion
+      '.', '"', '$'   // trigger intellisense/completion
     );
 
   context.subscriptions.push(configCompletionProvider);
@@ -152,10 +152,10 @@ exports.makeSettingsCompletionProvider = function(context) {
 				let find = false;
 				let search = false;
 
-				// ---------------    $ completion for 'filesToInclude/find/replace' completions   ------
+				// ---------------    $ completion for 'filesToInclude/filesToExclude/find/replace' completions   ------
 
 				// these are not strictly limited to this extension's keybindings, but is to "file": "${" so okay for now
-				let re$ = /^\s*"(find|replace|filesToInclude)"\s*:\s*".*\${$/;
+				let re$ = /^\s*"(find|replace|filesToInclude|filesToExclude)"\s*:\s*".*\${$/;
 				if (linePrefix.substring(0, position.character).search(re$) !== -1) {
 					return _completeVariables(position, '${');
 				}
@@ -249,7 +249,7 @@ exports.makeSettingsCompletionProvider = function(context) {
  * @param   {String|Boolean} defaultValue - default value for this option
  * @returns {vscode.CompletionItem} - CompletionItemKind.Text
  */
-function _makeCompletionItem(key, replaceRange, defaultValue, sortText) {
+function _makeCompletionItem(key, replaceRange, defaultValue, sortText, documentation) {
 
 	const item = new vscode.CompletionItem(key, vscode.CompletionItemKind.Text);
 
@@ -257,6 +257,7 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText) {
 	item.range = replaceRange;
 	if (defaultValue) item.detail = `default: ${ defaultValue }`;
 	if (sortText) item.sortText = sortText;
+	if (documentation) item.documentation = new vscode.MarkdownString(documentation);
 
   return item;
 }
@@ -281,13 +282,13 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 		"cursorMove": "031",
 		"triggerSearch": "04",
 		"triggerReplaceAll": "041",
-		"isRegex": "05",
-		"filesToInclude": "06",
+		"filesToInclude": "05",
+		"filesToExclude": "051",
+		"useExcludeSettingsAndIgnoreFiles": "052",
+		"isRegex": "06",
 		"preserveCase": "07",
-		"useExcludeSettingsAndIgnoreFiles": "08",
-		"isCaseSensitive": "09",
-		"matchWholeWord": "091",
-		"filesToExclude": "092"
+		"isCaseSensitive": "08",
+		"matchWholeWord": "081",
 	};
 
 	/** @type { Array<vscode.CompletionItem> } */
@@ -303,7 +304,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 }
 
 /**
- * Make completion items for 'filesToInclude' values starting with a '$' sign
+ * Make completion items for 'filesToInclude/filesToExclude' values starting with a '$' sign
  * 
  * @param   {vscode.Position} position
  * @param   {String} dollarSign - triggered by '$' so include its range
@@ -318,21 +319,24 @@ function _completeVariables(position, dollarSign) {
 	else replaceRange = new vscode.Range(position, position);
 
 	return [
-		_makeCompletionItem("${file}", replaceRange, "", "01"),
-		_makeCompletionItem("${relativeFile}", replaceRange, "", "011"),
-		_makeCompletionItem("${fileBasename}", replaceRange, "", "02"),
-		_makeCompletionItem("${fileBasenameNoExtension}", replaceRange, "", "03"),
-		_makeCompletionItem("${fileExtname}", replaceRange, "", "04"),
-		_makeCompletionItem("${fileDirname}", replaceRange, "", "05"),
-		_makeCompletionItem("${fileWorkspaceFolder}", replaceRange, "", "06"),
-		_makeCompletionItem("${workspaceFolder}", replaceRange, "", "07"),
-		_makeCompletionItem("${relativeFileDirname}", replaceRange, "", "08"),
-		_makeCompletionItem("${workspaceFolderBasename}", replaceRange, "", "09"),
-		_makeCompletionItem("${selectedText}", replaceRange, "", "091"),
-		_makeCompletionItem("${CLIPBOARD}", replaceRange, "", "092"),
-		_makeCompletionItem("${pathSeparator}", replaceRange, "", "093"),
-		_makeCompletionItem("${lineNumber}", replaceRange, "", "094"),
-		_makeCompletionItem("${resultsFiles}", replaceRange, "", "095"),
+		_makeCompletionItem("${file}", replaceRange, "", "01", "The full path of the current editor."),
+		_makeCompletionItem("${relativeFile}", replaceRange, "", "011", "The path of the current editor relative to the workspaceFolder (`folder/file.ext`)."),
+		_makeCompletionItem("${fileBasename}", replaceRange, "", "02", "The basename (`file.ext`) of the current editor."),
+		_makeCompletionItem("${fileBasenameNoExtension}", replaceRange, "", "03", "The basename  (`file`) of the current editor without its extension."),
+		_makeCompletionItem("${fileExtname}", replaceRange, "", "04", "The extension (`.ext`) of the current editor."),
+
+		_makeCompletionItem("${fileDirname}", replaceRange, "", "05", "The full path of the current editor's parent directory."),
+		_makeCompletionItem("${relativeFileDirname}", replaceRange, "", "051", "The path of the current editor's parent directory relative to the workspaceFolder."),
+
+		_makeCompletionItem("${fileWorkspaceFolder}", replaceRange, "", "06", "The full path of the current editor's workspaceFolder."),
+		_makeCompletionItem("${workspaceFolder}", replaceRange, "", "061", "The full path (`/home/UserName/myProject`) to the currently opened workspaceFolder."),
+		_makeCompletionItem("${workspaceFolderBasename}", replaceRange, "", "062", "The name (`myProject`) of the workspaceFolder."),
+
+		_makeCompletionItem("${selectedText}", replaceRange, "", "071", "The **first** selection in the current editor."),
+		_makeCompletionItem("${CLIPBOARD}", replaceRange, "", "072", "The clipboard contents."),
+		_makeCompletionItem("${pathSeparator}", replaceRange, "", "073", "`/` on linux/macOS, `\\` on Windows."),
+		_makeCompletionItem("${lineNumber}", replaceRange, "", "074", "The line number of the **first** cursor in the current editor, lines start at 1."),
+		_makeCompletionItem("${resultsFiles}", replaceRange, "", "075", "A comma-separated list of the files in the current search results."),
 	];
 }
 

@@ -53,6 +53,8 @@ exports.getRelativeFolderPath = function (filePath) {
  */
 exports.parseVariables = async function (resolvedVariable, caller) {
 
+	// support conditionals here?  ${2:+yada}
+
 	if (typeof resolvedVariable !== 'string') return "";
 	const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})/g;
 
@@ -62,7 +64,7 @@ exports.parseVariables = async function (resolvedVariable, caller) {
 	const filePath = vscode.window.activeTextEditor.document.uri.path;
 
 	let relativePath;
-	if (caller === "filesToInclude" && vscode.workspace.workspaceFolders.length > 1) {
+	if ((caller === "filesToInclude" || caller === "filesToExclude") && vscode.workspace.workspaceFolders.length > 1) {
 		relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, true);
 		relativePath = `./${ relativePath }`;
 	}
@@ -121,8 +123,10 @@ exports.parseVariables = async function (resolvedVariable, caller) {
 
 			case "${relativeFileDirname}":
 			case "${ relativeFileDirname }":
-				// resolved = path.dirname(relativePath);
 				resolved = path.dirname(vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, false));
+				// https://code.visualstudio.com/docs/editor/codebasics#_advanced-search-options :  
+				// '.' or './' does nothing in the "files to exclude" input for some reason
+				if (caller === "filesToExclude" && resolved === ".") resolved = "**";
 				break;
 
 			case "${workspaceFolderBasename}":
@@ -166,13 +170,14 @@ exports.parseVariables = async function (resolvedVariable, caller) {
 		}
 		resolvedVariable = resolvedVariable.replace(item[1], resolved);
 	}
-	
+
 	// if more than one match, one is ${resultsFiles}, and one is a negation which follows
 
 
 	// escape .*{}[]?^$ if using in a find 
 	if (caller === "find") return resolvedVariable.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
 	else if (caller === "filesToInclude" && resolvedVariable === ".") return resolvedVariable = "./";
+	// else if (caller === "filesToExclude" && resolvedVariable === ".") return resolvedVariable = "**";
 	else return resolvedVariable;
 }
 
@@ -199,5 +204,4 @@ exports.getSearchResultsFiles = async function () {
 		// notifyMessage
 		return undefined;
 	}
-
-}
+} 

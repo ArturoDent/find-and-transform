@@ -16,7 +16,7 @@ At the end of this file, see how to use the **context menus** to run a search (u
 		"isRegex": true,
 		"triggerSearch": true,
 		"triggerReplaceAll": true,     // explained below
-		"filesToInclude": "${file}"    // or ${relativeFile}, some variables are supported, see below
+		"filesToInclude": "${relativeFile}"    // or ${file} for the full path, some variables are supported, see below
 	}
 }
 ``` 
@@ -53,16 +53,16 @@ This extension will generate a command for each of the settings, they will appea
 }
 ```
 
-* `filesToInclude` can take multiple, comma-separated, file or folder entries.  For example:  
+* `filesToInclude` and `filesToExclude` can take multiple, comma-separated, file or folder entries.  For example:  
 
 ```jsonc
 "filesToInclude": "zip/new.html, ${relativeFile}, ${relativeFileDirname}" // or any combination and order
-        // you should get intellisense for completion of the variables upon typing the `${`
+        // you should get intellisense for completion of the variables upon typing the `$`
 "filesToInclude": "zipFolder${pathSeparator}new.html"
 ```  
 <br/>
 
-* `filesToInclude` can take a relative path or absolute path with some caveats. **These work**:
+* `filesToInclude` or `filesdToExclude` can take a relative path or absolute path with some caveats. **These work**:
 
 ```jsonc
 "filesToInclude": "zip\\new.html",                           // note the escaped backward slash  
@@ -254,9 +254,9 @@ In the demo below, text with a ***blue background*** is selected:
 ```jsonc
 "title": "<some string>",        // can have spaces, will be shown in the Command Palette: "Find-Transform:My Title"
 
-"find": "<some string>",         // if no find key or empty value, will use the selected text (as vscode does natively)
+"find": "<string or regex>",     // if no find key or empty value, will use the selected text (as vscode does natively)
 
-"replace": "<some string>",
+"replace": "<string>",
 
 "triggerSearch": <boolean>,      // searches and shows the results
 
@@ -264,9 +264,13 @@ In the demo below, text with a ***blue background*** is selected:
 
 "isRegex": <boolean>,
 
-"filesToInclude": "",            // default is "" = current workspace
-// using the empty string `""` as the value for `filesToInclude` will clear any prior value for 
-// the `files to include` input box in the Search Panel and result in the default
+"filesToInclude": "<paths or variables>",      // default is "" = current workspace
+// "filesToInclude": "",            // using the empty string `""` as the value for `filesToInclude` 
+                                    // will clear any prior value from the "files to include" input
+
+"filesToExclude": "<paths or variables>",
+// "filesToExclude": "",           // using the empty string `""` as the value for `filesToExclude`
+                                   // will clear any prior value from the "files to exclude" input
 
 "preserveCase": <boolean>,
 
@@ -274,9 +278,7 @@ In the demo below, text with a ***blue background*** is selected:
 
 "isCaseSensitive": <boolean>,
 
-"matchWholeWord": <boolean>,
-
-"filesToExclude": "<some string>"
+"matchWholeWord": <boolean>
 ```
 
 You will get intellisense presenting these arguments.   And the completions will be filtered to remove any options arlready used in that setting or keybinding.  
@@ -289,7 +291,7 @@ You will get intellisense presenting these arguments.   And the completions will
 
 --------  
 
-However, specifically for the `"filesToInclude"` setting an empty string (`"filesToInclude": "",`) will **clear** the old value for the `filesToInclude` input box in the Search Panel.  So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:   
+However, specifically for the `"filesToInclude/filesToExclude"` settings an empty string (`"filesToInclude": "",`) will **clear** the old value for the `filesToInclude/filesToExclude` input boxes in the Search Panel.  So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:   
 
 ```jsonc
 {
@@ -315,7 +317,7 @@ With those keybindings, the default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd
 ------------  
 <br/>
 
-The `filesToInclude`,`find` and `replace` arguments in the `runInSearchPanel` support these variables:  
+The `filesToInclude`, `filesToExclude`, `find` and `replace` arguments in the `runInSearchPanel` support these variables:  
 
 * ${file}
 * ${fileBasename}
@@ -434,7 +436,6 @@ At this point, vscode does not allow the context menu of the search results view
 
 		// "triggerReplaceAll"
 		// "isRegex"
-		// "filesToInclude"
 		// "preserveCase"
 		// "useExcludeSettingsAndIgnoreFiles"
 		// "isCaseSensitive"
@@ -470,14 +471,22 @@ At this point, vscode does not allow the context menu of the search results view
 }
 ```
 
-* In a `runInSearchPanel` keybinding, you can use the `"filesToInclude": "${resultsFiles}"` arg.  So that this search will first get and scope the search by the previous search's files with matches in them.  
+* In a `runInSearchPanel` keybinding, you can use the `"filesToInclude": "${resultsFiles}"` arg.  So that this search will first get and scope the search by the previous search's files.    
 * The `when` clause is not required, but if there no search results, the command will search within the workspace folder.  This is as expected.
 
 Other usages:
 
 ```jsonc
-* "filesToInclude": "${resultsFiles}, noFirst.txt"      // add any file(s) to the scope   
-* "filesToInclude": "${resultsFiles}, ${relativeFile}"          // add the current file to the scope
+* "filesToInclude": "${resultsFiles}, noFirst.txt"         // add any file(s) to the scope   
+* "filesToInclude": "${resultsFiles}, ${relativeFile}"     // add the current file to the scope
+
+   // search in the results files but exclude the current file   
+*  "filesToInclude": "${resultsFiles}",
+   "filesToExclude": "${relativeFile}"  
+
+   // search in the results files but exclude the current file's entire folder  
+*  "filesToInclude": "${resultsFiles}",
+   "filesToExclude": "${relativeFileDirname}"  
 ```
 
 ------------------------  

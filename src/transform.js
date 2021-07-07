@@ -553,6 +553,8 @@ function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMov
  */
 function _buildReplaceValue(replaceValue, groups) {
 
+	// support conditional here?  ${2:+yada}
+
 	let buildReplace = "";
 
 	// array of case modifiers + $n's
@@ -565,6 +567,7 @@ function _buildReplaceValue(replaceValue, groups) {
 
 	if (replaceValue !== null)
 		identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)/g)];
+		// identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)|(?<conditional>\$\{\d\d?:[-+?]?(.*?)\})/g)];
 
 	if (!identifiers.length) return replaceValue;
 

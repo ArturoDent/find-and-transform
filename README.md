@@ -14,8 +14,8 @@ Do a second search only in the files with matches from a previous search.
 5.   &emsp; A command can be created right in a keybinding, without using a setting at all.  
 
 6.   &emsp; Can also use pre-defined searches using the Search Panel with command `runInSearchPanel`.  
-7.   &emsp; Supports using path variables in the Search Panel `find/replace/filesToInclude`, including the current file only.  
-8.  &emsp; Supports using path variables in the find commands fields `find/replace/filesToInclude`.  
+7.   &emsp; Supports using path variables in the Search Panel `find/replace/filesToInclude/filesToExclude`, including the current file only or current directory, etc.    
+8.  &emsp; Supports using path variables in the find commands fields `find or replace`.  
 
 9.   &emsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See [running commands on save](codeActions.md).
 10.   &emsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.     
@@ -36,7 +36,7 @@ This extension provides a way to save and re-use find/replace regex's and use ca
 > Note, the above case modifiers must be double-escaped in the settings or keybindings.  So `\U$1` should be `\\U$1` in the settings.  VS Code will show an error if you do not double-escape the modifiers (similar to other escaped regex items like `\\w`).  
 <br/>
 
-The special variables that can be used in the `find` or `replace` fields of the `findInCurrentFile` command or in the `find`, `replace`, and perhaps most importantly, the `filesToInclude` field of the `runInSearchPanel` are these:
+The special variables that can be used in the `find` or `replace` fields of the `findInCurrentFile` command or in the `find`, `replace`, and perhaps most importantly, the `filesToInclude` and `filesToExclude` fields of the `runInSearchPanel` are these:
 
 ```
 * ${file}                    easily limit a search to the current file, full path
@@ -55,7 +55,7 @@ The special variables that can be used in the `find` or `replace` fields of the 
 * ${selectedText}
 * ${CLIPBOARD}
 * ${pathSeparator}
-* ${lineNumber}              only resolved once for first cursor, TODO resolve for each selection/cursor
+* ${lineNumber}              only resolved once for first cursor, line numbers start at 1, not 0
 * ${resultsFiles}            explained below
 ```
 
@@ -568,7 +568,6 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Explore supporting conditionals, like in snippets: `${2:+yada}`  
 * Explore supporting `cursorMoveSelect` argument in searches across files.  Run a `findInCurentFile` afterwards?    
 * Resolve `${lineNumber}` for each cursor/selection.  Need new api?  
-* Add negation like: `${resultsFiles}, !{relativeFile}`.    
 
 
 ## Release Notes
@@ -598,7 +597,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 0.9.0	Added `Search in this File` and `Search in this Folder` Explorer context menu options.  
 * 0.9.1	Added support for special variables in `find/replace` in `findInCurrentFile` and `runInSearchPanel`.  
   &emsp;&emsp; Added `${resultsFiles}` variable and `searchInResults` command.  
-* 0.9.4	A lot of work on variables for multi-root workspaces.        
+* 0.9.4	A lot of work on variables for multi-root workspaces.   
+* 0.9.5	Added support for variables in `filesToExclude`.           
 
 
 -----------------------------------------------------------------------------------------------------------  
