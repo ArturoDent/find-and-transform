@@ -344,6 +344,10 @@ These variables should have the same resolved values as found at [vscode's pre-d
 
 <br/>
 
+The `replace` arguments in the `runInSearchPanel` also supports case modifiers like `\\U$n`, `\\u$n`, `\\L$n` and `\\l$n`.  
+
+<br/>
+
 ---------------------  
 
 <br/>

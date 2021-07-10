@@ -157,6 +157,22 @@ async function activate(context) {
 
 	// ----------------------------------------------------------------------------------------------------------------------
 
+	// select the 'n' in completionItems like '${n:/upcase}' or '${n:+add text}'
+	// not exposed in package.json
+	let selectDigitInCompletion = vscode.commands.registerCommand('find-and-transform.selectDigitInCompletion', async (...args) => {
+
+		//args = [completionText, Range]
+		if (args[1]?.start) {
+			const digitStart = new vscode.Position(args[1].start.line, args[1].start.character + 2);
+			const digitEnd = new vscode.Position(args[1].start.line, args[1].start.character + 3);
+			vscode.window.activeTextEditor.selection = new vscode.Selection(digitStart, digitEnd);
+		}
+	});
+
+	context.subscriptions.push(selectDigitInCompletion);
+
+	// ---------------------------------------------------------------------------------------------------------------------
+
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration( async (event) => {
 		if (event.affectsConfiguration("findInCurrentFile") ||
 				event.affectsConfiguration("runInSearchPanel")) {

@@ -5,20 +5,22 @@
 Find and transform text in a single file, folder, workspace or custom group.  
 Do a second search only in the files with matches from a previous search.      
 
-1.   &emsp; Any number of find/replace combinations can be saved in settings and triggered either by the Command Palette or a keybinding.
-2.   &emsp; Replacements can include case modifiers, like `\U`.  
-3.   &emsp; Find in the entire document, within selections only, the first occurrence or the line only.  
-     &emsp; Or find the next occurrence and optionally select it and/or replace it.  
+*   &emsp; Any number of find/replace combinations can be saved in settings and triggered either by the Command Palette or a keybinding.
+*   &emsp; Replacements can include case modifiers, like `\U`.   
+*   &emsp; Find in the entire document, within selections only, the first occurrence or the line only.  
+    &emsp; Or find the next occurrence and optionally select it and/or replace it.  
+*   &emsp; Replacements can include conditionals, as in if found capture group 1, add given text.  		
+*   &emsp; Replacements can include other snippet transforms, like `${1:/pascalcase}`.  		
 
-4.   &emsp; Keybindings can be quite generic, not necessarily even including `find` or `replace` keys!    
-5.   &emsp; A command can be created right in a keybinding, without using a setting at all.  
+*   &emsp; Keybindings can be quite generic, not necessarily even including `find` or `replace` keys!    
+*   &emsp; A command can be created right in a keybinding, without using a setting at all.  
 
-6.   &emsp; Can also use pre-defined searches using the Search Panel with command `runInSearchPanel`.  
-7.   &emsp; Supports using path variables in the Search Panel `find/replace/filesToInclude/filesToExclude`, including the current file only or current directory, etc.    
-8.  &emsp; Supports using path variables in the find commands fields `find or replace`.  
+*   &emsp; Can also use pre-defined searches using the Search Panel with command `runInSearchPanel`.  
+*   &emsp; Supports using path variables in the Search Panel `find/replace/filesToInclude/filesToExclude`, including the current file only or current directory, etc.    
+*  &emsp; Supports using path variables in the find commands fields `find or replace`.  
 
-9.   &emsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See [running commands on save](codeActions.md).
-10.   &emsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.     
+*   &emsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See [running commands on save](codeActions.md).
+*   &emsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.     
 
  The replace transforms can include ***case modifiers*** like:  
 
@@ -36,7 +38,56 @@ This extension provides a way to save and re-use find/replace regex's and use ca
 > Note, the above case modifiers must be double-escaped in the settings or keybindings.  So `\U$1` should be `\\U$1` in the settings.  VS Code will show an error if you do not double-escape the modifiers (similar to other escaped regex items like `\\w`).  
 <br/>
 
-The special variables that can be used in the `find` or `replace` fields of the `findInCurrentFile` command or in the `find`, `replace`, and perhaps most importantly, the `filesToInclude` and `filesToExclude` fields of the `runInSearchPanel` are these:
+-----------------
+
+## Conditional replacement in `findInCurrentFile` commands or keybindings  
+
+Vscode **snippets** although you to make conditional replacements, see [vscode's snippet grammar documentation](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_grammar).  You cannot use those in the find/replace widget however.  This extension allows you to use those conditionals in a `findInCurrentFile` command or keybinding.  Types of conditionals and their meaning:
+
+
+* `${1:+add this text}` &emsp; If found a capture group 1, add the text. `+` means `if`  
+* `${1:-add this text}` &emsp; If **no** capture group 1, add the text. `-` means `else`
+* `${1:add this text}`  &emsp; Same as `else` above, can omit the `-`  
+* `${1:?yes:no}` &emsp; &emsp; &emsp; If capture group 1, add the text at `yes`, otherwise add the text at `no` `?` means `if/else`
+
+Examples:
+
+```jsonc
+{
+	"key": "alt+r",
+	"command": "findInCurrentFile",
+	"args": {
+		"find": "(First)|(Second)|(Third)",  // your regex with possible capture groups
+
+		"replace": "${3:-yada3} \\U$1",  // if no group 3, add "yada3" then upcase group 1
+
+		                                 // groups within conditionals must be surrounded by backticks `$2`
+		"replace": "${1:+abcd`$2`efgh}", // if group 1, add group 2 plus surrounding text
+
+		"replace": "${1:+aaa\\}bbb}",    // must double-escape closing brackets if want it as text
+
+		"replace": "${1:+*`$1``$1`*}${2:+*`$2``$2`*}",  // lots of combinations possible
+
+		"replace": "$0",                      // can use whole match as a replacement
+
+		"replace": "${2:?yada2:yada3}\\U$1",  // if group 2, add "yada2", else add "yada3"
+		                                      // then follow with upcased group 1
+
+		"replace": "${2:?`$3`:`$1`}",         // if group 2, add group 3, else add group 1
+	}
+}
+```
+
+1. Groups within conditionals (which is not possible even in a vscode snippet), must be surrounded by backticks.  
+2. If you want to use the character `}` in a replacement within a conditional, it must be double-escaped `\\}`.  
+
+<br/>
+
+-----------
+
+## Special variables 
+
+These can be used in the `find` or `replace` fields of the `findInCurrentFile` command or in the `find`, `replace`, and perhaps most importantly, the `filesToInclude` and `filesToExclude` fields of the `runInSearchPanel` are these:
 
 ```
 * ${file}                    easily limit a search to the current file, full path
@@ -65,7 +116,56 @@ These variables should have the same resolved values as found at [vscode's pre-d
 
 <br/>
 
--------------
+-------------  
+
+## Snippet-like transforms: replacements in `findInCurrentFile` commands or keybindings  
+
+The following can be used in a `replace` field for a `findInCurrentFile` command:
+
+* `${1:/upcase}`   &emsp; &emsp; &emsp; if capture group 1, transform it to uppercase (same as `\\U$1`)  
+* `${2:/downcase}`   &emsp; &emsp; if capture group 2, transform it to uppercase (same as `\\L$1`)  
+
+* `${1:/pascalcase}` &emsp; if capture group 1, transform it to pascalcase  
+ &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; (e.g., `first_second_third` => `FirstSecondThird` or `first second third` => `FirstSecondThird`)
+
+* `${1:/camelcase}` &emsp;&emsp;if capture group 1, transform it to camelcase  
+ &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; (e.g., `first_second_third` => `firstSecondThird` or `first second third` => `firstSecondThird`)   
+
+* `${3:/capitalize}` &emsp; if capture group 3, transform it to uppercase (same as `\\u$1`)   
+
+### Examples:
+
+If you wanted to find multiple items and then transform each in its own way **one match at a time**:  
+
+```jsonc
+{
+	"key": "alt+r",
+	"command": "findInCurrentFile",
+	"args": {
+		"find": "(first)|(Second)|(Third)",
+		"replace": "${1:+ Found first!!}${2:/upcase}${3:/downcase}",
+		"restrictFind": "nextSelect"
+		// 'nextMoveCursor' would do the same, moving the cursor but not selecting
+	}
+}
+```
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="" width="650" height="300" alt="apply transforms one by one"/>
+
+<br/>
+
+Explanation: 
+
+1. `"restrictFind": "nextSelect"` do the following one at a time, selecting each in turn  
+2. If you want to skip transforming a match, just move the cursor beyond it (<kbd>leftArrow</kbd>).  
+
+3. `${1:+ Found first!!}` if find a capture group 1, replace it with text "Found First!!"  
+4. `${2:/upcase}` if find a capture group 2, uppercase it  
+5. `${3:/downcase}` if find a capture group 3, lowercase it  
+
+
+<br/>
+
+----------------  
 
 ## Features
 
@@ -598,7 +698,9 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 0.9.1	Added support for special variables in `find/replace` in `findInCurrentFile` and `runInSearchPanel`.  
   &emsp;&emsp; Added `${resultsFiles}` variable and `searchInResults` command.  
 * 0.9.4	A lot of work on variables for multi-root workspaces.   
-* 0.9.5	Added support for variables in `filesToExclude`.           
+* 0.9.5	Added support for variables in `filesToExclude`.   
+* 0.9.6	Added support for **conditionals** in `replace` in `findInCurrentFile`.  
+  &emsp;&emsp; Added `${\d:/upcase/downcase/capitalize/camelcase/pascalcase}` to `findInCurrentFile` `replace` argument.  
 
 
 -----------------------------------------------------------------------------------------------------------  

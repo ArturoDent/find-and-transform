@@ -563,11 +563,10 @@ function _buildReplaceValue(replaceValue, groups) {
 
 	if (replaceValue === "") return replaceValue;
 
-	// replaceValue = String(utilities.parseVariables(replaceValue, false));
-
 	if (replaceValue !== null)
-		identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)/g)];
-		// identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)|(?<conditional>\$\{\d\d?:[-+?]?(.*?)\})/g)];
+	  // (?<caseTransform>\$\{(\d\d ?): \/((up|down|pascal|camel)case|capitalize)\})
+		// identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})/g)];
+		identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)|(?<caseTransform>\$\{(\d\d?):\/((up|down|pascal|camel)case|capitalize)\})|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})/g)];
 
 	if (!identifiers.length) return replaceValue;
 
@@ -587,6 +586,92 @@ function _buildReplaceValue(replaceValue, groups) {
 				continue;
 			}
 
+			else if (identifiers[i].groups.caseTransform) {
+
+				if (groups[identifiers[i][5]]) {
+					
+					switch (identifiers[i][6]) {
+
+						case "upcase":
+							buildReplace += groups[identifiers[i][5]].toLocaleUpperCase();
+							break;
+
+						case "downcase":
+							buildReplace += groups[identifiers[i][5]].toLocaleLowerCase();
+							break;
+						
+						case "capitalize":
+							buildReplace += groups[identifiers[i][5]][0].toLocaleUpperCase() + groups[identifiers[i][5]].substring(1);
+							break;
+						
+						case "pascalcase":   			// first_second_third => FirstSecondThird
+							buildReplace += utilities.toPascalCase(groups[identifiers[i][5]]);
+							break;
+						
+						case "camelcase":        // first_second_third => firstSecondThird
+							buildReplace += utilities.toCamelCase(groups[identifiers[i][5]]);
+							break;
+					}
+				}
+				buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
+			}
+
+			else if (identifiers[i].groups.conditional) {
+
+				// if a '}' in a replacement? => '\\}' must be escaped
+				// ${1:+${2}}  ?  => ${1:+`$2`} note the backticks
+				// easy to ${1:capitalize} when mean ${1:/capitalize}  TODO warning?
+
+				const conditionalRE = /\$\{(?<capGroup>\d\d?):(?<ifElse>[-+?]?)(?<replacement>(.*?)(?<!\\))\}/;
+				const matches = identifiers[i].groups.conditional.match(conditionalRE);
+				const thisCapGroup = matches.groups.capGroup;
+				const replacement = matches.groups.replacement.replace(/\\/g, "");
+
+				switch (matches.groups.ifElse) {
+
+					case "+":                        // if ${1:+yes}
+						if (groups[thisCapGroup]) {
+							// buildReplace += matches.groups.replacement;
+							// buildReplace += replacement;
+							buildReplace += _checkForCaptureGroupsInReplacement(replacement, groups);
+						}
+						// "if" but no matching capture group
+
+						if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
+						else buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
+						break;
+					
+					case "-":                       // else ${1:-no} or ${1:no}
+					case "":
+						if (!groups[thisCapGroup]) {
+							// buildReplace += matches.groups.replacement;
+							// buildReplace += replacement;
+							buildReplace += _checkForCaptureGroupsInReplacement(replacement, groups);
+						}
+						// "else" and there is a matching capture group
+
+						if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
+						else buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
+						break;
+					
+					case "?":                        // if/else ${1:?yes:no}
+						// const replacers = matches.groups.replacement.split(":");
+						const replacers = replacement.split(":");
+
+						if (groups[thisCapGroup]) {
+							// buildReplace += replacers[0];
+							buildReplace += _checkForCaptureGroupsInReplacement(replacers[0], groups);
+						}
+						// else buildReplace += replacers[1] ?? "";
+						else buildReplace += _checkForCaptureGroupsInReplacement(replacers[1] ?? "", groups);
+
+
+						if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
+						else buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
+						break;
+				}
+			}
+
 			else {
 
 				let thisGroup = "0";
@@ -596,7 +681,7 @@ function _buildReplaceValue(replaceValue, groups) {
 
 					case "\\U":
 						if (groups[thisGroup]) {
-							buildReplace += groups[thisGroup].toUpperCase();
+							buildReplace += groups[thisGroup].toLocaleUpperCase();
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
 						// case "\\U$n" but there is no matching capture group
@@ -605,7 +690,7 @@ function _buildReplaceValue(replaceValue, groups) {
 
 					case "\\u":
 						if (groups[thisGroup]) {
-							buildReplace += groups[thisGroup].substring(0, 1).toUpperCase() + groups[thisGroup].substring(1);
+							buildReplace += groups[thisGroup].substring(0, 1).toLocaleUpperCase() + groups[thisGroup].substring(1);
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
 						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
@@ -613,7 +698,7 @@ function _buildReplaceValue(replaceValue, groups) {
 
 					case "\\L":
 						if (groups[thisGroup]) {
-							buildReplace += groups[thisGroup].toLowerCase();
+							buildReplace += groups[thisGroup].toLocaleLowerCase();
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
 						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
@@ -621,7 +706,7 @@ function _buildReplaceValue(replaceValue, groups) {
 
 					case "\\l":
 						if (groups[thisGroup]) {
-							buildReplace += groups[thisGroup].substring(0, 1).toLowerCase() + groups[thisGroup].substring(1);
+							buildReplace += groups[thisGroup].substring(0, 1).toLocaleLowerCase() + groups[thisGroup].substring(1);
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
 						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
@@ -634,6 +719,30 @@ function _buildReplaceValue(replaceValue, groups) {
 		}
 	}
 	return buildReplace;
+}
+
+
+
+
+/**
+ * 
+ * @param {String} replacement 
+ * @param {Array} groups 
+ */
+function _checkForCaptureGroupsInReplacement(replacement, groups) {
+	
+	const re = /(?<ticks>`\$(\d+)`)|(?<escapes>\$\{(\d+)\})/g;
+	const capGroups = [...replacement.matchAll(re)];
+
+	for (let i = 0; i < capGroups.length; i++) {
+		if (capGroups[i].groups.ticks) {
+			replacement = replacement.replace(capGroups[i][0], groups[capGroups[i][2]] ?? "");
+		}
+		else if (capGroups[i].groups.escapes) {
+			replacement = replacement.replace(capGroups[i][0], groups[capGroups[i][4]] ?? "");
+		}
+	}
+	return replacement;
 }
 
 

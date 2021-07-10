@@ -74,8 +74,8 @@ exports.useSearchPanel = async function (findArray) {
 	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
 	if (replace?.replace) obj["replace"] = await utilities.parseVariables(replace.replace, "replace");
 
-	const replaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
-	if (replaceAll) {
+	const triggerReplaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
+	if (triggerReplaceAll) {
 		obj["triggerSearch"] = true;
 	}
 	else {

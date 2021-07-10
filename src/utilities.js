@@ -4,9 +4,9 @@ const os = require('os');
 
 
 /**
- * Get the relative path to the workspace folder
- * @param {String} filePath 
- * @returns {String} relativePath
+ * Get the relative path to the workspace folder  
+ * @param {String} filePath   
+ * @returns {String} relativePath  
  */
 exports.getRelativeFilePath = function (filePath) {
 
@@ -30,9 +30,9 @@ exports.getRelativeFilePath = function (filePath) {
 }
 
 /**
- * Get the relative path to the workspace folder
- * @param {String} filePath 
- * @returns {String} relativePath
+ * Get the relative path to the workspace folder  
+ * @param {String} filePath   
+ * @returns {String} relativePath  
  */
 exports.getRelativeFolderPath = function (filePath) {
 
@@ -46,10 +46,10 @@ exports.getRelativeFolderPath = function (filePath) {
 
 
 /**
- * If the "filesToInclude/find/replace" value uses a variable(s) return the resolved value
+ * If the "filesToInclude/find/replace" value uses a variable(s) return the resolved value  
  * 
- * @param {String} resolvedVariable - the "filesToInclude/find/replace" value
- * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude
+ * @param {String} resolvedVariable - the "filesToInclude/find/replace" value  
+ * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude  
  */
 exports.parseVariables = async function (resolvedVariable, caller) {
 
@@ -181,9 +181,12 @@ exports.parseVariables = async function (resolvedVariable, caller) {
 	else return resolvedVariable;
 }
 
+
 /**
- * run 'runInSearchPanel' with the relative paths of the current serach results
- * @returns nothing
+ * Get the relative paths of the current search results 
+ * for the next `runInSearchPanel` call  
+ * 
+ * @returns array of paths or undefined  
  */
 exports.getSearchResultsFiles = async function () {
 
@@ -205,3 +208,51 @@ exports.getSearchResultsFiles = async function () {
 		return undefined;
 	}
 } 
+
+
+/**
+ * Convert string to PascalCase.  
+ * first_second_third => FirstSecondThird  
+ * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/snippetParser.ts}  
+ * 
+ * @param {String} value   
+ * @returns {String} transformed value  
+ */
+exports.toPascalCase = function (value) {
+
+	const match = value.match(/[a-z0-9]+/gi);
+	if (!match) {
+		return value;
+	}
+	return match.map(word => {
+		return word.charAt(0).toUpperCase()
+			+ word.substr(1).toLowerCase();
+	})
+		.join('');
+}
+
+
+/**
+ * Convert string to camelCase.  
+ * first_second_third => firstSecondThird  
+ * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/snippetParser.ts}  
+ * 
+ * @param {String} value  
+ * @returns {String} transformed value  
+ */
+exports.toCamelCase = function (value) {
+
+	const match = value.match(/[a-z0-9]+/gi);
+	if (!match) {
+		return value;
+	}
+	return match.map((word, index) => {
+		if (index === 0) {
+			return word.toLowerCase();
+		} else {
+			return word.charAt(0).toUpperCase()
+				+ word.substr(1).toLowerCase();
+		}
+	})
+		.join('');
+}
