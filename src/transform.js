@@ -10,9 +10,26 @@ const utilities = require('./utilities');
  */
 exports.findTransform = async function (editor, edit, findReplaceArray) {
 
+	let madeFind = false;
+
 	let restrictFind = "document";  // effectively making "document" the default
 	const restrictItem = Object.entries(findReplaceArray).filter(item => (item[1].restrictFind || item[0] === 'restrictFind'));
 	if (restrictItem.length) restrictFind = restrictItem[0][1].restrictFind ?? restrictItem[0][1];
+
+	let isRegex = false;  // effectively making "false" the default
+	const isRegexItem = Object.entries(findReplaceArray).filter(item =>
+		(typeof item[1].isRegex === 'boolean' || item[0] === 'isRegex'));
+	if (isRegexItem.length) isRegex = isRegexItem[0][1].isRegex ?? isRegexItem[0][1];
+
+	let matchWholeWord = false;  // effectively making "false" the default
+	const matchWholeWordItem = Object.entries(findReplaceArray).filter(item =>
+		(typeof item[1].matchWholeWord === 'boolean' || item[0] === 'matchWholeWord'));
+	if (matchWholeWordItem.length) matchWholeWord = matchWholeWordItem[0][1].matchWholeWord ?? matchWholeWordItem[0][1];
+
+	let matchCase = false;  // effectively making "false" the default
+	const matchCaseItem = Object.entries(findReplaceArray).filter(item =>
+		(typeof item[1].matchCase === 'boolean' || item[0] === 'matchCase'));
+	if (matchCaseItem.length) matchCase = matchCaseItem[0][1].matchCase ?? matchCaseItem[0][1];
 
 	let findValue = "";
 	  // returns an empty [] if no 'find'
@@ -20,11 +37,14 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
 	if (findItem.length) {
 		findValue = findItem[0][1].find ?? findItem[0][1];
 		// true in parseVariables(..., true) will escape resolved variables for use in a regex
-		findValue = await utilities.parseVariables(findValue, "find");
+		findValue = await utilities.parseVariables(findValue, "find", isRegex);
 	}
 	// no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
 	// TODO  what if find === "" empty string?
-	else findValue = _makeFind(editor.selections, restrictFind);
+	else {
+		findValue = _makeFind(editor.selections, restrictFind, matchWholeWord, isRegex);
+		madeFind = true;
+	}
 
 	let cursorMoveSelect = "";  // effectively making "" the default
 	const cursorMoveSelectItem = Object.entries(findReplaceArray).filter(item => (item[1].cursorMoveSelect || item[0] === 'cursorMoveSelect'));
@@ -43,35 +63,50 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
 		if (typeof replaceItem[0][1] === 'string') {
 			replaceValue = replaceItem[0][1];
 			// if (restrictFind === "selections" && replaceValue !== null) don't parse here, parse later 
-			replaceValue = await utilities.parseVariables(replaceValue, "replace");  // TODO necessary, setting?
+			replaceValue = await utilities.parseVariables(replaceValue, "replace", false);  // TODO necessary, setting?
 		}
 		else {
 			replaceValue = replaceItem[0][1].replace;
 			// if (restrictFind === "selections" && replaceValue !== null) don't parse here, parse later 
-			replaceValue = await utilities.parseVariables(replaceValue, "replace");
+			replaceValue = await utilities.parseVariables(replaceValue, "replace", false);
 		}
 	}
 	else if (!findItem.length) replaceValue = "$1";  // if no replace key, set to $1
 
+	// make adjustments to find value for matchWholeWord, matchCase and is isRegex
+	let regexOptions = "gmi";
+	if (matchCase) regexOptions = "gm";
+
+	if (matchWholeWord) findValue = findValue.replace(/\\b/g, "@%@");
+
+	// removed escaping the or | if madeFind
+	if (!isRegex && madeFind) findValue = findValue.replace(/([?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
+	else if (!isRegex) findValue = findValue.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
+
+
+	if (matchWholeWord) findValue = findValue.replace(/@%@/g, "\\b");
+	if (matchWholeWord && !madeFind) findValue = `\\b${ findValue }\\b`;
+
 	// no find and no replace
 	if (!findItem.length && !replaceItem.length && restrictFind !== "nextMoveCursor" && restrictFind !== "nextSelect" && restrictFind !== "nextDontMoveCursor")
-		_findAndSelect(editor, findValue, restrictFind); // find and select all even if restrictFind === selections
+		_findAndSelect(editor, findValue, restrictFind, regexOptions); // find and select all even if restrictFind === selections
 
 	// add all "empty selections" to editor.selections_replaceSelectionsLoop
 	else if (restrictFind === "selections" && replaceValue !== null) {
-		_addEmptySelectionMatches(editor);
-		_replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMoveSelect);
+		_addEmptySelectionMatches(editor, regexOptions);
+		_replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMoveSelect, isRegex, regexOptions, matchWholeWord);
 	}
 	else if ((restrictFind === "line" || restrictFind === "once") && replaceValue !== null) {
-		_replaceInLine(editor, edit, findValue, replaceValue, restrictFind, cursorMoveSelect);
+		_replaceInLine(editor, edit, findValue, replaceValue, restrictFind, cursorMoveSelect, isRegex, regexOptions, matchWholeWord);
 	}
-	// is replaceValue appropriate here?
+	// find and replace, restrictFind = nextSelect/nextMoveCursor/nextDontMoveCursor
 	else if (restrictFind === "nextMoveCursor" || restrictFind === "nextSelect" || restrictFind === "nextDontMoveCursor") {
-		_replaceNextInWholeDocument(editor, edit, findValue, replaceValue, restrictFind);
+		_replaceNextInWholeDocument(editor, edit, findValue, replaceValue, restrictFind, isRegex, regexOptions);
 	}
-	else if (replaceValue !== null) _replaceWholeDocument(editor, edit, findValue, replaceValue, cursorMoveSelect);
+	// find and replace, restrictFind = document/default
+	else if (replaceValue !== null) _replaceWholeDocument(editor, edit, findValue, replaceValue, cursorMoveSelect, isRegex, regexOptions, matchWholeWord);
 	
-	else _findAndSelect(editor, findValue, restrictFind);   // find but no replace
+	else _findAndSelect(editor, findValue, restrictFind, regexOptions);   // find but no replace
 }
 
 
@@ -81,9 +116,11 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
  *
  * @param {Array<vscode.Selection>} selections
  * @param {String} restrictFind
+ * @param {Boolean} matchWholeWord
+ * @param {Boolean} isRegex
  * @returns {String} - selected text '(\\ba\\b|\\bb c\\b|\\bd\\b)'
  */
-function _makeFind(selections, restrictFind) {
+function _makeFind(selections, restrictFind, matchWholeWord, isRegex) {
 
 	const document = vscode.window.activeTextEditor.document;
 	let selectedText = "";
@@ -106,21 +143,25 @@ function _makeFind(selections, restrictFind) {
 			selectedText = document.getText(selectedRange);
 		}
 
-		// wrap with word boundaries \b must be escaped to \\b
-		if (index < selections.length-1) find += `\\b${ selectedText }\\b|`;  // add an | or pipe to end
-		else find += `\\b${ selectedText }\\b`;
+		let boundary = "";
+		if (matchWholeWord) boundary = "\\b";
 
+		// wrap with word boundaries \b must be escaped to \\b
+		if (index < selections.length-1) find += `${ boundary }${ selectedText }${ boundary }|`;  // add an | or pipe to end
+		else find += `${boundary }${ selectedText }${ boundary }`;
 	});
 
-	find = `(${ find })`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
+	// find = `(${ find })`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
+	if (isRegex) find = `(${ find })`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
 	return find;
 }
 
 /**
  * Add any empty/words at cursor position to the selections
  * @param {vscode.window.activeTextEditor} editor
+ * @param {String} regexOptions
  */
-function _addEmptySelectionMatches(editor) {
+function _addEmptySelectionMatches(editor, regexOptions) {
 
 	editor.selections.forEach(selection => {
 
@@ -132,11 +173,14 @@ function _addEmptySelectionMatches(editor) {
 			const wordRange = editor.document.getWordRangeAtPosition(selection.start);
 			let word;
 			if (wordRange) word = editor.document.getText(wordRange);
+				// TODO can word include regex characters, if the selection is empty?
 			else return;
 
 			// get all the matches in the document
 			const fullText = editor.document.getText();
-			const matches = [...fullText.matchAll(new RegExp(word, "g"))];
+			// TODO use regexOptions here?
+			// const matches = [...fullText.matchAll(new RegExp(word, "g"))];
+			const matches = [...fullText.matchAll(new RegExp(word, regexOptions))];
 
 			matches.forEach((match, index) => {
 				const startPos = editor.document.positionAt(match.index);
@@ -162,8 +206,9 @@ function _addEmptySelectionMatches(editor) {
  * @param {vscode.TextEditor} editor
  * @param {String} findValue
  * @param {String} restrictFind
+ * @param {String} regexOptions
  */
-function _findAndSelect(editor, findValue, restrictFind) {
+function _findAndSelect(editor, findValue, restrictFind, regexOptions) {
 
 	const foundSelections = [];
 
@@ -171,7 +216,7 @@ function _findAndSelect(editor, findValue, restrictFind) {
 
 		// get all the matches in the document
 		const fullText = editor.document.getText();
-		const matches = [...fullText.matchAll(new RegExp(findValue, "gm"))];
+		const matches = [...fullText.matchAll(new RegExp(findValue, regexOptions))];
 
 		matches.forEach((match, index) => {
 			const startPos = editor.document.positionAt(match.index);
@@ -181,7 +226,7 @@ function _findAndSelect(editor, findValue, restrictFind) {
 		editor.selections = foundSelections; // this will remove all the original selections
 	}
 
-	else {  // restrictFind === "selections"
+	else {  // restrictFind === "selections"  TODO other options now
 
 		let selectedRange;
 
@@ -193,7 +238,7 @@ function _findAndSelect(editor, findValue, restrictFind) {
 			else selectedRange = new vscode.Range(selection.start, selection.end);
 
 			const selectedText = editor.document.getText(selectedRange);
-			const matches = [...selectedText.matchAll(new RegExp(findValue, "gm"))];
+			const matches = [...selectedText.matchAll(new RegExp(findValue, regexOptions))];
 
 			matches.forEach((match) => {
 
@@ -222,10 +267,13 @@ function _findAndSelect(editor, findValue, restrictFind) {
  * @param {String} replaceValue
  * @param {String} restrictFind : 'line' or 'once'
  * @param {String} cursorMoveSelect
+ * @param {Boolean} isRegex
+ * @param {String} regexOptions
+ * @param {Boolean} matchWholeWord
  */
-async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFind, cursorMoveSelect) {
+async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFind, cursorMoveSelect, isRegex, regexOptions, matchWholeWord) {
 
-	const re = new RegExp(findValue, "gm");
+	const re = new RegExp(findValue, regexOptions);
 	let currentLine = "";
 	let foundSelections = [];
 
@@ -242,7 +290,11 @@ async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFin
 				const matches = [...currentLine.matchAll(re)];
 		
 				for (const match of matches) {
-					const replacement = _buildReplaceValue(replaceValue, match);
+					let replacement;
+
+					if (!isRegex) replacement = replaceValue;
+					else replacement = _buildReplaceValue(replaceValue, matches[0]);
+					
 					lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
 					const matchStartPos = editor.document.positionAt(lineIndex + match.index);
 					const matchEndPos = editor.document.positionAt(lineIndex + match.index + match[0].length);
@@ -261,7 +313,10 @@ async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFin
 					lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
 					currentLine = editor.document.lineAt(selection.active.line).text;  // ??
 
-					const matches = [...currentLine.matchAll(new RegExp(cursorMoveSelect, "gm"))];
+					if (!isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
+					if (matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;
+
+					const matches = [...currentLine.matchAll(new RegExp(cursorMoveSelect, regexOptions))];
 
 					for (const match of matches) {
 						const matchStartPos = editor.document.positionAt(lineIndex + match.index);
@@ -290,7 +345,11 @@ async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFin
 
 				// use matchAll() to get index even though only using the first one
 				const matches = [...currentLine.matchAll(re)];
-				const replacement = _buildReplaceValue(replaceValue, matches[0]);
+				// const replacement = _buildReplaceValue(replaceValue, matches[0]);
+				let replacement;
+				if (!isRegex) replacement = replaceValue;
+				else replacement = _buildReplaceValue(replaceValue, matches[0]);
+
 				lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
 				subStringIndex = selection.active.character;
 
@@ -313,7 +372,10 @@ async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFin
 						fullLine = editor.document.lineAt(selection.active.line).text;
 						currentLine = fullLine.substring(selection.active.character);
 
-						const matches = [...currentLine.matchAll(new RegExp(cursorMoveSelect, "gm"))];
+						if (!isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
+						if (matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;
+
+						const matches = [...currentLine.matchAll(new RegExp(cursorMoveSelect, regexOptions))];
 
 						if (matches.length) {
 							const matchStartPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index);
@@ -336,8 +398,10 @@ async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFin
  * @param {String} findValue
  * @param {String} replaceValue
  * @param {String} restrictFind
+ * @param {Boolean} isRegex
+ * @param {String} regexOptions
  */
-async function _replaceNextInWholeDocument(editor, edit, findValue, replaceValue, restrictFind) {
+async function _replaceNextInWholeDocument(editor, edit, findValue, replaceValue, restrictFind, isRegex, regexOptions) {
 
 	// make work for multiple selections ??
 
@@ -347,15 +411,7 @@ async function _replaceNextInWholeDocument(editor, edit, findValue, replaceValue
 	const foundSelections = [];
 
 	let cursorIndex = editor.document.offsetAt(editor.selection.end);
-	// let cursorIndex = editor.document.offsetAt(editor.selection.start);
-
-	// if wanted 'next...' commands to apply to current word
-	// if (editor.selection.isEmpty) {
-	// 	let wordRange = editor.document.getWordRangeAtPosition(editor.selection.start);
-	// 	cursorIndex = editor.document.offsetAt(wordRange.start);
-	// }
-
-	const re = new RegExp(findValue, "gm");
+	const re = new RegExp(findValue, regexOptions);
 	const docString = editor.document.getText();
 	let restOfDocument = docString.substring(cursorIndex);  // text after cursor
 
@@ -370,7 +426,10 @@ async function _replaceNextInWholeDocument(editor, edit, findValue, replaceValue
 	editor.edit(function (edit) {
 
 		if (replaceValue) {
-			replacement = _buildReplaceValue(replaceValue, matches[0]);
+			// replacement = _buildReplaceValue(replaceValue, matches[0]);
+
+			if (!isRegex) replacement = replaceValue;
+			else replacement = _buildReplaceValue(replaceValue, matches[0]);
 
 			const matchStartPos = editor.document.positionAt(cursorIndex + matches[0].index);
 			const matchEndPos = editor.document.positionAt(cursorIndex + matches[0].index + matches[0][0].length);
@@ -412,18 +471,26 @@ async function _replaceNextInWholeDocument(editor, edit, findValue, replaceValue
  * @param {String} findValue
  * @param {String} replaceValue
  * @param {String} cursorMoveSelect
+ * @param {Boolean} isRegex
+ * @param {String} regexOptions
+ * @param {Boolean} matchWholeWord
  */
-async function _replaceWholeDocument(editor, edit, findValue, replaceValue, cursorMoveSelect) {
+async function _replaceWholeDocument(editor, edit, findValue, replaceValue, cursorMoveSelect, isRegex, regexOptions, matchWholeWord) {
 
-	const re = new RegExp(findValue, "gm");
+	const re = new RegExp(findValue, regexOptions);
 	const docString = editor.document.getText();
 	const matches = [...docString.matchAll(re)];
+	let replacement;
 
 	editor.edit(function (edit) {
 
 		for (const match of matches) {
 
-			const replacement = _buildReplaceValue(replaceValue, match);
+			// if not a regex, replace with the string even if it has conditionals, \\U, $n, etc.
+			// parseVariables has already been done
+			if (!isRegex)	replacement = replaceValue;
+			else replacement = _buildReplaceValue(replaceValue, match);
+
 			const matchStartPos = editor.document.positionAt(match.index);
 			const matchEndPos = editor.document.positionAt(match.index + match[0].length);
 			const matchRange = new vscode.Range(matchStartPos, matchEndPos)
@@ -435,8 +502,10 @@ async function _replaceWholeDocument(editor, edit, findValue, replaceValue, curs
 		}
 		if (cursorMoveSelect) {
 			const foundSelections = [];
+			if (!isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
+			if (matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;
 
-			const re = new RegExp(cursorMoveSelect, "gm");
+			const re = new RegExp(cursorMoveSelect, regexOptions);
 			const docString = editor.document.getText();
 			const matches = [...docString.matchAll(re)];
 
@@ -460,34 +529,13 @@ async function _replaceWholeDocument(editor, edit, findValue, replaceValue, curs
  * @param {String} findValue
  * @param {String} replaceValue
  * @param {String} cursorMoveSelect
+ * @param {Boolean} isRegex
+ * @param {String} regexOptions
+ * @param {Boolean} matchWholeWord
  */
-function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMoveSelect) {
+function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMoveSelect, isRegex, regexOptions, matchWholeWord) {
 
-	const re = new RegExp(findValue, "gm");
-
-	// editor.selections.forEach(selection => {
-
-	// 	// and use this selectedRange for each final edit
-	// 	let selectedRange = new vscode.Range(selection.start, selection.end);
-	// 	let docString = editor.document.getText(selectedRange);
-	// 	let doReplace = false;
-
-	// 	if (re.test(docString)) {  // boolean, must be a global regexp
-
-	// 		doReplace = true;
-	// 		// find all matches in iteratively reduced docString
-	// 		docString = docString.replace(re, (...groups) => {
-	// 			return _buildReplaceValue(replaceValue, groups);
-	// 		});
-	// 	};
-
-	// 	if (replaceValue !== null && doReplace) {
-	// 		const matchRange = selectedRange;
-	// 		edit.replace(matchRange, docString);
-	// 	}
-	// 	else editor.selections = editor.selections.filter(otherSelection => otherSelection !== selection);
-		// if selection was not a match/no replacement = remove from editor.selections
-	// });
+	const re = new RegExp(findValue, regexOptions);
 
 	const foundSelections = [];
 
@@ -505,7 +553,10 @@ function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMov
 				doReplace = true;
 				// find all matches in iteratively reduced docString
 				docString = docString.replace(re, (...groups) => {
-					return _buildReplaceValue(replaceValue, groups);
+					// return _buildReplaceValue(replaceValue, groups);
+					if (!isRegex) return replaceValue;
+					else return _buildReplaceValue(replaceValue, groups);
+					// TODO replace here
 				});
 			};
 
@@ -522,13 +573,16 @@ function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMov
 		}
 		if (cursorMoveSelect) {
 
+			if (!isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
+			if (matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;
+
 			editor.selections.forEach(selection => {
 
 				const selectionIndex = editor.document.offsetAt(new vscode.Position(selection.start.line, selection.start.character));
 				const selectedRange = new vscode.Range(selection.start, selection.end);
 				const docString = editor.document.getText(selectedRange);
 
-				const matches = [...docString.matchAll(new RegExp(cursorMoveSelect, "gm"))];
+				const matches = [...docString.matchAll(new RegExp(cursorMoveSelect, regexOptions))];
 
 				for (const match of matches) {
 					const matchStartPos = editor.document.positionAt(selectionIndex + match.index);
@@ -684,6 +738,10 @@ function _buildReplaceValue(replaceValue, groups) {
 							buildReplace += groups[thisGroup].toLocaleUpperCase();
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
+						// else if (!groups[thisGroup]) {
+						// 	buildReplace += `\\U$${ thisGroup }`;
+						// 	buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
+						// }
 						// case "\\U$n" but there is no matching capture group
 						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
 						break;
@@ -693,6 +751,10 @@ function _buildReplaceValue(replaceValue, groups) {
 							buildReplace += groups[thisGroup].substring(0, 1).toLocaleUpperCase() + groups[thisGroup].substring(1);
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
+						// else if (!groups[thisGroup]) {
+							// buildReplace += `\\u$${ thisGroup }`;
+							// buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
+						// }
 						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
 						break;
 
@@ -701,6 +763,10 @@ function _buildReplaceValue(replaceValue, groups) {
 							buildReplace += groups[thisGroup].toLocaleLowerCase();
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
+						// else if (!groups[thisGroup]) {
+							// buildReplace += `\\L$${ thisGroup }`;
+							// buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
+						// }
 						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
 						break;
 
@@ -709,6 +775,10 @@ function _buildReplaceValue(replaceValue, groups) {
 							buildReplace += groups[thisGroup].substring(0, 1).toLocaleLowerCase() + groups[thisGroup].substring(1);
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
+						// else if (!groups[thisGroup]) {
+							// buildReplace += `\\l$${ thisGroup }`;
+							// buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
+						// }
 						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
 						break;
 
@@ -780,8 +850,8 @@ function _stringBetweenIdentifiers(identifiers, i, replaceValue) {
  * @returns {Array}
  */
 exports.getKeys = function () {
-	// return ["title", "find", "replace", "restrictFind"];
-	return ["title", "find", "replace", "restrictFind", "cursorMoveSelect"];
+	// preserveCase ?
+	return ["title", "find", "replace", "isRegex", "matchCase", "matchWholeWord", "restrictFind", "cursorMoveSelect"];
 }
 
 /**
@@ -793,7 +863,11 @@ exports.getDefaults = function () {
 		"title": "",
 		"find": "",
 		"replace": "",
+		"isRegex": "false",
+		"matchCase": "false",
+		"matchWholeWord": "false",
 		"restrictFind": "document",
 		"cursorMoveSelect": ""
 	};
+	// "preserveCase": "false" ?
 }

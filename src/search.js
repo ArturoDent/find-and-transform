@@ -27,7 +27,7 @@ exports.getObjectFromArgs = function (args) {
  */
 exports.getKeys = function () {
 	return ["title", "find", "replace", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude", "preserveCase",
-					"useExcludeSettingsAndIgnoreFiles", "isCaseSensitive", "matchWholeWord", "filesToExclude"];
+					"useExcludeSettingsAndIgnoreFiles", "isCaseSensitive", "matchWholeWord", "matchCase", "filesToExclude"];
 }
 
 /**
@@ -40,15 +40,15 @@ exports.getDefaults = function () {
 		"find": "",
 		"replace": "",
 		"restrictFind": "document",   	      
-		"cursorMoveSelect": "",
 		"triggerSearch": true,
-		"triggerReplaceAll": false,
+		"triggerReplaceAll": 'false',
 		// "isRegex": true,
 		"filesToInclude": "",               	// default is current workspace
-		// "preserveCase": true,
+		// "preserveCase": false,
 		// "useExcludeSettingsAndIgnoreFiles": true,
-		// "isCaseSensitive": true,
-		// "matchWholeWord": true,                    // default is false
+		// "isCaseSensitive": false,
+		// "matchWholeWord": false,
+		// "matchCase": false
 		// "filesToExclude": ""
 	};
 }
@@ -63,16 +63,16 @@ exports.useSearchPanel = async function (findArray) {
 
 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 	if (isfilesToInclude) {
-		obj["filesToInclude"] = await utilities.parseVariables(isfilesToInclude.filesToInclude, "filesToInclude");
+		obj["filesToInclude"] = await utilities.parseVariables(isfilesToInclude.filesToInclude, "filesToInclude", false);
 	}
 
 	const isfilesToExclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToExclude');
 	if (isfilesToExclude) {
-		obj["filesToExclude"] = await utilities.parseVariables(isfilesToExclude.filesToExclude, "filesToExclude");
+		obj["filesToExclude"] = await utilities.parseVariables(isfilesToExclude.filesToExclude, "filesToExclude", false);
 	}
 
 	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
-	if (replace?.replace) obj["replace"] = await utilities.parseVariables(replace.replace, "replace");
+	if (replace?.replace) obj["replace"] = await utilities.parseVariables(replace.replace, "replace", false);
 
 	const triggerReplaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
 	if (triggerReplaceAll) {
@@ -85,7 +85,7 @@ exports.useSearchPanel = async function (findArray) {
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
 	// if (find?.find) obj["query"] = find.find;
-	if (find?.find) obj["query"] = await utilities.parseVariables(find.find, "find");
+	if (find?.find) obj["query"] = await utilities.parseVariables(find.find, "find", true);
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];

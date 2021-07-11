@@ -149,9 +149,7 @@ If you wanted to find multiple items and then transform each in its own way **on
 	}
 }
 ```
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="" width="650" height="300" alt="apply transforms one by one"/>
-
-<br/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/individualTransforms.gif?raw=true" width="500" height="200" alt="apply transforms one by one"/>
 
 Explanation: 
 

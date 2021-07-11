@@ -117,6 +117,8 @@ async function activate(context) {
 		// get this from keybinding:  { find: "(document)", replace: "\\U$1" }
 		// need this:                 [ { find: "(document)"	}, { replace: "\\U$1"	} ]
 
+		// TODO warn if fewer capture groups in the find than used in the replace ?
+
 		let argsArray = [];
 		if (args) {
 			argsArray = [
@@ -125,6 +127,9 @@ async function activate(context) {
 				{ "replace": args.replace },
 				{ "restrictFind": args.restrictFind },
 				{ "cursorMoveSelect": args.cursorMoveSelect },
+				{ "isRegex": args.isRegex },
+				{ "matchCase": args.matchCase },
+				{ "matchWholeWord": args.matchWholeWord },
 			];
 		}
 		else argsArray = [
@@ -162,7 +167,13 @@ async function activate(context) {
 	let selectDigitInCompletion = vscode.commands.registerCommand('find-and-transform.selectDigitInCompletion', async (...args) => {
 
 		//args = [completionText, Range]
-		if (args[1]?.start) {
+		// if completionText startsWith '\\U$n' or '${n'
+		if (args[1]?.start && args[0]?.search(/^\\\\[UuLl]\$n/m) !== -1) {
+			const digitStart = new vscode.Position(args[1].start.line, args[1].start.character + 4);
+			const digitEnd = new vscode.Position(args[1].start.line, args[1].start.character + 5);
+			vscode.window.activeTextEditor.selection = new vscode.Selection(digitStart, digitEnd);
+		}
+		else if (args[1]?.start && args[0]?.search(/^\$\{n/m) !== -1) {
 			const digitStart = new vscode.Position(args[1].start.line, args[1].start.character + 2);
 			const digitEnd = new vscode.Position(args[1].start.line, args[1].start.character + 3);
 			vscode.window.activeTextEditor.selection = new vscode.Selection(digitStart, digitEnd);

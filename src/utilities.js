@@ -49,13 +49,15 @@ exports.getRelativeFolderPath = function (filePath) {
  * If the "filesToInclude/find/replace" value uses a variable(s) return the resolved value  
  * 
  * @param {String} resolvedVariable - the "filesToInclude/find/replace" value  
- * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude  
+ * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude 
+ * @param {Boolean} isRegex 
  */
-exports.parseVariables = async function (resolvedVariable, caller) {
+exports.parseVariables = async function (resolvedVariable, caller, isRegex) {
 
 	// support conditionals here?  ${2:+yada}
 
 	if (typeof resolvedVariable !== 'string') return "";
+	// couldn't this be built from some list  TODO
 	const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})/g;
 
 	const matches = [...resolvedVariable.matchAll(re)];
@@ -175,9 +177,9 @@ exports.parseVariables = async function (resolvedVariable, caller) {
 
 
 	// escape .*{}[]?^$ if using in a find 
-	if (caller === "find") return resolvedVariable.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+	if (isRegex && caller === "find") return resolvedVariable.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+	// else if (caller === "filesToInclude" && resolvedVariable === ".") return resolvedVariable = "./";
 	else if (caller === "filesToInclude" && resolvedVariable === ".") return resolvedVariable = "./";
-	// else if (caller === "filesToExclude" && resolvedVariable === ".") return resolvedVariable = "**";
 	else return resolvedVariable;
 }
 

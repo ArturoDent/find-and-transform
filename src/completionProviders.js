@@ -74,6 +74,11 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 					else if (search && linePrefix.substring(0, position.character).search(re$) !== -1) {
 						return _completeVariables(position, '$');
 					}
+
+					re$ = /^\s*"replace"\s*:\s*".*\\$/;    // just for 'replace'
+					if (linePrefix.substring(0, position.character).search(re$) !== -1) {
+						return _completeReplaceFindCaseTransforms(position, '\\');
+					}
 					
 					re$ = /^\s*"restrictFind"\s*:\s*"$/;
 					if (find && linePrefix.search(re$) !== -1)
@@ -93,7 +98,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 					if (!argsRange.contains(position) || linePrefix.search(/^\s*"/m) === -1) return undefined;
 
 					const runFindArgs = findCommands.getKeys().slice(1);       // remove title
-					const runSearchArgs = searchCommands.getKeys().slice(1); // remove title
+					const runSearchArgs = searchCommands.getKeys().slice(1);   // remove title
 
 					// eliminate any options already used
 					if (find && (linePrefix.search(/^\s*"$/m) !== -1)) {
@@ -105,7 +110,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 					else return undefined;
 				}
 			},
-		'.', '"', '$'   // trigger intellisense/completion
+		'.', '"', '$', '\\'   // trigger intellisense/completion
 	);
 
   context.subscriptions.push(configCompletionProvider);
@@ -209,17 +214,47 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 		"title": "01",
 		"find": "011",
 		"replace": "02",
+		"isRegex": "021",
+
+		"isCaseSensitive": "022",
+		"matchCase": "023",
+		"matchWholeWord": "024",
+
 		"restrictFind": "03",
-		"cursorMove": "031",
+		"cursorMoveSelect": "031",
+
 		"triggerSearch": "04",
 		"triggerReplaceAll": "041",
+
 		"filesToInclude": "05",
 		"filesToExclude": "051",
 		"useExcludeSettingsAndIgnoreFiles": "052",
-		"isRegex": "06",
-		"preserveCase": "07",
-		"isCaseSensitive": "08",
-		"matchWholeWord": "081",
+
+		"preserveCase": "07"
+	};
+
+	const description = {
+		"title": "This will appear in the Command Palette as `Find-and-Transform:<title>`. Can include spaces.",
+
+		"find": "Query to find or search.  Can be a regexp or plain text.",
+		"replace": "Replacement text.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
+		"isRegex": "Is the find query a regexp.",
+
+		"isCaseSensitive": "Do you want the search to be case-senstive.",
+		"matchCase": "Match only where the case is the same as the find query.",
+		"matchWholeWord": "Match the find query with word boundaries.  As in `\\b<query>\\b`.",
+
+		"restrictFind": "Find in the document, selection(s), line, one time on the current line or the next match after the cursor.",
+		"cursorMoveSelect": "Any text to find and select after performing all find/replaces.  This text can be part of the replacement text or elsewhere in the document, line or selection.",
+
+		"triggerSearch": "Start the search automatically.",
+		"triggerReplaceAll": "Like hitting the `Replace All` button.  This action must be confirmed by dialog before any replacements happen. And `triggerSearch` will be automatically triggered first.",
+
+		"filesToInclude": "Search in these files or folders only.  Can be a comma-separated list.",
+		"filesToExclude": "Do not serach in these files or folder.  Can be a comma-separated list.",
+		"useExcludeSettingsAndIgnoreFiles": "",
+
+		"preserveCase": ""
 	};
 
 	/** @type { Array<vscode.CompletionItem> } */
@@ -228,7 +263,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	// account for commented options (in keybindings and settings)
 	argArray.forEach(option => {
 		if (argsText.search(new RegExp(`^[ \t]*"${option}"`, "gm")) === -1)
-			completionArray.push(_makeCompletionItem(option, new vscode.Range(position, position), defaults[`${ option }`], priority[`${ option }`], ""));
+			completionArray.push(_makeCompletionItem(option, new vscode.Range(position, position), defaults[`${ option }`], priority[`${ option }`], description[`${ option }`]));
 	});
 
 	return completionArray;
@@ -249,7 +284,7 @@ function _completeVariables(position, dollarSign) {
 	else replaceRange = new vscode.Range(position, position);
 
 	return [
-		_makeCompletionItem("${file}", replaceRange, "", "01", "The full path of the current editor."),
+		_makeCompletionItem("${file}", replaceRange, "", "01", "The full path (`/home/UserName/myProject/folder/test.txt`) of the current editor."),
 		_makeCompletionItem("${relativeFile}", replaceRange, "", "011", "The path of the current editor relative to the workspaceFolder (`folder/file.ext`)."),
 		_makeCompletionItem("${fileBasename}", replaceRange, "", "02", "The basename (`file.ext`) of the current editor."),
 		_makeCompletionItem("${fileBasenameNoExtension}", replaceRange, "", "03", "The basename  (`file`) of the current editor without its extension."),
@@ -274,17 +309,17 @@ function _completeVariables(position, dollarSign) {
  * Make completion items for 'replace' values starting with a '$' sign in a 'findInCurrentFile' command
  * 
  * @param   {vscode.Position} position
- * @param   {String} dollarSign - triggered by '$' so include its range
+ * @param   {String} trigger - triggered by '$' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
-function _completeReplaceFindVariables(position, dollarSign) {
+function _completeReplaceFindVariables(position, trigger) {
 
 	// triggered by 1 '$', so include it to complete w/o two '$${file}'
 	let replaceRange;
-	if (dollarSign) replaceRange = new vscode.Range(position.line, position.character - dollarSign.length, position.line, position.character);
+	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
 	else replaceRange = new vscode.Range(position, position);
 
-	let specialVariableArray = _completeVariables(position, dollarSign);
+	let specialVariableArray = _completeVariables(position, trigger);
 
 	const text = `
 		
@@ -327,6 +362,33 @@ function _completeRestrictFindValues(position) {
 	];
 }
 
+
+/**
+ * Make completion items for 'replace' values starting with a '$' sign in a 'findInCurrentFile' command
+ * 
+ * @param   {vscode.Position} position
+ * @param   {String} trigger - triggered by '$' so include its range
+ * @returns {Array<vscode.CompletionItem>}
+ */
+function _completeReplaceFindCaseTransforms(position, trigger) {
+
+	// triggered by 1 '$', so include it to complete w/o two '$${file}'
+	let replaceRange;
+	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
+	else replaceRange = new vscode.Range(position, position);
+
+	const text = `
+		
+Replace ***n*** with some number 0-99.`;
+
+	return [
+		_makeCompletionItem("\\\\U$n", replaceRange, "", "010", `Transform to uppercase the entire ***nth*** capture group.${ text }`),
+		_makeCompletionItem("\\\\u$n", replaceRange, "", "011", `Capitalize the first letter of the ***nth*** capture group.${ text }`),
+		_makeCompletionItem("\\\\L$n", replaceRange, "", "012", `Transform to lowercase the entire ***nth*** capture group.${ text }`),
+		_makeCompletionItem("\\\\l$n", replaceRange, "", "013", `Transform to lowercase the first letter of the ***nth*** capture group.${ text }`),
+	];
+}
+
 /**
  * From a string input make a CompletionItemKind.Text
  *
@@ -334,14 +396,12 @@ function _completeRestrictFindValues(position) {
  * @param   {vscode.Range} replaceRange
  * @param   {String|Boolean} defaultValue - default value for this option
  * @param   {String} sortText - sort order of item in completions
- * @param   {String} documentation - mardown description of each item
+ * @param   {String} documentation - markdown description of each item
  * @returns {vscode.CompletionItem} - CompletionItemKind.Text
  */
 function _makeCompletionItem(key, replaceRange, defaultValue, sortText, documentation) {
 
 	const item = new vscode.CompletionItem(key, vscode.CompletionItemKind.Text);
-
-	// item.range = new vscode.Range(replaceRange, replaceRange);
 	item.range = replaceRange;
 	if (defaultValue) item.detail = `default: ${ defaultValue }`;
 	if (sortText) item.sortText = sortText;
@@ -349,6 +409,15 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 
 	if (key.substring(0, 3) === "${n") {
 		let newCommand = {};
+		// call command 'selectDigitInCompletion' defined in extension.js
+		newCommand.command = "find-and-transform.selectDigitInCompletion";
+		newCommand.title = "Select the digit 'n' in completionItem";
+		newCommand.arguments = [key, replaceRange];
+		item.command = newCommand;
+	}
+	else if (key.search(/^\\\\[UuLl]\$n/m) !== -1) {
+		let newCommand = {};
+		// call command 'selectDigitInCompletion' defined in extension.js
 		newCommand.command = "find-and-transform.selectDigitInCompletion";
 		newCommand.title = "Select the digit 'n' in completionItem";
 		newCommand.arguments = [key, replaceRange];

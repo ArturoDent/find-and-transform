@@ -14,7 +14,18 @@
   "url": "https://github.com/ArturoDent/find-and-transform"
  },
  "categories": [
+  "Snippets",
   "Other"
+ ],
+ "keywords": [
+  "find",
+  "replace",
+  "search",
+  "conditional",
+  "transform",
+  "case",
+  "regular expression",
+  "regex"
  ],
  "activationEvents": [
   "onStartupFinished"
@@ -140,6 +151,10 @@
   "path": "/c:/Users/Mark/find-and-transform",
   "scheme": "file"
  },
+ "extensionKind": [
+  "ui",
+  "workspace"
+ ],
  "dependencies": {
   "jsonc-parser": "^3.0.0"
  }
