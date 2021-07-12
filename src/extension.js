@@ -168,14 +168,14 @@ async function activate(context) {
 
 		//args = [completionText, Range]
 		// if completionText startsWith '\\U$n' or '${n'
-		if (args[1]?.start && args[0]?.search(/^\\\\[UuLl]\$n/m) !== -1) {
-			const digitStart = new vscode.Position(args[1].start.line, args[1].start.character + 4);
-			const digitEnd = new vscode.Position(args[1].start.line, args[1].start.character + 5);
-			vscode.window.activeTextEditor.selection = new vscode.Selection(digitStart, digitEnd);
-		}
-		else if (args[1]?.start && args[0]?.search(/^\$\{n/m) !== -1) {
-			const digitStart = new vscode.Position(args[1].start.line, args[1].start.character + 2);
-			const digitEnd = new vscode.Position(args[1].start.line, args[1].start.character + 3);
+		let keyLength;
+		if (args[0]?.startsWith("${n")) keyLength = 3;
+		else if (args[0]?.search(/^\\\\[UuLl]\$n/m) === 0) keyLength = 5;
+		else return;
+
+		if (args[1]?.start) {
+			const digitStart = new vscode.Position(args[1].start.line, args[1].start.character + keyLength - 1);
+			const digitEnd = new vscode.Position(args[1].start.line, args[1].start.character + keyLength);
 			vscode.window.activeTextEditor.selection = new vscode.Selection(digitStart, digitEnd);
 		}
 	});

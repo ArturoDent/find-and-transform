@@ -28,7 +28,8 @@
   "regex"
  ],
  "activationEvents": [
-  "onStartupFinished"
+  "onStartupFinished",
+  "onCommand:findInCurrentFile.upcaseSelectedKeywords"
  ],
  "main": "./src/extension.js",
  "contributes": {
@@ -96,6 +97,11 @@
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
     "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.upcaseSelectedKeywords",
+    "title": "Uppercase selected Keywords",
+    "category": "Find-Transform"
    }
   ],
   "configuration": [
@@ -114,7 +120,7 @@
       "type": "boolean",
       "scope": "machine",
       "default": true,
-      "markdownDescription": "Show `Search in this File` and `Search in this Folder` context menus."
+      "markdownDescription": "Show `Search in this File`, `Search in this Folder` and `Search in the Results Files` in the context menus."
      }
     }
    }

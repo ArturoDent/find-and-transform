@@ -8,16 +8,18 @@ If you have some `findInCurrentFile` commands, for example:
 
 ```jsonc	
 "findInCurrentFile": {
-	"upcaseSwap": {                   // use this name in the codeActionsOnSave setting
+	"upcaseSwap": {                       // use this name in the codeActionsOnSave setting
 		"title": "swap iif <==> hello",
 		"find": "(iif) (hello)",
-		"replace": "_\\u$2_ _\\U$1_" 
+		"replace": "_\\u$2_ _\\U$1_",
+		"isRegex": true
 		// "restrictFind": "selections"  // selections will work when run on save
 	},
-	"upcaseSelectedKeywords": {       // use this name in the codeActionsOnSave setting
+	"upcaseSelectedKeywords": {          // use this name in the codeActionsOnSave setting
 		"title": "Uppercase selected Keywords",
 		"find": "(Hello)",
 		"replace": "\\U$1--",
+		"isRegex": true
 	}
 }
 ```
@@ -26,7 +28,7 @@ you can arrange for one or more of them to run whenever you save a file by using
 
 ```jsonc
 "editor.codeActionsOnSave": [
-	"source.upcaseSwap",              // all commands must start with "source."
+	"source.upcaseSwap",                 // all commands must start with "source."
 	"source.upcaseSelectedKeywords"   
 ]
 ```
@@ -34,9 +36,9 @@ you can arrange for one or more of them to run whenever you save a file by using
 You may want to restrict this action to certain languages.   Use this form:
 
 ```jsonc
-"[javascript]": {                     	// will only run when saving a javascript file
+"[javascript]": {                           // will only run when saving a javascript file
 	"editor.codeActionsOnSave": [
-		"source.upcaseSwap",              // all commands must start with "source."
+		"source.upcaseSwap",                // all commands must start with "source."
 		"source.upcaseSelectedKeywords"
 	]
 }

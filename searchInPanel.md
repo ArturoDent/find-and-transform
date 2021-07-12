@@ -1,6 +1,6 @@
 ## Using the `runInSearchPanel` command  
 
-At the end of this file, see how to use the **context menus** to run a search (using the Search Panel, so you get linked results).  
+At the end of this file, see how to use the **context menus** to run a search.  
 
 --------------------  
 
@@ -11,33 +11,36 @@ At the end of this file, see how to use the **context menus** to run a search (u
 
 	"removeDigits": {
 		"title": "Remove digits from Arturo",
-		"find": "^(\\s*Arturo)\\d+",   // using the '^' to indicate start of a line
-		"replace": "$1",               // all the args options will be shown by intellisense
+		"find": "^(\\s*Arturo)\\d+",         // using the '^' to indicate start of a line
+		"replace": "$1",                     // all the args options will be shown by intellisense
 		"isRegex": true,
 		"triggerSearch": true,
-		"triggerReplaceAll": true,     // explained below
-		"filesToInclude": "${relativeFile}"    // or ${file} for the full path, some variables are supported, see below
+		"triggerReplaceAll": true,           // explained below
+		"filesToInclude": "${relativeFile}"  // or ${file} for the full path, some variables are supported, see below
 	}
 }
 ``` 
 
-**If you do not include a `title` key, one will be created using the name (like `removeDigits` in the last example immediately above. Then you can look for `Find-Transform:removeDigits` in the Command Palette.  Since in the last example a `title` was supplied, you would see `Find-Transform: Remove digits from Art....` in the Command Palette.  All the commands are grouped under the `Find-Transform:` category.**  
+> If you do not include a `title` key, one will be created using the name (like `removeDigits` in the last example immediately above. Then you can look for `Find-Transform:removeDigits` in the Command Palette.  Since in the last example a `title` was supplied, you would see `Find-Transform: Remove digits from Art....` in the Command Palette.  All the commands are grouped under the `Find-Transform:` category.  
 
 <br/>
 
 This extension will generate a command for each of the settings, they will appear as, e.g., "`Find-Transform: <your title here>`" in the Command Palette.
+
+----------------------
+
 
 ### Example keybindings:
 
 ```jsonc
 {
 	"key": "alt+s",
-	"command": "runInSearchPanel.removeDigits"        // from the settings
+	"command": "runInSearchPanel.removeDigits"      // from the settings
 }                                                	// any "args" here will be ignored, they are in the settings
 ```
 
 ```jsonc
-// below: a generic "runInSearchPanel" keybinding commands, no need for any settings to run these
+// below: a generic "runInSearchPanel" keybinding command, no need for any settings to run these
 {
 	"key": "alt+z",
 	"command": "runInSearchPanel",       // note: no second part of a command name
@@ -47,7 +50,7 @@ This extension will generate a command for each of the settings, they will appea
 		"matchWholeWord": false,
 		"isRegex": true,
 		"filesToInclude": "${relativeFile}",
-		// "filesToInclude": "<relative or absolute paths supported>",  // but see below**
+		// "filesToInclude": "<relative or absolute paths supported>",  // but see below
 		"triggerSearch": true
 	}
 }
@@ -108,7 +111,7 @@ When you **save** a change to the settings, you will get the message notificatio
 
 <br/>
 
-The `runInSearchPanel` settings commands can be used in keybindings just like the `findInCurrentFile` commands discussed above.  The above `removeDigits` command could be used in a keybinding like this:  
+The `runInSearchPanel` settings commands can be used in keybindings just like the `findInCurrentFile` commands discussed elsewhere.  The above `removeDigits` command could be used in a keybinding like this:  
 
 ```jsonc
 {
@@ -122,9 +125,11 @@ Just like with `findInCurrentFile` keybindings if you add arguments to a command
 {
 	"key": "alt+z",
 	"command": "runInSearchPanel.removeDigits",  // assume this exists in settings
+
 	"args": {                     // then all args are ignored, the settings args are applied instead
 		"find": "(?<=Arturo)\\d+",
-		"replace": "###"
+		"replace": "###",
+		"isRegex": true
 	}
 }
 ```
@@ -174,13 +179,13 @@ This is the same as creating a command in the settings like so (and then trigger
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchGeneric1.gif?raw=true" width="750" height="400" alt="demo of search panel setting with intellisense"/>
 
-### Explanation: Creating a Search Panel command in the keybindings only.  In this case, search for `^Arturo` preceding some digits and replace in the current file. 
+Explanation: Creating a Search Panel command in the keybindings only.  In this case, search for `^Arturo` preceding some digits and replace in the current file. 
 
 <br/>
 
 > `triggerSearch` is a built-in vscode search across files option.  It triggers the search, and thus shows the results, but does not trigger a replace or replace all.  I would think in most cases you would want `"triggerSearch": true` to see your results right away.  But if you know you will be modifying the search in some way, you may not want to `triggerSearch`.  
 
-> `triggerReplaceAll` is an option added solely by this extension.  Its action is the same as clicking the `Replace All` icon in the search results.  VS Code will always pop up a confirmation dialog before actually performing the replacement, so you will still have to confirm the replacement.  `triggerReplaceAll` must have results shown in order to work, that is why if you want `triggerReplaceAll` then you must also have `triggerSearch` set to `true`. If you do not have  "`triggerSearch": "true"` it will automatically be added for you.   
+> `triggerReplaceAll` is an option added solely by this extension.  Its action is the same as clicking the &nbsp; <kbd>Replace All</kbd> &nbsp; icon in the search results.  VS Code will always pop up a confirmation dialog before actually performing the replacement, so you will still have to confirm the replacement.  `triggerReplaceAll` must have results shown in order to work, that is why if you want `triggerReplaceAll` then you must also have `triggerSearch` set to `true`. If you do not have  "`triggerSearch": "true"` it will automatically be added for you.   
 
 <br/>
 
@@ -199,7 +204,8 @@ This works:
 	"command": "findInCurrentFile",         // findInCurrentFile
 	"args": {
 		"find": "(?<=^Art[\\w]*)\\d+",      // not fixed-length, but okay in findInCurrentFile
-		"replace": "###"
+		"replace": "###",
+		"isRegex": true,
 	}
 }
 ```
@@ -212,7 +218,8 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 	"command": "runInSearchPanel",            // runInSearchPanel
 	"args": {
 		"find": "(?<=^Art[\\w]*)\\d+",        // not fixed-length: ERROR will not run
-		"replace": "###"
+		"replace": "###",
+		"isRegex": true,
 	}
 }
 ```
@@ -254,7 +261,7 @@ In the demo below, text with a ***blue background*** is selected:
 ```jsonc
 "title": "<some string>",        // can have spaces, will be shown in the Command Palette: "Find-Transform:My Title"
 
-"find": "<string or regex>",     // if no find key or empty value, will use the selected text (as vscode does natively)
+"find": "<string or regexp>",    // if no find key or empty value, will use the selected text (as vscode does natively)
 
 "replace": "<string>",
 
@@ -291,23 +298,22 @@ You will get intellisense presenting these arguments.   And the completions will
 
 --------  
 
-However, specifically for the `"filesToInclude/filesToExclude"` settings an empty string (`"filesToInclude": "",`) will **clear** the old value for the `filesToInclude/filesToExclude` input boxes in the Search Panel.  So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:   
+However, specifically for the `"filesToInclude/filesToExclude"` settings an empty string (`"filesToInclude": ""`) will **clear** the old value for the `filesToInclude/filesToExclude` input boxes in the Search Panel.  So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:   
 
 ```jsonc
 {
-  "key": "alt+shift+f",           // whatever keybinding you wish
+  "key": "alt+shift+f",                   // whatever keybinding you wish
   "command": "runInSearchPanel",
   "args": {
     "filesToInclude": "${relativeFile}",  // open Search Panel with current file as the `files to include`
   }
 },
 {
-  "key": "ctrl+shift+f",       // the default 'Search: Find in Files' command
+  "key": "ctrl+shift+f",                  // the default 'Search: Find in Files' command
   "command": "runInSearchPanel",
   "args": {
-		// "find"                 // with no find, use word at cursor 
-    "filesToInclude": "",     // clear the `files to include` input box
-		// "triggerSearch": true
+    // "find"                            // with no find, use word at cursor 
+    "filesToInclude": "",                // clear the `files to include` input box
   }
 }
 ```
@@ -319,28 +325,30 @@ With those keybindings, the default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd
 
 The `filesToInclude`, `filesToExclude`, `find` and `replace` arguments in the `runInSearchPanel` support these variables:  
 
-* ${file}
-* ${fileBasename}
-* ${fileBasenameNoExtension}
-* ${fileExtname}
-* ${relativeFile}  
+```
+${file}
+${fileBasename}
+${fileBasenameNoExtension}
+${fileExtname}
+${relativeFile}  
 
-* ${fileDirname}
-* ${relativeFileDirname}
+${fileDirname}
+${relativeFileDirname}
 
-* ${fileWorkspaceFolder}
-* ${workspaceFolder}
-* ${workspaceFolderBasename}
+${fileWorkspaceFolder}
+${workspaceFolder}
+${workspaceFolderBasename}
 
-* ${selectedText}
-* ${CLIPBOARD}           // added by this extension  
-* ${pathSeparator}
-* ${lineNumber}
-* ${resultsFiles}        // added by this extension  
+${selectedText}
+${CLIPBOARD}           // added by this extension  
+${pathSeparator}
+${lineNumber}
+${resultsFiles}        // added by this extension
+```
 
 <br/>
 
-These variables should have the same resolved values as found at [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   These resolved variables are automatically escaped so they can be used in regular expressions.   
+These variables should have the same resolved values as found at &nbsp; [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   These resolved variables are automatically escaped so they can be used in regular expressions.   
 
 <br/>
 
@@ -360,6 +368,9 @@ The `replace` arguments in the `runInSearchPanel` also supports case modifiers l
 
 * `Search in this File`  opens the Search Panel with the current filename.  
 * `Search in this Folder`  opens the Search Panel with of the current file's parent folder.  
+* `Search in the Results Files`  if there are search results in the Search Panel.  Discussed below.   
+
+<br/>
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextEditor.gif?raw=true" width="700" height="650" alt="demo of editor context menus"/>
 
@@ -379,7 +390,7 @@ The `replace` arguments in the `runInSearchPanel` also supports case modifiers l
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextExplorer.gif?raw=true" width="700" height="650" alt="demo of Explorer file context menus"/>
 
-### Explanation: The old 'files to include' entry will be replaced.  The `find` query will be the selected word of the active text editor - which can be different than the editor tab's context menu.  
+Explanation: The old 'files to include' entry will be replaced by the associated file or folder.  The `find` query will be the selected word of the **active text editor** - which can be different than the editor tab's context menu.  
 
 <br/>
 
@@ -416,11 +427,11 @@ Demo of using the context menu option to get the files from the search results a
 
 <br/>
 
-The first search for `First` was in the entire workspace and had matches in three files.  Using the context menu command `Search in the Results Files` automatically retrieved and put the relative paths of those three files into the `files to include` input filter.  The second search was triggered by default, this time using the word `Second` because it was at the cursor.  The word `Second` only appears in one of those three files but does appear in other workspace files filtered out.  
+The first search for `First` was in the entire workspace and had matches in three files.  Using the context menu command &nbsp; `Search in the Results Files` &nbsp; automatically retrieved and put the relative paths of those three files into the &nbsp; `files to include` &nbsp; input filter.  The second search was triggered by default, this time using the word `Second` because it was at the cursor.  The word `Second` only appears in one of those three files but does appear in other workspace files filtered out.  
 
-The context menu command `Search in the Results Files` will only appear if there are search results.  Likewise, that command will not appear in the `Command Palette` if there are no search results. 
+The context menu command &nbsp; `Search in the Results Files` &nbsp; will only appear if there are search results.  Likewise, that command will not appear in the &nbsp; `Command Palette` &nbsp; if there are no search results. 
 
-At this point, vscode does not allow the context menu of the search results view itself to be modified.  So the context menu of the editor is used.  It could be any editor.  If you don't want a "word at the cursor" to be used for the next search, put the cursor on an empty space.  
+At this point, vscode does not allow the context menu of the search results view area (right next to the resilts) itself to be modified.  So the context menu of the editor is used.  It could be any editor.  If you don't want a "word at the cursor" to be used for the next search, put the cursor on an empty space.  
 
 --------------
 
@@ -457,7 +468,7 @@ At this point, vscode does not allow the context menu of the search results view
 -----------------
 <br/>
 
-## `${resultsFiles}` in a `runInSearchPanel` keybinding   
+## `${resultsFiles}` in a &nbsp; `runInSearchPanel` &nbsp; keybinding   
 
 <br/>
 
@@ -481,22 +492,24 @@ At this point, vscode does not allow the context menu of the search results view
 Other usages:
 
 ```jsonc
-* "filesToInclude": "${resultsFiles}, noFirst.txt"         // add any file(s) to the scope   
-* "filesToInclude": "${resultsFiles}, ${relativeFile}"     // add the current file to the scope
+"filesToInclude": "${resultsFiles}, noFirst.txt"         // add any file(s) to the scope   
+"filesToInclude": "${resultsFiles}, ${relativeFile}"     // add the current file to the scope
 
    // search in the results files but exclude the current file   
-*  "filesToInclude": "${resultsFiles}",
-   "filesToExclude": "${relativeFile}"  
+
+"filesToInclude": "${resultsFiles}",
+"filesToExclude": "${relativeFile}"  
 
    // search in the results files but exclude the current file's entire folder  
-*  "filesToInclude": "${resultsFiles}",
-   "filesToExclude": "${relativeFileDirname}"  
+
+"filesToInclude": "${resultsFiles}",
+"filesToExclude": "${relativeFileDirname}"  
 ```
 
 ------------------------  
 <br/>
 
-## `${resultsFiles}` in a `runInSearchPanel` setting (in settings.json)  
+## `${resultsFiles}` in a &nbsp; `runInSearchPanel` &nbsp; setting (in settings.json)  
 
 <br/>
 
@@ -509,13 +522,13 @@ Other usages:
       "isRegex": true,
       "filesToInclude": "${resultsFiles}",
       "triggerSearch": true,
-      // "triggerReplaceAll": true // if using this, must have triggerSearch: true
+      // "triggerReplaceAll": true // if using this, triggerSearch: true is assumed
   }
 }
 ```
 
-* Should get intellisense for this name `reSearchForSecond` in the keybindings.  
-* Look for `Find-Tansform: <your title here>` in the Command Palette.  
+* Should get intellisense for this name &nbsp; `reSearchForSecond` &nbsp; in the keybindings.  
+* Look for &nbsp; `Find-Tansform: <your title here>` &nbsp; in the Command Palette.  
 * This setting command can be run from the Command Palette or from an associated keybinding like:
 
 ```jsonc
@@ -527,8 +540,8 @@ Other usages:
 
 --------------------  
 
-* If you search in your `setings.json` or `keybindings.json` on the previous search and then use these  previous results files, special care has to be taken to handle these files for use in the `  files to include  ` input scope filter.  Windows at least doesn't like them and this extension will strip out some leading characters (like `C:\\`) to make them work.  If on a different OS you find that `setings.json` or `keybindings.json` gives you problems - please file an issue.  Thank you.  
+* If you search in your &nbsp; `settings.json` &nbsp; or &nbsp; `keybindings.json` &nbsp; on the previous search and then use these  previous results files, special care has to be taken to handle these files for use in the &nbsp; `files to include` &nbsp; input scope filter.  Windows at least doesn't like them and this extension will strip out some leading characters (like `C:\\`) to make them work.  If on a different OS you find that &nbsp; `settings.json` &nbsp; or &nbsp; `keybindings.json` &nbsp; gives you problems - please file an issue.  Thank you.  
 
-* Note that because there is no real extension api to get the results files, this extension needs to use the **clipboard** to store the results text.  Thus, changing your clipboard - there is no alternative at this point.  
+* Note that because there is no real extension api to get the results files, this extension needs to use the &nbsp; **clipboard** &nbsp; to retrieve the results text.  Thus, changing your clipboard - there is no alternative at this point.  
 
 <br/><br/>
