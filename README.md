@@ -352,14 +352,20 @@ If, for example you use these args:
 
 		// "restrictFind": "selections", 
 		// "cursorMoveSelect": "^"          // cursor will go to beginning of each single-line selection
-
-		// note ^ and $ work well for single line selections, there is some work to do on multiline selections though
-		// cursorMoveSelect will select only if a find matched in that selection
 	}
 }
 ```
+Note `^` and `$` work well for `restrictFind` selections/line/once, but are disabled for `"restrictFind": "document"`.  
+
+`cursorMoveSelect` will select **all** matches in each `selections` or `line` (remember a `line` will find matches in each line with a cursor.)  
+
+For `"restrictFind": "once"`, `cursorMoveSelect` will select the first match **after** the cursor. That is why if using `"cursorMoveSelect": "^"` the cursor won't go there because the cursor is usually already after the start of the line and the search is only forward from the cursor. `"cursorMoveSelect": "$"` will always work with `"restrictFind": "once"`.  
+
+<br/>
 
 > Note: if there is no find and no replace, the `cursorMoveSelect` argument is ignored.  
+
+<br/>
 
 --------  
 
@@ -482,7 +488,7 @@ Examples of possible keybindings (in your `keybindings.json`):
 		"replace": "\\U$1",               // all the "args" are optional
 		"isRegex": true,
 		"restrictFind": "selections",
-		"cursorMoveSelect": "IIF"         // this text will be selected; "$" goes to the end of the line
+		"cursorMoveSelect": "IIF"         // this text will be selected; "$" goes to the end of the selections
 	}
 },
 ```  
@@ -692,7 +698,7 @@ except that a **reload of vscode is required** prior to using the generated comm
     "replace": " class=\"@\">",
 		"isRegex": true,
     "restrictFind": "once", 
-    "cursorMoveSelect": "@"          // select the next'@'
+    "cursorMoveSelect": "@"          // select the next '@'
   }
 }
 ```
@@ -711,13 +717,13 @@ except that a **reload of vscode is required** prior to using the generated comm
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMoveSelect arg with restrictFind of 'once'"/>
 
-Explanation: Find the first `>` within selection(s) and replace them with ` class=\"@\">`.  Then move the cursor(s) to `@` and select it.  `cursorMoveSelect` value can be any text, even the regexp delimiters `^` and `$` which mean line or selection start and end.    
+Explanation: Find the first `>` within selection(s) and replace them with ` class=\"@\">`.  Then move the cursor(s) to `@` and select it.  `cursorMoveSelect` value can be any text, even the regexp delimiters `^` and `$`.    
 
 <br/>
 
-* `"restrictFind": "once"` => find the first instance of the `find` query AFTER the cursor, replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.  
+* `"restrictFind": "once"` => find the FIRST instance of the `find` query AFTER the cursor, replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.  
 
-* `"restrictFind": "line"` => find all instances of the `find` query on the line with the cursor, replace them and then go to and select all `cursorMoveSelect` values if any.  Works on each line if multiple cursors.  But it only considers the line where the cursor(s) is, so if there is a multi-line selection, only the line with the cursor is searched.   
+* `"restrictFind": "line"` => find all instances of the `find` query on the entire line with the cursor, replace them and then go to and select All `cursorMoveSelect` values if any.  Works on each line if multiple cursors.  But it only considers the line where the cursor(s) is, so if there is a multi-line selection, only the line with the cursor is searched.   
 
 <br/> 
 

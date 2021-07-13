@@ -257,4 +257,4 @@ exports.toCamelCase = function (value) {
 		}
 	})
 		.join('');
-}
+};

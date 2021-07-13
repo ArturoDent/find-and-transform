@@ -125,3 +125,5 @@ function createCommand() {
     { "src": ["!@deploy", "!@test", "@modified"] },
     { "prod": ["@src", "@deploy", "!@modified"] }
 ]
+
+firstsecond THIRD (first) param Param first First\r\n\r\n

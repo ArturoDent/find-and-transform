@@ -82,8 +82,6 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
 	// removed escaping the or | if madeFind
 	if (!isRegex && madeFind) findValue = findValue.replace(/([?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
 	else if (!isRegex) findValue = findValue.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
-
-
 	if (matchWholeWord) findValue = findValue.replace(/@%@/g, "\\b");
 	if (matchWholeWord && !madeFind) findValue = `\\b${ findValue }\\b`;
 
@@ -334,6 +332,7 @@ async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFin
 		let fullLine = "";
 		let lineIndex;
 		let subStringIndex;
+		let matchObj;
 
 		editor.edit(function (edit) {
 
@@ -345,47 +344,55 @@ async function _replaceInLine(editor, edit, findValue, replaceValue, restrictFin
 
 				// use matchAll() to get index even though only using the first one
 				const matches = [...currentLine.matchAll(re)];
-				// const replacement = _buildReplaceValue(replaceValue, matches[0]);
 				let replacement;
 				if (!isRegex) replacement = replaceValue;
-				else replacement = _buildReplaceValue(replaceValue, matches[0]);
+				else if (matches.length) replacement = _buildReplaceValue(replaceValue, matches[0]);
+				
+				if (matches.length) {  // just do once
+				
+					matchObj = matches[0];
+					lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
+					subStringIndex = selection.active.character;
 
-				lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
-				subStringIndex = selection.active.character;
+					const matchStartPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index);
+					const matchEndPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
+					const matchRange = new vscode.Range(matchStartPos, matchEndPos);
 
-				const matchStartPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index);
-				const matchEndPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
-				const matchRange = new vscode.Range(matchStartPos, matchEndPos);
-
-				edit.replace(matchRange, replacement);
+					edit.replace(matchRange, replacement);
+				}
 			})
-		}).then(success => {
+		}).then(async success => {
 				if (!success) {
 					return;
-				}
+			}
+			
+			if (cursorMoveSelect) {
+
+				cursorMoveSelect = _buildReplaceValue(cursorMoveSelect, matchObj);
+
 				editor.selections.forEach(selection => {
 
-					if (cursorMoveSelect) {
+					lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
+					// subStringIndex = selection.active.character;
+					subStringIndex = matchObj.index + selection.active.character;
+					fullLine = editor.document.lineAt(selection.active.line).text;
+					// currentLine = fullLine.substring(selection.active.character);
+					currentLine = fullLine.substring(subStringIndex);
 
-						lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
-						subStringIndex = selection.active.character;
-						fullLine = editor.document.lineAt(selection.active.line).text;
-						currentLine = fullLine.substring(selection.active.character);
+					if (!isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
+					if (matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;
 
-						if (!isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
-						if (matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;
+					const matches = [...currentLine.matchAll(new RegExp(cursorMoveSelect, regexOptions))];
 
-						const matches = [...currentLine.matchAll(new RegExp(cursorMoveSelect, regexOptions))];
-
-						if (matches.length) {
-							const matchStartPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index);
-							const matchEndPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
-							foundSelections.push(new vscode.Selection(matchStartPos, matchEndPos));
-						}
+					if (matches.length) {
+						const matchStartPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index);
+						const matchEndPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
+						foundSelections.push(new vscode.Selection(matchStartPos, matchEndPos));
 					}
 				});
 				editor.selections = foundSelections;
-			});
+			}
+		});
 	}
 }
 
@@ -501,19 +508,19 @@ async function _replaceWholeDocument(editor, edit, findValue, replaceValue, curs
 			return;
 		}
 		if (cursorMoveSelect) {
+			if (cursorMoveSelect === "^") return;
+
 			const foundSelections = [];
 			if (!isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
 			if (matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;
 
 			const re = new RegExp(cursorMoveSelect, regexOptions);
-			const docString = editor.document.getText();
+			let docString = editor.document.getText();
 			const matches = [...docString.matchAll(re)];
 
 			for (const match of matches) {
-
 				const matchStartPos = editor.document.positionAt(match.index);
 				const matchEndPos = editor.document.positionAt(match.index + match[0].length);
-				// const matchRange = new vscode.Range(matchStartPos, matchEndPos);
 				foundSelections.push(new vscode.Selection(matchStartPos, matchEndPos));
 			}
 			editor.selections = foundSelections;
@@ -536,7 +543,7 @@ async function _replaceWholeDocument(editor, edit, findValue, replaceValue, curs
 function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMoveSelect, isRegex, regexOptions, matchWholeWord) {
 
 	const re = new RegExp(findValue, regexOptions);
-
+	const originalSelections = editor.selections;
 	const foundSelections = [];
 
 	editor.edit(function (edit) {
@@ -573,22 +580,40 @@ function _replaceSelectionsLoop(editor, edit, findValue, replaceValue, cursorMov
 		}
 		if (cursorMoveSelect) {
 
-			if (!isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
-			if (matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;
+			let lineEndStart = false;
+			if (cursorMoveSelect.search(/^[^$]$/m) !== -1) lineEndStart = true;
 
-			editor.selections.forEach(selection => {
+			if (!isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
+			// don't do below if cursorMoveSelect is only ^ or $
+			if (!lineEndStart) {
+				if (matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;
+			}
+
+			// editor.selections.forEach(selection => {
+			originalSelections.forEach(selection => {
 
 				const selectionIndex = editor.document.offsetAt(new vscode.Position(selection.start.line, selection.start.character));
-				const selectedRange = new vscode.Range(selection.start, selection.end);
-				const docString = editor.document.getText(selectedRange);
 
-				const matches = [...docString.matchAll(new RegExp(cursorMoveSelect, regexOptions))];
+				if (cursorMoveSelect === "^") {
+					foundSelections.push(new vscode.Selection(selection.start, selection.start));
+				}
+				else if (cursorMoveSelect === "$") {
+					foundSelections.push(new vscode.Selection(selection.end, selection.end));
+				}
+				else {
 
-				for (const match of matches) {
-					const matchStartPos = editor.document.positionAt(selectionIndex + match.index);
-					const matchEndPos = editor.document.positionAt(selectionIndex + match.index + match[0].length);
-					foundSelections.push(new vscode.Selection(matchStartPos, matchEndPos));
-					// editor.selections = foundSelections;
+					const selectedRange = new vscode.Range(selection.start, selection.end);
+					const docString = editor.document.getText(selectedRange);
+
+					const matches = [...docString.matchAll(new RegExp(cursorMoveSelect, regexOptions))];
+
+					for (const match of matches) {
+						const matchStartPos = editor.document.positionAt(selectionIndex + match.index);
+						const matchEndPos = editor.document.positionAt(selectionIndex + match.index + match[0].length);
+						foundSelections.push(new vscode.Selection(matchStartPos, matchEndPos));
+						// editor.selections = foundSelections;
+						// if (lineEndStart) break;
+					}
 				}
 			});
 			editor.selections = foundSelections;
@@ -632,7 +657,7 @@ function _buildReplaceValue(replaceValue, groups) {
 
 			if (identifiers[i].groups.capGroupOnly) {   // so no case modifier, only an unmodified capture group: "$n"
 				const thisCapGroup = identifiers[i].groups.capGroupOnly.substring(1);
-				if (groups[thisCapGroup]) {
+				if (groups && groups[thisCapGroup]) {
 					buildReplace += groups[thisCapGroup];
 					buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 				}
@@ -642,7 +667,7 @@ function _buildReplaceValue(replaceValue, groups) {
 
 			else if (identifiers[i].groups.caseTransform) {
 
-				if (groups[identifiers[i][5]]) {
+				if (groups && groups[identifiers[i][5]]) {
 					
 					switch (identifiers[i][6]) {
 
@@ -684,7 +709,7 @@ function _buildReplaceValue(replaceValue, groups) {
 				switch (matches.groups.ifElse) {
 
 					case "+":                        // if ${1:+yes}
-						if (groups[thisCapGroup]) {
+						if (groups && groups[thisCapGroup]) {
 							// buildReplace += matches.groups.replacement;
 							// buildReplace += replacement;
 							buildReplace += _checkForCaptureGroupsInReplacement(replacement, groups);
@@ -697,7 +722,7 @@ function _buildReplaceValue(replaceValue, groups) {
 					
 					case "-":                       // else ${1:-no} or ${1:no}
 					case "":
-						if (!groups[thisCapGroup]) {
+						if (groups && !groups[thisCapGroup]) {
 							// buildReplace += matches.groups.replacement;
 							// buildReplace += replacement;
 							buildReplace += _checkForCaptureGroupsInReplacement(replacement, groups);
@@ -712,7 +737,7 @@ function _buildReplaceValue(replaceValue, groups) {
 						// const replacers = matches.groups.replacement.split(":");
 						const replacers = replacement.split(":");
 
-						if (groups[thisCapGroup]) {
+						if (groups && groups[thisCapGroup]) {
 							// buildReplace += replacers[0];
 							buildReplace += _checkForCaptureGroupsInReplacement(replacers[0], groups);
 						}
@@ -734,7 +759,7 @@ function _buildReplaceValue(replaceValue, groups) {
 				switch (identifiers[i].groups.case) {  // "\\U", "\\l", etc.  // identifiers[i].groups.case
 
 					case "\\U":
-						if (groups[thisGroup]) {
+						if (groups && groups[thisGroup]) {
 							buildReplace += groups[thisGroup].toLocaleUpperCase();
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
@@ -747,7 +772,7 @@ function _buildReplaceValue(replaceValue, groups) {
 						break;
 
 					case "\\u":
-						if (groups[thisGroup]) {
+						if (groups && groups[thisGroup]) {
 							buildReplace += groups[thisGroup].substring(0, 1).toLocaleUpperCase() + groups[thisGroup].substring(1);
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
@@ -759,7 +784,7 @@ function _buildReplaceValue(replaceValue, groups) {
 						break;
 
 					case "\\L":
-						if (groups[thisGroup]) {
+						if (groups && groups[thisGroup]) {
 							buildReplace += groups[thisGroup].toLocaleLowerCase();
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
@@ -771,7 +796,7 @@ function _buildReplaceValue(replaceValue, groups) {
 						break;
 
 					case "\\l":
-						if (groups[thisGroup]) {
+						if (groups && groups[thisGroup]) {
 							buildReplace += groups[thisGroup].substring(0, 1).toLocaleLowerCase() + groups[thisGroup].substring(1);
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}

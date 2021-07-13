@@ -28,8 +28,7 @@
   "regex"
  ],
  "activationEvents": [
-  "onStartupFinished",
-  "onCommand:findInCurrentFile.upcaseSelectedKeywords"
+  "onStartupFinished"
  ],
  "main": "./src/extension.js",
  "contributes": {
@@ -96,11 +95,6 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.upcaseSelectedKeywords",
-    "title": "Uppercase selected Keywords",
     "category": "Find-Transform"
    }
   ],
