@@ -1,6 +1,8 @@
 const vscode = require('vscode');
 // const path = require('path');
-const utilities = require('./utilities');
+// const utilities = require('./utilities');
+const variables = require('./variables');
+
 
 
 /**
@@ -63,16 +65,16 @@ exports.useSearchPanel = async function (findArray) {
 
 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 	if (isfilesToInclude) {
-		obj["filesToInclude"] = await utilities.parseVariables(isfilesToInclude.filesToInclude, "filesToInclude", false);
+		obj["filesToInclude"] = await variables.parseVariables(isfilesToInclude.filesToInclude, "filesToInclude", false);
 	}
 
 	const isfilesToExclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToExclude');
 	if (isfilesToExclude) {
-		obj["filesToExclude"] = await utilities.parseVariables(isfilesToExclude.filesToExclude, "filesToExclude", false);
+		obj["filesToExclude"] = await variables.parseVariables(isfilesToExclude.filesToExclude, "filesToExclude", false);
 	}
 
 	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
-	if (replace?.replace) obj["replace"] = await utilities.parseVariables(replace.replace, "replace", false);
+	if (replace?.replace) obj["replace"] = await variables.parseVariables(replace.replace, "replace", false);
 
 	const triggerReplaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
 	if (triggerReplaceAll) {
@@ -85,7 +87,7 @@ exports.useSearchPanel = async function (findArray) {
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
 	// if (find?.find) obj["query"] = find.find;
-	if (find?.find) obj["query"] = await utilities.parseVariables(find.find, "find", true);
+	if (find?.find) obj["query"] = await variables.parseVariables(find.find, "find", true);
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];

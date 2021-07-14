@@ -28,7 +28,8 @@
   "regex"
  ],
  "activationEvents": [
-  "onStartupFinished"
+  "onStartupFinished",
+  "onCommand:findInCurrentFile.addClassToElement"
  ],
  "main": "./src/extension.js",
  "contributes": {
@@ -95,6 +96,11 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.addClassToElement",
+    "title": "Add Class to Html Element",
     "category": "Find-Transform"
    }
   ],

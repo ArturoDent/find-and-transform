@@ -32,45 +32,6 @@ function _findSettingRange(index, settingsText, document) {
 	return new vscode.Range(settingStartPos, settingEndPos);
 }
 
----------------------------------------------------------------------------------------
-
-/**
- * Replace all find matches in the entire document
- *
- * @param {vscode.window.activeTextEditor} editor
- * @param {vscode.TextEditorEdit} edit
- * @param {String} findValue
- * @param {String} replaceValue
- */
-function _replaceWholeDocument(editor, edit, findValue, replaceValue) {
-
-	const re = new RegExp(findValue, "gm");
-	const firstLine = editor.document.lineAt(0);
-	const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
-	const matchRange = new vscode.Range(firstLine.range.start, lastLine.range.end);
-
-	let docString = editor.document.getText();
-	let doReplace = false;
-
-	if (re.test(docString)) {  // boolean, must be a global regexp
-
-		doReplace = true;
-		// find all matches in iteratively reduced docString
-		docString = docString.replace(re, (...groups) => {
-			return _buildReplaceValue(replaceValue, groups);
-		});
-	};
-	if (doReplace) edit.replace(matchRange, docString);
-}
-
------------------------------------
-
-function createCommand() {
-	const action = new vscode.CodeAction('Learn more...', vscode.CodeActionKind.Source);
-	action.command = { command: "findInCurrentFile.upcaseSwap2", title: 'swap iif <==> hello', tooltip: 'You are a superstar!!' };
-	return action;
-}
-
 ---------------------------------
 
 		// a sample command using a hard-written find regex and upperCase replacements
@@ -103,16 +64,23 @@ function createCommand() {
 
 	-------------------------------
 
-	    {
-      "command": "find-and-transform.searchInFile",
-      "title": "Search in this File",
-      "category": "Find-Transform"
-    },
-    {
-      "command": "find-and-transform.searchInFolder",
-      "title": "Search in this Folder",
-      "category": "Find-Transform"
-    }
+  "commands": [
+		{
+		"command": "find-and-transform.searchInFile",
+		"title": "Search in this File",
+		"category": "Find-Transform"
+		},
+		{
+		"command": "find-and-transform.searchInFolder",
+		"title": "Search in this Folder",
+		"category": "Find-Transform"
+		},
+		{
+		"command": "find-and-transform.searchInResults",
+		"title": "Search in the Results Files",
+		"category": "Find-Transform"
+		}
+	]
 
 		-------------------------------------
 
@@ -126,4 +94,38 @@ function createCommand() {
     { "prod": ["@src", "@deploy", "!@modified"] }
 ]
 
-firstsecond THIRD (first) param Param first First\r\n\r\n
+
+
+[no workspace name]
+C:\Users\Mark\OneDrive\Test Bed\zip\wwwroot\css\main.scss     copy path  [builtin]
+zip\wwwroot\css\main.scss                                     copy relative path  [builtin]
+
+Users/Mark/OneDrive/Test Bed/zip/wwwroot/css/main.txt   ${file}
+zip/wwwroot/css/main.txt                                ${relativeFile}
+main.txt                                                ${fileBasename}
+main                                                    ${fileBasenameNoExtension}
+.txt                                                    ${fileExtname}
+/c:/Users/Mark/OneDrive/Test Bed/zip/wwwroot/css        ${fileDirname}
+zip/wwwroot/css                                         ${relativeFileDirname}
+/c:/Users/Mark/OneDrive/Test Bed                        ${fileWorkspaceFolder}
+/c:/Users/Mark/OneDrive/Test Bed                        ${workspaceFolder}
+Test Bed                                                ${workspaceFolderBasename}
+
+
+
+---------------------------------------------------------------------------------
+
+[in Workspace name = 'XX']
+C:\Users\Mark\testWorkspace\FolderXX\xxTest1.txt        copy path [builtin]
+FolderXX\xxTest1.txt                                    copy relative path [builtin]
+
+Users/Mark/testWorkspace/FolderXX/xxTest1.txt           ${file}
+FolderXX/xxTest1.txt                                    ${relativeFile}
+xxTest1.txt                                             ${fileBasename}
+xxTest1                                                 ${fileBasenameNoExtension}
+.txt                                                    ${fileExtname}
+/c:/Users/Mark/testWorkspace/FolderXX                   ${fileDirname}
+FolderXX                                                ${relativeFileDirname}
+/c:/Users/Mark/testWorkspace  /c:/Users/Mark/AA/BB      ${fileWorkspaceFolder}
+/c:/Users/Mark/testWorkspace  /c:/Users/Mark/AA/BB      ${workspaceFolder}
+testWorkspace BB                                        ${workspaceFolderBasename}

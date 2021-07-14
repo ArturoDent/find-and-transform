@@ -388,7 +388,7 @@ The `replace` arguments in the `runInSearchPanel` also supports case modifiers l
 * `Search in this File`  opens the Search Panel with the (hovered over) filename of that hovered over.   
 * `Search in this Folder` opens the Search Panel with the (hovered over) file's parent folder.   
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextExplorer.gif?raw=true" width="700" height="650" alt="demo of Explorer file context menus"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextExplorer.gif?raw=true" width="500" height="400" alt="demo of Explorer file context menus"/>
 
 Explanation: The old 'files to include' entry will be replaced by the associated file or folder.  The `find` query will be the selected word of the **active text editor** - which can be different than the editor tab's context menu.  
 

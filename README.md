@@ -586,7 +586,7 @@ Explanation: With no `find` key, find matches of selections or nearest words at 
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of find and no replace keys in args"/> 
 
-Explanation: Will find according to the `find` key and select all those matches.  No replacement.  
+Explanation: Will find according to the `find` value and select all those matches.  No replacement.  
 
 ------------------
 
@@ -630,7 +630,7 @@ Explanation: Find using its value in `args` and replace each with its value in t
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of replace but no find keys in args"/>  
 
-Explanation: With no `find` key find all the words at the cursors or selections and apply the replacement.  
+Explanation: With no `find` value find all the words at the cursors or selections and apply the replacement.  
 
 ---------------
 
