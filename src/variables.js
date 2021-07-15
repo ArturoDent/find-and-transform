@@ -8,20 +8,20 @@ const utilities = require('./utilities');
 /**
  * If the "filesToInclude/find/replace" value uses a variable(s) return the resolved value  
  * 
- * @param {String} resolvedVariable - the "filesToInclude/find/replace" value  
+ * @param {String} variableToResolve - the "filesToInclude/find/replace" value  
  * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude 
  * @param {Boolean} isRegex 
  */
-exports.parseVariables = async function (resolvedVariable, caller, isRegex) {
+exports.parseVariables = async function (variableToResolve, caller, isRegex) {
 
 	// support conditionals here?  ${2:+yada}
 
-	if (typeof resolvedVariable !== 'string') return "";
+	if (typeof variableToResolve !== 'string') return "";
 	// couldn't this be built from some list  TODO
 	const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})/g;
 
-	const matches = [...resolvedVariable.matchAll(re)];
-	if (!matches.length) return resolvedVariable;
+	const matches = [...variableToResolve.matchAll(re)];
+	if (!matches.length) return variableToResolve;
 
 	const filePath = vscode.window.activeTextEditor.document.uri.path;
 
@@ -98,6 +98,7 @@ exports.parseVariables = async function (resolvedVariable, caller, isRegex) {
 
 			case "${selectedText}":
 			case "${ selectedText }":
+				// resolve for each selection ??
 				resolved = vscode.window.activeTextEditor.document.getText(vscode.window.activeTextEditor.selections[0]);
 				break;
 
@@ -108,6 +109,7 @@ exports.parseVariables = async function (resolvedVariable, caller, isRegex) {
 
 			case "${lineNumber}":
 			case "${ lineNumber }":
+				// resolve for each selection
 				// +1 because it is 0-based ? which seems weird to me
 				resolved = String(vscode.window.activeTextEditor.selection.active.line + 1);
 				break;
@@ -127,17 +129,14 @@ exports.parseVariables = async function (resolvedVariable, caller, isRegex) {
 			default:
 				break;
 		}
-		resolvedVariable = resolvedVariable.replace(item[1], resolved);
+		variableToResolve = variableToResolve.replace(item[1], resolved);
 	}
 
-	// if more than one match, one is ${resultsFiles}, and one is a negation which follows
-
-
 	// escape .*{}[]?^$ if using in a find 
-	if (isRegex && caller === "find") return resolvedVariable.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-	// else if (caller === "filesToInclude" && resolvedVariable === ".") return resolvedVariable = "./";
-	else if (caller === "filesToInclude" && resolvedVariable === ".") return resolvedVariable = "./";
-	else return resolvedVariable;
+	if (isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+	// else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
+	else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
+	else return variableToResolve;
 };
 
 

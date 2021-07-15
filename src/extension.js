@@ -12,7 +12,6 @@ const utilities = require('./utilities');
 let disposables = [];
 
 
-
 /**
  * @param {vscode.ExtensionContext} context
  */
@@ -117,7 +116,35 @@ async function activate(context) {
 		// get this from keybinding:  { find: "(document)", replace: "\\U$1" }
 		// need this:                 [ { find: "(document)"	}, { replace: "\\U$1"	} ]
 
-		// TODO warn if fewer capture groups in the find than used in the replace ?
+		// TODO warn if fewer capture groups in the find than used in the replace ? or did you mean isRegex
+		// not modal, "Don't show again" option
+
+		// warn if args that don't belong (not in argsArray below)
+		// bad values too TODO
+		if (args) {
+
+			const goodKeys = findCommands.getKeys();  // an array
+			const notGood = Object.keys(args).filter(arg => !goodKeys.includes(arg));
+			if (notGood.length) console.log(`"${ notGood }" arg is bad`);
+			else {
+				const goodValues = findCommands.getValues(); // an object
+
+				for (const key of goodKeys) {
+
+					if (args[key]) {  // and not the empty string "" TODO
+						if (typeof goodValues[key] === "string") {
+							
+						}
+						else {
+							const badValue = !goodValues[key].includes(args[key]);
+
+							if (badValue && typeof goodValues[key][0] === "boolean") console.log(`"${ args[key] }" is not an accepted value of "${ key }".  The value must be a boolean true or false (not a string).`);
+							else if (badValue && typeof goodValues[key][0] === "string") console.log(`"${ args[key] }" is not an accepted value of "${ key }". Accepted values are "${ goodValues[key].join('", "') }".`);
+						}
+					}
+				}
+			}
+		}
 
 		let argsArray = [];
 		if (args) {

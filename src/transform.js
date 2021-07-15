@@ -72,8 +72,8 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
 			replaceValue = await variables.parseVariables(replaceValue, "replace", false);
 		}
 	}
-	else if (!findItem.length) {
-		replaceValue = "$1";  // if no replace key, set to $1 and set to isRegex
+	else if (!findItem.length) {  // no find and no replace
+		replaceValue = "$1";
 		isRegex = true;
 		findValue = `(${ findValue })`;
 	}
@@ -637,6 +637,23 @@ exports.getKeys = function () {
 	// preserveCase ?
 	return ["title", "find", "replace", "isRegex", "matchCase", "matchWholeWord", "restrictFind", "cursorMoveSelect"];
 }
+
+
+/**
+ * Get just the findInCurrentFile args keys, like "title", "find", etc.
+ * @returns {Object}
+ */
+exports.getValues = function () {
+	// preserveCase ?
+	// return ["title", "find", "replace", "isRegex", "matchCase", "matchWholeWord", "restrictFind", "cursorMoveSelect"];
+	return {
+		title: "string", find: "string", replace: "string", isRegex: [true, false], matchCase: [true, false],
+		matchWholeWord: [true, false],
+		restrictFind: ["document", "selections", "line", "once", "nextSelect", "nextMoveCursor", "nextDontMoveCursor"],
+		cursorMoveSelect: "string"
+	};
+}
+
 
 /**
  * Get the default values for all findInCurrentFile keys

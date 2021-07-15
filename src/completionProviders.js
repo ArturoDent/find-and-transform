@@ -14,6 +14,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
       {
         provideCompletionItems(document, position) {
 
+					// const doc = vscode.window.activeTextEditor.document;
 					const linePrefix = document.lineAt(position).text.substr(0, position.character);
 					let find = false;
 					let search = false;
@@ -59,28 +60,48 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 					else return undefined;  // not in our keybindings
 
 					// ---------  $ for 'filesToInclude/filesToExclude/find/replace/restrictFind' completions  ------
-							
-					let re$ = /^\s*"(find|filesToInclude|filesToExclude)"\s*:\s*".*\$$/;
+
+					let re$  = /^\s*"(find|filesToInclude|filesToExclude)"\s*:\s*".*\$$/m;
+					let re$2 = /^\s*"(find|filesToInclude|filesToExclude)"\s*:\s*".*\$\{$/m;
+					// let re$3 = /^\s*"(find|filesToInclude|filesToExclude)"\s*:\s*".*(\$\{[^}]*}?)$/m;
+
 					if (find || search) {
+
+						// const wordAtCursorRange = doc.getWordRangeAtPosition(position);
+						// const wordAtCursor = doc.getText(wordAtCursorRange);
+						// vscode.window.activeTextEditor.selections =
+						// 	[new vscode.Selection(wordAtCursorRange.start.line, wordAtCursorRange.start.character + 1, wordAtCursorRange.end.line, wordAtCursorRange.end.character - 1)];
+
 						if (linePrefix.substring(0, position.character).search(re$) !== -1) {
+							// return _completeVariables(position, wordAtCursor.substring(1, wordAtCursor.length - 1));
 							return _completeVariables(position, '$');
+						} 
+						else if (linePrefix.substring(0, position.character).search(re$2) !== -1) {
+							return _completeVariables(position, "${");
 						}
+						// else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
+						// 	return _completeVariables(position, wordAtCursor.substring(2));
+						// }
 					}
 
-					re$ = /^\s*"replace"\s*:\s*".*\$$/;    // just for 'replace'
+					re$ =  /^\s*"replace"\s*:\s*".*\$$/m;     // just for 'replace'
+					re$2 = /^\s*"replace"\s*:\s*".*\\$/m;    // just for 'replace'
 					if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
 						return _completeReplaceFindVariables(position, '$');
 					}
 					else if (search && linePrefix.substring(0, position.character).search(re$) !== -1) {
 						return _completeVariables(position, '$');
 					}
-
-					re$ = /^\s*"replace"\s*:\s*".*\\$/;    // just for 'replace'
-					if (linePrefix.substring(0, position.character).search(re$) !== -1) {
+					else if (linePrefix.substring(0, position.character).search(re$2) !== -1) {
 						return _completeReplaceFindCaseTransforms(position, '\\');
 					}
+
+					// re$ = /^\s*"replace"\s*:\s*".*\\$/m;    // just for 'replace'
+					// if (linePrefix.substring(0, position.character).search(re$) !== -1) {
+					// 	return _completeReplaceFindCaseTransforms(position, '\\');
+					// }
 					
-					re$ = /^\s*"restrictFind"\s*:\s*"$/;
+					re$ = /^\s*"restrictFind"\s*:\s*"$/m;
 					if (find && linePrefix.search(re$) !== -1)
 						return _completeRestrictFindValues(position);
 
@@ -110,7 +131,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 					else return undefined;
 				}
 			},
-		'.', '"', '$', '\\'   // trigger intellisense/completion
+		'.', '"', '$', '\\', '{'   // trigger intellisense/completion
 	);
 
   context.subscriptions.push(configCompletionProvider);
@@ -403,6 +424,7 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 
 	const item = new vscode.CompletionItem(key, vscode.CompletionItemKind.Text);
 	item.range = replaceRange;
+	// // item.range = { inserting: new vscode.Range(replaceRange.start, replaceRange.start), replacing: replaceRange};
 	if (defaultValue) item.detail = `default: ${ defaultValue }`;
 	if (sortText) item.sortText = sortText;
 	if (documentation) item.documentation = new vscode.MarkdownString(documentation);
