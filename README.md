@@ -31,7 +31,7 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 this extension contributes one setting relevant to the `findInCurrentFile` settings and keybindings:  
 
-* `"find-and-transform.enableWarningDialog"` default = true
+* `"find-and-transform.enableWarningDialog"` **default = true**
 
 This setting controls whether the extension will attempt to find errors in your keybinding or settings argument keys or values.  
 
@@ -50,7 +50,7 @@ This setting controls whether the extension will attempt to find errors in your 
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableWarningDialogSetting.jpg?raw=true" width="300" height="150" alt="enable warning dialog setting"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableWarningDialogSetting.jpg?raw=true" width="500" height="150" alt="enable warning dialog setting"/> 
 
 If the `enableWarningDialog` is set to true, errors will be presented in a notification message either when attempting to run a keybinding, a setting command or on save of a setting if there are bad arguments.  Not all errors can be detected though so don't rely solely on this.  
 
@@ -806,6 +806,7 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
   &emsp;&emsp; Added `${\d:/upcase/downcase/capitalize/camelcase/pascalcase}` to `findInCurrentFile` `replace` argument.   
   &emsp;&emsp; Added `isRegex/matchCase/matchWholeWord` to `findInCurrentFile` arguments.  
   &emsp;&emsp; Added intellisense for case modifiers with selection of nth group number for editing.  
+* 0.9.7 Added error checking for arguments.  Added support for `onlyOpenEditors` argument.  	
 
 <br/> 
 
