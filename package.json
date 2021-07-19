@@ -28,7 +28,9 @@
   "regex"
  ],
  "activationEvents": [
-  "onStartupFinished"
+  "onStartupFinished",
+  "onCommand:findInCurrentFile.addClassToElement",
+  "onCommand:runInSearchPanel.removeDigits"
  ],
  "main": "./src/extension.js",
  "contributes": {
@@ -95,6 +97,16 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.addClassToElement",
+    "title": "Add Class to Html Element",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "runInSearchPanel.removeDigits",
+    "title": "Remove digits from Arturo",
     "category": "Find-Transform"
    }
   ],

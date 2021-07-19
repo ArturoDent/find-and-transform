@@ -50,7 +50,9 @@ This setting controls whether the extension will attempt to find errors in your 
 }
 ```
 
-If the `enableWarningDialog` is set to true, such errors will be presented in a notification message either when attempting to run a keybinding, a setting command or on save of a setting if there are bad arguments.  Not all errors can be detected though so don't rely solely on this.  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableWarningDialogSetting.jpg?raw=true" width="300" height="150" alt="enable warning dialog setting"/> 
+
+If the `enableWarningDialog` is set to true, errors will be presented in a notification message either when attempting to run a keybinding, a setting command or on save of a setting if there are bad arguments.  Not all errors can be detected though so don't rely solely on this.  
 
 The dialogs are modal for the keybindings, and non-modal for the settings.  The command can then be run or aborted.  
 
