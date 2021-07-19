@@ -640,7 +640,7 @@ exports.getKeys = function () {
 
 
 /**
- * Get just the findInCurrentFile args keys, like "title", "find", etc.
+ * Get just the findInCurrentFile args values, like true/false, "selections", etc.
  * @returns {Object}
  */
 exports.getValues = function () {

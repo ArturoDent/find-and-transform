@@ -250,6 +250,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 		"filesToInclude": "05",
 		"filesToExclude": "051",
 		"useExcludeSettingsAndIgnoreFiles": "052",
+		"onlyOpenEditors": "053",
 
 		"preserveCase": "07"
 	};
@@ -274,6 +275,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 		"filesToInclude": "Search in these files or folders only.  Can be a comma-separated list.",
 		"filesToExclude": "Do not serach in these files or folder.  Can be a comma-separated list.",
 		"useExcludeSettingsAndIgnoreFiles": "",
+		"onlyOpenEditors": "Search in the currently opened editors only.",
 
 		"preserveCase": ""
 	};

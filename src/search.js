@@ -14,6 +14,7 @@ exports.getObjectFromArgs = function (args) {
 
 	const argsArray = [];
 
+	// could be bad keys/values here
 	for (const [key, value] of Object.entries(args)) {
 		const obj = new Object();
 		obj[`${ key }`] = value;
@@ -29,7 +30,20 @@ exports.getObjectFromArgs = function (args) {
  */
 exports.getKeys = function () {
 	return ["title", "find", "replace", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude", "preserveCase",
-					"useExcludeSettingsAndIgnoreFiles", "isCaseSensitive", "matchWholeWord", "matchCase", "filesToExclude"];
+		"useExcludeSettingsAndIgnoreFiles", "isCaseSensitive", "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors"];
+}
+
+/**
+ * Get just the runSearchInPanel args values, like true/false, "selections", etc.
+ * @returns {Object}
+ */
+exports.getValues = function () {
+	return {
+		title: "string", find: "string", replace: "string", isRegex: [true, false], matchCase: [true, false],
+		matchWholeWord: [true, false], triggerSearch: [true, false], triggerReplaceAll: [true, false],
+		preserveCase: [true, false], useExcludeSettingsAndIgnoreFiles: [true, false], isCaseSensitive: [true, false],
+		filesToInclude: "string", filesToExclude: "string", onlyOpenEditors: [true, false]
+	};
 }
 
 /**
@@ -52,6 +66,7 @@ exports.getDefaults = function () {
 		// "matchWholeWord": false,
 		// "matchCase": false
 		// "filesToExclude": ""
+		// "onlyOpenEditors": false
 	};
 }
 
@@ -95,28 +110,6 @@ exports.useSearchPanel = async function (findArray) {
 			obj[`${ key }`] = Object.values(arg)[0];
 		}
 	});
-
-	// respect search.seedWithNearestWord' setting
-	// need this - without it the context menu command is not working !! 
-
-	// if (!obj['query']) {
-	// 	const seed = await vscode.workspace.getConfiguration().get("search.seedWithNearestWord");
-	// 	const document = vscode.window.activeTextEditor.document;
-	// 	const selections = vscode.window.activeTextEditor.selections;
-	// 	if (seed) {			 // enabled
-	// 			if (selections[0].isEmpty) {
-	// 				const wordRange = document.getWordRangeAtPosition(selections[0].start);
-	// 				if (wordRange) obj['query'] = document.getText(wordRange);
-	// 			}
-	// 			else obj['query'] = document.getText(selections[0]);
-	// 		}
-	// 	else if (!seed)  {  //  just get the first selection, if empty do nothing
-	// 		if (!selections[0].isEmpty) {
-	// 			obj['query'] = document.getText(selections[0]);
-	// 		}
-	// 		else obj['query'] = "";
-	// 	}
-	// }
 
 	if (!obj['query']) {
 		const document = vscode.window.activeTextEditor?.document;

@@ -11,20 +11,22 @@ const utilities = require('./utilities');
 /** @type { Array<vscode.Disposable> } */
 let disposables = [];
 
+let enableWarningDialog = false;
+
 
 /**
  * @param {vscode.ExtensionContext} context
  */
 async function activate(context) {
 
-	// process.on('warning', (warning) => {
-	// 	console.log(warning.stack);
-	// });
+	let firstRun = true;
 
-	await _loadSettingsAsCommands(context, disposables);
+	await _loadSettingsAsCommands(context, disposables, firstRun);
 
 	providers.makeKeybindingsCompletionProvider(context);
 	providers.makeSettingsCompletionProvider(context);
+
+	// enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
 
 	// ---------------------------------------------------------------------------------------------
 
@@ -81,23 +83,16 @@ async function activate(context) {
 		// args is undefined if coming from Command Palette or keybinding with no args
 		// args.path, args.scheme coming from editor context menu
 
-		// if (args) argsArray = searchCommands.getObjectFromArgs(args);
 		if (args) {
 			for (const [key, value] of Object.entries(args)) {
 				const obj = new Object();
 				// so override these keys if there are in the keybinding or setting ?
 				if (key !== "triggerSearch" && key !== "filesToInclude") {
-				// if (key !== "filesToInclude") {
 					obj[`${key}`] = value;
 					argsArray.push(obj);
 				}
 			}
 		}
-
-			// argsArray = [
-			// 	{ "triggerSearch": true },           
-			// 	{ "filesToInclude": await utilities.getSearchResultsFiles() }
-			// ];
 
 		// override triggerSearch? override filesToInclude? or add the settingkeybinding to it? 
 		argsArray.push({ "triggerSearch": true }),
@@ -117,53 +112,34 @@ async function activate(context) {
 		// need this:                 [ { find: "(document)"	}, { replace: "\\U$1"	} ]
 
 		// TODO warn if fewer capture groups in the find than used in the replace ? or did you mean isRegex
-		// not modal, "Don't show again" option
+		let continueRun = true;
 
-		// warn if args that don't belong (not in argsArray below)
-		// bad values too TODO
-		if (args) {
+		if (args && enableWarningDialog) {
+			const argsBadObject = utilities.checkArgs(args, "findBinding");
+			// boolean modal or not
+			if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, true, "");
+		}
 
-			const goodKeys = findCommands.getKeys();  // an array
-			const notGood = Object.keys(args).filter(arg => !goodKeys.includes(arg));
-			if (notGood.length) console.log(`"${ notGood }" arg is bad`);
-			else {
-				const goodValues = findCommands.getValues(); // an object
-
-				for (const key of goodKeys) {
-
-					if (args[key]) {  // and not the empty string "" TODO
-						if (typeof goodValues[key] === "string") {
-							
-						}
-						else {
-							const badValue = !goodValues[key].includes(args[key]);
-
-							if (badValue && typeof goodValues[key][0] === "boolean") console.log(`"${ args[key] }" is not an accepted value of "${ key }".  The value must be a boolean true or false (not a string).`);
-							else if (badValue && typeof goodValues[key][0] === "string") console.log(`"${ args[key] }" is not an accepted value of "${ key }". Accepted values are "${ goodValues[key].join('", "') }".`);
-						}
-					}
-				}
+		if (continueRun) {		
+			let argsArray = [];
+			if (args) {
+				argsArray = [
+					{ "title": "Keybinding for generic command run" },  // "title" is never used?
+					{ "find": args.find },
+					{ "replace": args.replace },
+					{ "restrictFind": args.restrictFind },
+					{ "cursorMoveSelect": args.cursorMoveSelect },
+					{ "isRegex": args.isRegex },
+					{ "matchCase": args.matchCase },
+					{ "matchWholeWord": args.matchWholeWord },
+				];
 			}
-		}
-
-		let argsArray = [];
-		if (args) {
-			argsArray = [
-				{ "title": "Keybinding for generic command run" },  // "title" is never used?
-				{ "find": args.find },
-				{ "replace": args.replace },
-				{ "restrictFind": args.restrictFind },
-				{ "cursorMoveSelect": args.cursorMoveSelect },
-				{ "isRegex": args.isRegex },
-				{ "matchCase": args.matchCase },
-				{ "matchWholeWord": args.matchWholeWord },
+			else argsArray = [
+				{ "title": "Keybinding for generic command run" }
 			];
-		}
-		else argsArray = [
-			{ "title": "Keybinding for generic command run" }
-		];
 
-		findCommands.findTransform(editor, edit, argsArray);
+			findCommands.findTransform(editor, edit, argsArray);
+		}
 	});
 
 	context.subscriptions.push(runDisposable);
@@ -173,17 +149,24 @@ async function activate(context) {
 	// make a generic "runInSearchPanel" command for keybindings args using the search panel
 	let runInSearchPanelDisposable = vscode.commands.registerCommand('runInSearchPanel', async (args) => {
 
-		let argsArray = [];
+		let continueRun = true;
 
-		if (args) argsArray = searchCommands.getObjectFromArgs(args);
-		else argsArray = [
-			{ "title": "Keybinding for generic command run" }
-		];
+		if (args && enableWarningDialog) {
+			const argsBadObject = utilities.checkArgs(args, "searchBinding");
+			// boolean modal or not
+			if (argsBadObject.length)	continueRun = await utilities.showBadKeyValueMessage(argsBadObject, true, "");
+		}
 
-		searchCommands.useSearchPanel(argsArray);
+		if (continueRun) {
+			let argsArray = [];
+			if (args) argsArray = searchCommands.getObjectFromArgs(args);
+			else argsArray = [
+				{ "title": "Keybinding for generic command run" }
+			];
+
+			searchCommands.useSearchPanel(argsArray);
+		}
 	});
-
-	 
 
 	context.subscriptions.push(runInSearchPanelDisposable);
 
@@ -211,9 +194,19 @@ async function activate(context) {
 
 	// ---------------------------------------------------------------------------------------------------------------------
 
-	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration( async (event) => {
-		if (event.affectsConfiguration("findInCurrentFile") ||
-				event.affectsConfiguration("runInSearchPanel")) {
+	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async (event) => {
+		
+		// if (event.affectsConfiguration("find-and-transform.enableWarningDialog"))
+		// enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
+
+		// else if (event.affectsConfiguration("findInCurrentFile") ||
+		// 		event.affectsConfiguration("runInSearchPanel")) {
+		
+		if (event.affectsConfiguration("find-and-transform.enableWarningDialog")
+			|| event.affectsConfiguration("findInCurrentFile")
+			|| event.affectsConfiguration("runInSearchPanel")) {
+			
+			enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
 
 			for (let disposable of disposables) {
 				await disposable.dispose();
@@ -221,39 +214,51 @@ async function activate(context) {
 			// should do disposables = [] here? Or does it matter?
 
 			// reload
-			await _loadSettingsAsCommands(context, disposables);
+			await _loadSettingsAsCommands(context, disposables, false);
 
 			await providers.makeKeybindingsCompletionProvider(context);
 			await providers.makeSettingsCompletionProvider(context);
 
-			vscode.window
-        .showInformationMessage("Reload vscode to see the changes you made in the Command Palette.",
-          ...['Reload vscode', 'Do not Reload'])   // two buttons
-        .then(selected => {
-          if (selected === 'Reload vscode') vscode.commands.executeCommand('workbench.action.reloadWindow');
-          else vscode.commands.executeCommand('leaveEditorMessage');
-        });
+			if (!event.affectsConfiguration("find-and-transform.enableWarningDialog")) {
+				vscode.window
+					.showInformationMessage("Reload vscode to see the changes you made in the Command Palette.",
+						...['Reload vscode', 'Do not Reload'])   // two buttons
+					.then(selected => {
+						if (selected === 'Reload vscode') vscode.commands.executeCommand('workbench.action.reloadWindow');
+						else vscode.commands.executeCommand('leaveEditorMessage');
+					});
+			}
 		}
 	}));
 }
 
-async function _loadSettingsAsCommands(context, disposables) {
+/**
+ * 
+ * @param {vscode.ExtensionContext} context 
+ * @param {Array<vscode.Disposable>} disposables
+ * @param {Boolean} firstRun 
+ */
+async function _loadSettingsAsCommands(context, disposables, firstRun) {
 
-		const findSettings = await commands.getSettings("findInCurrentFile");
-		const searchSettings = await commands.getSettings("runInSearchPanel");
+	// if (!firstRun) enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
 
-		if (findSettings || searchSettings) {
-			await commands.loadCommands(findSettings, searchSettings, context);
-		}
+	const findSettings = await commands.getSettings("findInCurrentFile");
+	const searchSettings = await commands.getSettings("runInSearchPanel");
 
-		if (findSettings.length) {
-			await commands.registerFindCommands(findSettings, context, disposables);
-			await codeActions.makeCodeActionProvider(context, findSettings);
-		}
+	if (findSettings || searchSettings) {
+		await commands.loadCommands(findSettings, searchSettings, context, enableWarningDialog);
+	}
 
-		if (searchSettings.length) {
-			await commands.registerSearchCommands(searchSettings, context, disposables);
-		}
+	if (firstRun) enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
+
+	if (findSettings.length) {
+		await commands.registerFindCommands(findSettings, context, disposables, enableWarningDialog);
+		await codeActions.makeCodeActionProvider(context, findSettings);
+	}
+
+	if (searchSettings.length) {
+		await commands.registerSearchCommands(searchSettings, context, disposables, enableWarningDialog);
+	}
 }
 
 // exports.activate = activate;

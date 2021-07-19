@@ -28,8 +28,7 @@
   "regex"
  ],
  "activationEvents": [
-  "onStartupFinished",
-  "onCommand:findInCurrentFile.addClassToElement"
+  "onStartupFinished"
  ],
  "main": "./src/extension.js",
  "contributes": {
@@ -97,11 +96,6 @@
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
     "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.addClassToElement",
-    "title": "Add Class to Html Element",
-    "category": "Find-Transform"
    }
   ],
   "configuration": [
@@ -121,6 +115,12 @@
       "scope": "machine",
       "default": true,
       "markdownDescription": "Show `Search in this File`, `Search in this Folder` and `Search in the Results Files` in the context menus."
+     },
+     "find-and-transform.enableWarningDialog": {
+      "type": "boolean",
+      "scope": "machine",
+      "default": true,
+      "markdownDescription": "Enable a warning dialog if there are bad argument keys or values in settings and keybindings."
      }
     }
    }

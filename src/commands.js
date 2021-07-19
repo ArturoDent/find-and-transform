@@ -1,9 +1,12 @@
 const vscode = require('vscode');
-const findCommands = require('./transform');
-const searchCommands = require('./search');
 const fs = require('fs');
 const path = require('path');
 
+const findCommands = require('./transform');
+const searchCommands = require('./search');
+const utilities = require('./utilities');
+
+// let enableWarningDialog;
 
 /**
  * Get all the findInCurrentFile or runInSearchPanel settings
@@ -30,15 +33,15 @@ exports.getSettings = async function (setting) {
  * @param {object} searchSettings
  * @param {vscode.ExtensionContext} context
  */
-exports.loadCommands = function (findSettings, searchSettings, context) {
+exports.loadCommands = async function (findSettings, searchSettings, context, enableWarningDialog) {
 
 	const thisExtension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
 	const packageCommands = thisExtension.packageJSON.contributes.commands;
 
 	const builtins = _makeCommandsFromPackageCommands();
 
-	const findSettingsCommands   =  _makePackageCommandsFromFindSettings(findSettings);
-	const searchSettingsCommands =  _makePackageCommandsFromSearchSettings(searchSettings);
+	const findSettingsCommands   =  await _makePackageCommandsFromFindSettings(findSettings, enableWarningDialog);
+	const searchSettingsCommands =  await _makePackageCommandsFromSearchSettings(searchSettings, enableWarningDialog);
 	const settingsCommands       =  findSettingsCommands.concat(searchSettingsCommands);
 
   const packageEvents  =  thisExtension.packageJSON.activationEvents;
@@ -58,11 +61,12 @@ exports.loadCommands = function (findSettings, searchSettings, context) {
 /**
  * Transform the settings into package.json-style commands {command: "", title: ""}
  * @param {object} settings - this extension's settings from getCurrentSettings()
- * @returns {Array<vscode.Command> | Array} - package.json form of 'contributes.commands'
+ * @param {Boolean} enableWarningDialog
+ * @returns { Array < vscode.Command > | Array } - package.json form of 'contributes.commands'
  */
-function _makePackageCommandsFromFindSettings (settings) {
+function _makePackageCommandsFromFindSettings(settings, enableWarningDialog) {
 
-	// "findInCurrentFile": {
+	// "findInCurrentFile": {z
   //   "upcaseSwap2": {
 	// 		"title": "swap iif <==> hello",
 	// 		"find": "(iif) (hello)",
@@ -73,7 +77,15 @@ function _makePackageCommandsFromFindSettings (settings) {
   let settingsJSON = [];
 	let category = "Find-Transform";
 
-  for (const setting of settings) {
+	for (const setting of settings) {
+		
+		// check here for bad args TODO with setting[1]
+		if (enableWarningDialog) {
+			const argsBadObject = utilities.checkArgs(setting[1], "findSetting");
+		 	// boolean modal or not
+			if (argsBadObject.length) utilities.showBadKeyValueMessage(argsBadObject, false, setting[0]);
+		}
+
 		let newCommand = {};
 		newCommand.command = `findInCurrentFile.${ setting[0] }`;
 
@@ -87,12 +99,14 @@ function _makePackageCommandsFromFindSettings (settings) {
   return settingsJSON;
 };
 
+
 /**
  * Transform the settings into package.json-style commands {command: "", title: ""}
  * @param {object} settings - this extension's settings from getCurrentSettings()
- * @returns {Array<vscode.Command> | Array} - package.json form of 'contributes.commands'
+ * @param {Boolean} enableWarningDialog
+ * @returns { Promise<any[]|vscode.Command[]> } - package.json form of 'contributes.commands'
  */
-function _makePackageCommandsFromSearchSettings(settings) {
+async function _makePackageCommandsFromSearchSettings(settings, enableWarningDialog) {
 
 	// "runInSearchPanel": {
 	// 	"removeDigits": {
@@ -105,18 +119,25 @@ function _makePackageCommandsFromSearchSettings(settings) {
   let settingsJSON = [];
 	let category = "Find-Transform";
 
-  for (const setting of settings) {
-		let newCommand = {};
-		newCommand.command = `runInSearchPanel.${ setting[0] }`;
+	for (const setting of settings) {
+		
+		if (enableWarningDialog) {
+			const argsBadObject = utilities.checkArgs(setting[1], "searchSetting");
+			// boolean modal or not
+			if (argsBadObject.length) utilities.showBadKeyValueMessage(argsBadObject, false, setting[0]);
+		}
 
-		// warn here if there is no title?  vscode does it automatically
-		if (setting[1].title) newCommand.title = setting[1].title;
-		else newCommand.title = setting[0];
+			let newCommand = {};
+			newCommand.command = `runInSearchPanel.${ setting[0] }`;
 
-		newCommand.category = category;
-		settingsJSON.push(newCommand);
-  };
-  return settingsJSON;
+			// warn here if there is no title?  vscode does it automatically
+			if (setting[1].title) newCommand.title = setting[1].title;
+			else newCommand.title = setting[0];
+
+			newCommand.category = category;
+			settingsJSON.push(newCommand);
+		};
+		return settingsJSON;
 };
 
 /**
@@ -227,14 +248,22 @@ function _activationEventArraysAreEquivalent(settings, packages) {
  * @param {vscode.ExtensionContext} context
  * @param {Array<vscode.Disposable>} disposables
  */
-exports.registerFindCommands = function (findArray, context, disposables) {
+exports.registerFindCommands = function (findArray, context, disposables, enableWarningDialog) {
 
 	let disposable;
+	let continueRun = true;
 
 	for (const elem in findArray) {
 
 		disposable = vscode.commands.registerTextEditorCommand(`findInCurrentFile.${ findArray[elem][0] }`, async (editor, edit) => {
-			await findCommands.findTransform(editor, edit, findArray[elem][1]);
+			// could check for bad args here - on use of settings commands
+			if (enableWarningDialog) {
+				const argsBadObject = utilities.checkArgs(findArray[elem][1], "findSetting");
+				// boolean modal or not
+				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, findArray[elem][0]);
+			}
+
+			if (continueRun) await findCommands.findTransform(editor, edit, findArray[elem][1]);
 		});
 		context.subscriptions.push(disposable);
 		disposables.push(disposable);
@@ -248,20 +277,30 @@ exports.registerFindCommands = function (findArray, context, disposables) {
  * @param {vscode.ExtensionContext} context
  * @param {Array<vscode.Disposable>} disposables
  */
-exports.registerSearchCommands = function (searchArray, context, disposables) {
+exports.registerSearchCommands = function (searchArray, context, disposables, enableWarningDialog) {
 
 	let disposable;
+	let continueRun = true;
 
 	for (const elem in searchArray) {
 
 		disposable = vscode.commands.registerCommand(`runInSearchPanel.${ searchArray[elem][0] }`, async () => {
 
 			let temp = searchArray[0][1];
-			let argsArray = [];
+			// could check for bad args here - on use of settings commands
+			if (enableWarningDialog) {
+				const argsBadObject = utilities.checkArgs(searchArray[elem][1], "findSetting");
+				// boolean modal or not
+				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, searchArray[elem][0]);
+			}
 
-		// args in setting may be in any order
-			if (temp) argsArray = searchCommands.getObjectFromArgs(temp);
-			searchCommands.useSearchPanel(argsArray);
+			if (continueRun) {
+				let argsArray = [];
+
+				// args in setting may be in any order
+				if (temp) argsArray = searchCommands.getObjectFromArgs(temp);
+				searchCommands.useSearchPanel(argsArray);
+			}
 		});
 		context.subscriptions.push(disposable);
 		disposables.push(disposable);

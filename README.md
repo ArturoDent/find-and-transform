@@ -3,62 +3,56 @@
 [VS Code version 1.56 or greater required.]  
 
 Find and transform text in a single file, folder, workspace or custom groups.  
+Search across files with pre-defined options.  
 Do a second search only in the files with matches from a previous search.      
 
 *   &emsp; Any number of find/replace combinations can be saved in settings and triggered either by the Command Palette or a keybinding.
-*   &emsp; Replacements can include case modifiers, like `\U`.   
-*   &emsp; Find in the entire document, within selections only, the first occurrence or the line only.  
-    &emsp; Or find the next occurrence and optionally select it and/or replace it.  
-*   &emsp; Replacements can include conditionals, as in if found capture group 1, add given text.  		
-*   &emsp; Replacements can include other snippet transforms, like `${1:/pascalcase}`.  		
+*   &emsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1, add other text, snippet-like transforms like `${1:/pascalcase}` and more.   
 
 *   &emsp; Keybindings can be quite generic, not necessarily even including `find` or `replace` keys!    
 *   &emsp; A command can be created right in a keybinding, without using a setting at all.  
 
-*   &emsp; Can also use pre-defined searches using the Search Panel with command `runInSearchPanel`.  
-*   &emsp; Supports using path variables in the Search Panel `find/replace/filesToInclude/filesToExclude`, including the current file only or current directory, etc.    
-*  &emsp; Supports using path variables in the find commands fields `find or replace`.  
+*   &emsp; Supports using path variables in the Search Panel `find/replace/filesToInclude/filesToExclude`, including the current file only or current directory.    
 
 *   &emsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See &nbsp; [running commands on save](codeActions.md).
 *   &emsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.  
 
 -------------
 
-## Features
-
-1.  Make a setting with `title`, `find`, `replace`, `restrictFind`, and/or `cursurMove` values and some name (with no spaces) for that setting.  
-2.  Save your `settings.json` file. Reload VS Code as prompted.    
-3.  Optionally select some code or words in your file.    
-4.  Trigger that command from the Command Palette by searching for that name or use that name in a keybinding.  
-
-or  
-
-1.  Make a keybinding with `args` including `find`, `replace`, `restrictFind` and/or `cursorMoveSelect` values.  
-3.  Optionally select some code or words in your file.       
-2.  Trigger that keybinding.  
-
-or  
-
-1.  Make a setting to use the Search Panel with many options, like `title`, `find`, `replace`, `triggerSearch`, `isRegex`, `filesToInclude` and more (see below).  
-2.  Save your `settings.json` file. Reload VS Code as prompted.  
-3.  Trigger that command from the Command Palette by searching for that name or use that name in a keybinding.  
-
-or  
-
-1.  Make one or more `findInCurrentFile` command settings.  
-2.  Use one or more in an `editor.codeActionsOnSave` setting.  
-3.  Save file and those commands will automatically be run in order.  
-For more on this `codeActionsOnSave` usage see &nbsp; [running commands on save](codeActions.md).  
-
-<br/>  
-
 > Note: commands can be removed by deleting or commenting out the associated settings and re-saving the `settings.json` file and reloading VS Code. 
 
 -----------------
 
-Below you will find information on using the `findInCurrentFile` command - which performs a find within the current file, like using the Find Widget but with the ability to save these file/replaces as settings or keybindings.  Some of the information here will be useful to using the `runInSearchPanel` as well - so you should read both.  
+Below you will find information on using the `findInCurrentFile` command - which performs a find within the current file, like using the Find Widget but with the ability to save these file/replaces as settings or keybindings.  Some of the information here will be useful to using the `runInSearchPanel` as well - so you should read both.  See  [Search using the Panel](searchInPanel.md).  
 
-In &nbsp; [Search using the Panel](searchInPanel.md) &nbsp; you will find information on using the `runInSearchPanel` command - where you can save or manipulate searches that use the Search Panel and can be done across files, folders or limited to the current or a specific file.  
+------------------
+
+## Contributed Setting
+
+this extension contributes one setting relevant to the `findInCurrentFile` settings and keybindings:  
+
+* `"find-and-transform.enableWarningDialog"` default = true
+
+This setting controls whether the extension will attempt to find errors in your keybinding or settings argument keys or values.  
+
+```jsonc
+{
+	"key": "alt+r",
+	"command": "findInCurrentFile",
+	"args": {
+      "find": "trouble",
+      "replace": "howdy",
+      "isRegex2": true,          // error, no "isRegex2" key, should be "isRegex"
+      "restrictFind": "twice",   // error, no such value allowed for "restrictFind"
+      "matchCase": "true",       // error, should be a boolean not a string
+      "matchCase": true          // correct
+	}
+}
+```
+
+If the `enableWarningDialog` is set to true, such errors will be presented in a notification message either when attempting to run a keybinding, a setting command or on save of a setting if there are bad arguments.  Not all errors can be detected though so don't rely solely on this.  
+
+The dialogs are modal for the keybindings, and non-modal for the settings.  The command can then be run or aborted.  
 
 ------------------
 
@@ -69,7 +63,7 @@ In &nbsp; [Search using the Panel](searchInPanel.md) &nbsp; you will find inform
 ```jsonc
 {
 	"key": "alt+r",
-	"command": "findInCurrentFile",
+	"command": "findInCurrentFile",            // in keybindings.json  
 
 	"args": {
 
@@ -87,7 +81,7 @@ In &nbsp; [Search using the Panel](searchInPanel.md) &nbsp; you will find inform
 ```
 
 ```jsonc
-"findInCurrentFile": {
+"findInCurrentFile": {                       // in settings.json
 
 	"upcaseSelectedKeywords": {
 
@@ -105,6 +99,8 @@ In &nbsp; [Search using the Panel](searchInPanel.md) &nbsp; you will find inform
 	}
 }
 ```
+
+> Note that the `preserveCase` option is not yet supported.  
 
 > **Defaults**: If you do not specify an argument, its default will be applied.  So `"matchCase": false` is the same as no `"matchCase"` argument at all.  
 
@@ -138,7 +134,7 @@ ${selectedText}
 ${CLIPBOARD}
 ${pathSeparator}
 ${lineNumber}              only resolved once for first cursor, line numbers start at 1, not 0
-${resultsFiles}            explained below
+${resultsFiles}            ** explained below
 ```
 
 These variables should have the same resolved values as found at &nbsp; [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
@@ -161,7 +157,7 @@ These variables should have the same resolved values as found at &nbsp; [vscode'
 \\l$n   lowercase the first letter only of the following capture group: `\\l$3`
 ``` 
 
-These work in **both** the `findInCurrentFile` and `runInSearchPanel` commands or keybindings.  Natively, vscode does not allow case modifiers in the find widget, only in the Search Panel.  
+These work in **both** the `findInCurrentFile` and `runInSearchPanel` commands or keybindings.  
 
 <br/>
 
@@ -178,7 +174,7 @@ Vscode **snippets** although you to make conditional replacements, see [vscode's
 
 ```
 ${1:+add this text}  If found a capture group 1, add the text. `+` means `if`  
-${1:-add this text}  If **no*capture group 1, add the text. `-` means `else`
+${1:-add this text}  If *NO* capture group 1, add the text. `-` means `else`
 ${1:add this text}   Same as `else` above, can omit the `-`  
 ${1:?yes:no}    If capture group 1, add the text at `yes`, otherwise add the text at `no` `?` means `if/else`
 ```
@@ -260,7 +256,7 @@ If you wanted to find multiple items and then transform each in its own way **on
 Explanation: 
 
 1. `"restrictFind": "nextSelect"` do the following one at a time, selecting each in turn  
-2. If you want to skip transforming a match, just move the cursor beyond it (<kbd>leftArrow</kbd>).  
+2. If you want to skip transforming a match, just move the cursor beyond it (<kbd>rightArrow</kbd>).  
 
 3. `${1:+ Found first!!}` if find a capture group 1, replace it with text "Found First!!"  
 4. `${2:/upcase}` if find a capture group 2, uppercase it  
@@ -286,9 +282,9 @@ Explanation:
 }
 ```
 
-You would effectively be replacing the match `trouble` with nothing, so the all matches would disappear from your code.  This **is** the correct result, since you have chosen to match something and replace it with something else that doesn't exist.  
+You would effectively be replacing the match `trouble` with nothing, so all matches would disappear from your code.  This **is** the correct result, since you have chosen to match something and replace it with something else that may not exist.  
 
-If `isRegex` is set to `false`, the replace value, even one like `\\U$2` will be interpreted as literal plain text.    
+> If `isRegex` is set to `false`, the replace value, even one like `\\U$2` will be interpreted as literal plain text.    
 
 ---------------  
 
@@ -329,7 +325,7 @@ You can use the `cursorMoveSelect` option with the below `restrictFind` options.
 6. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
 7.  `"restrictFind": "selections"` make all replacements in the selections only. 
 
-The `cursorMoveSelect` option takes any text as its value.  That text, which can be part of the replacement text or any text, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp.  `matchCase` and `matchWholeWord` settings will be honored as well for the `cursorMoveSelect` text.  
+The `cursorMoveSelect` option takes any text as its value.  That text, which can be part of the replacement text or any text, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp.  `matchCase` and `matchWholeWord` settings will be honored for both the `cursorMoveSelect` and `find` text.  
 
 If, for example you use these args:
 
@@ -341,10 +337,12 @@ If, for example you use these args:
 		"find": "(trouble)",
 		"replace": "\\U$1",
 		"isRegex": true,
-		// "matchWholeWord": true,          // cursorMoveSelect will honor these
-		// "matchCase": true,
-		// "restrictFind": "selections",    // select 'Pa[rn]am' only in the selection(s) after making the replacement(s) 
-		"restrictFind": "line",             // select 'Pa[rn]am' on the current line after making the replacement(s) 
+
+		// "matchWholeWord": true,          // applies to both find and cursorMoveSelect
+		// "matchCase": true,               // applies to both find and cursorMoveSelect
+
+		// "restrictFind": "selections",    // select 'pa[rn]am' only in the selection(s) after making the replacement(s) 
+		"restrictFind": "line",             // select 'pa[rn]am' on the current line after making the replacement(s) 
 
                                             // select only if at beginning of same line
 		"cursorMoveSelect": "^\\s*pa[rn]am" // will be interpreted as a regexp since 'isRegex' is true 
@@ -359,7 +357,7 @@ Note `^` and `$` work well for `restrictFind` selections/line/once, but are disa
 
 `cursorMoveSelect` will select **all** matches in each `selections` or `line` (remember a `line` will find matches in each line with a cursor.)  
 
-For `"restrictFind": "once"`, `cursorMoveSelect` will select the first match **after** the cursor. That is why if using `"cursorMoveSelect": "^"` the cursor won't go there because the cursor is usually already after the start of the line and the search is only forward from the cursor. `"cursorMoveSelect": "$"` will always work with `"restrictFind": "once"`.  
+For `"restrictFind": "once"`, &nbsp; `cursorMoveSelect` will select the first match **after** the cursor. That is why if using `"cursorMoveSelect": "^"` the cursor won't go there because the cursor is already after the start of the line and the search is only forward from the cursor. `"cursorMoveSelect": "$"` will always work with `"restrictFind": "once"`.  
 
 <br/>
 
@@ -417,14 +415,14 @@ Explanation: With no `find` argument, the current nearest word to the cursor (se
 
 -------------------
 
-## Sample Usages
+## Sample Usages in Settings  
 
 In your `settings.json`:  
 
 ```jsonc
-"findInCurrentFile": {                 // perform a find/replace in the current file, optionally in selections only
+"findInCurrentFile": {                 // perform a find/replace in the current file or selection(s)
 
-	"upcaseSwap2": {                       	// <== the "name" that can be used in a keybinding
+	"upcaseSwap2": {                       	// <== the "name" that can be used in a keybinding, no spaces
 		"title": "swap iif <==> hello",  	// title that will appear in the Command Palette
 		"find": "(iif) (hello)",
 		"replace": "_\\u$2_ _\\U$1_",  		// double-escaped case modifiers
@@ -438,19 +436,19 @@ In your `settings.json`:
     "isRegex": true
 	},
 	"addClassToElement": {
-      "title": "Add Class to Html Element",
-      "find": ">",
-      "replace": " class=\"@\">",
-      "restrictFind": "selections",
-      "cursorMoveSelect": "@"                  // after the replacement, move to and select this text
-    }
+    "title": "Add Class to Html Element",
+    "find": ">",
+    "replace": " class=\"@\">",
+    "restrictFind": "selections",
+    "cursorMoveSelect": "@"                  // after the replacement, move to and select this text
+  }
 },
 
 // perform a search/replace using the Search Panel, optionally in current file/folder/workspace/etc.
 
 "runInSearchPanel": {                  // use this as first part of command name in keybindings
 
-	"removeDigits": {                           // used in the keybindingsso no spaces allowed
+	"removeDigits": {                           // used in the keybindings so no spaces allowed
 		"title": "Remove digits from Art....",
 		"find": "^Arturo\\d+",   			            // double-escaped
 		"replace": "",
@@ -460,11 +458,9 @@ In your `settings.json`:
 }
 ```  
 
-> If you do not include a `title` value, one will be created using the name (like `removeDigits` in the last example immediately above. Then you can look for `Find-Transform:removeDigits` in the Co mmand Palette.  Since in the last example a `title` was supplied, you would see `Find-Transform: Remove digits from Art....` in the Command Palette.  All the commands are grouped under the `Find-Transform:` category.  
+> If you do not include a `title` value, one will be created using the name (like `removeDigits` in the last example immediately above. Then you can look for `Find-Transform:removeDigits` in the Command Palette.  Since in the last example a `title` was supplied, you would see `Find-Transform: Remove digits from Art....` in the Command Palette.  All the commands are grouped under the `Find-Transform:` category.  
 
 <br/>
-
-This extension will generate a command for each of the settings, they will appear as, e.g., "Find-Transform: Uppercase Keywords" in the Command Palette.   
 
 
 Examples of possible keybindings (in your `keybindings.json`):  
@@ -513,17 +509,16 @@ An example of keybinding with **NO associated setting**, in `keybindings.json`:
 	"command": "findInCurrentFile",  // note no setting command here
 	"args": {
 
-		// multiline regexp ^ and $ are supported, "m" flag is applied to all searches  
+		// multiline regexp ^ and $ are supported, "m" flag is automatically applied to all searches  
 		// if finding within a selection(s), '^' refers to the start of a selection, NOT the start of a line
 		// if finding within a selection(s), '$' refers to the end of a selection, NOT the end of a line
 
 		"find": "^([ \\t]*const\\s*)(\\w*)",  // double escaping
 
-		// capitalize the word following "const" if at the beginning of the selection
-		"replace": "$1\\U$2",
+		"replace": "$1\\U$2",		              // capitalize the word following "const"
 		"isRegex": true,
 
-		"restrictFind": "selections"     	   // find only in selections
+		"restrictFind": "selections"     	    // find only in selections
 	}
 },
 ```  
@@ -548,7 +543,7 @@ The downside to this method is that the various commands are not kept in one pla
 
 >  Important:  &nbsp; What are &nbsp; **`"nearest words at cursors"`**? &nbsp; In VS Code, a cursor immediately next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a `findInCurrentFile` command with no `find` arg it will treat any and all "nearest words at cursors" as if you were asking to find those words.  Actual selections and "nearest words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  It appears that a word at a cursor is defined generally as this: `\b[a-zA-Z0-9_]\b` although some languages may define it differently.  
 
-> So with the cursor at the start or end of `FIXME` or anywhere within the word, the `FIXME` is the word at the cursor.  `FIXME-Soon` consists of two words.  If the cursor followed the `*` in `FIXME*` then `FIXME` is **not** the word at the cursor.  
+> So with the cursor at the start or end of `FIXME` or anywhere within the word, `FIXME` is the word at the cursor.  `FIXME-Soon` consists of two words.  If the cursor followed the `*` in `FIXME*` then `FIXME` is **not** the word at the cursor.  
 
 This is demonstrated in some of the demos below.  
 
@@ -584,7 +579,7 @@ Explanation: With no `find` key, find matches of selections or nearest words at 
 }
 ```   
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of find and no replace keys in args"/> 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceDemo.gif?raw=true" width="650" height="250" alt="demo of find and no replace keys in args"/> 
 
 Explanation: Will find according to the `find` value and select all those matches.  No replacement.  
 
@@ -606,7 +601,7 @@ Explanation: Will find according to the `find` value and select all those matche
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of find and replace keys in args"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceDemo.gif?raw=true" width="650" height="250" alt="demo of find and replace keys in args"/>  
 
 Explanation: Find using its value in `args` and replace each with its value in the `args` field.  Since there is no `restrictFind` key, the default `document` will be used.   
 
@@ -743,7 +738,7 @@ Explanation: Find the first `>` within selection(s) and replace them with ` clas
 	}
 }
 ```
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceSelectionDemo.gif?raw=true" width="650" height="300" alt="demo of using restrictFind arg to 'selection'" with no replace/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceSelectionDemo.gif?raw=true" width="650" height="250" alt="demo of using restrictFind arg to 'selection'" with no replace/>  
 
 Explanation: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  All find matches within selections will be selected.  
 
@@ -794,7 +789,6 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 ## TODO
 
 * Add more error messages, like if a capture group used in replace but none in the find.
-* Add notifications for mispellings in the options?      
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?    
 * Explore more string operations (e.g., `substring()`, `trim()`, `++`) in the replace settings/args?    
@@ -805,32 +799,6 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 
 ## Release Notes
 
-* 0.1.0	Initial release.
-* 0.2.0	Replace with case modifiers now work better.
-* 0.3.0	Added a generic `find-and-transform.run` command for use in keybindings with `args`.  (later refactored away)  
-  &emsp;&emsp; Work on capture groups without case modifiers.  
-* 0.4.0	Added intellisense for settings and keybindings.  
-  &emsp;&emsp; Added `restrictFind` argument.  
-	&emsp;&emsp; If no find or replace, will select all matches of nearest words at cursor or selection.  
-	&emsp;&emsp; Added many README examples and explanations.   
-* 0.5.0	Added option to use Search Panel with confirmation and all supported options.  
-	&emsp;&emsp; Added intellisense for `runInSearchPanel` args with filtering.  
-	&emsp;&emsp; Use the current selection if no `find` entry or it is set to the empty string.    
-* 0.5.5	Refactored to use matchRange for edits in whole document rather than entire text.   
-  &emsp;&emsp; Added supported for empty selections to `runInSearchPanel` query creation.  
-* 0.6.0	Added support for `CodeActions` so commands from settings can be run on save.   
-  &emsp;&emsp; Added `${CLIPBOARD}` support to `runInSearchPanel` `find` value.  
-* 0.7.0	Added support for `cursorMoveSelect` argument for `findInCurrentFile` settings and keybindings.  
-  &emsp;&emsp; Renamed `cursorMove` option to `cursorMoveSelect` = a **BREAKING CHANGE**.  
-  &emsp;&emsp; Added `once` and `line` support to `restrictFind` options.  
-* 0.8.0	Added `nextSelectFind`, `nextMoveCursorFind`, and `nextDontMoveCursorFind` support to `restrictFind` options.  
-* 0.8.5	Enable clearing `files to include` in Search Panel.  Use `Search: Seed With Nearest Word`.  
-* 0.8.6	Added `triggerReplaceAll` option to `runInSearchPanel`.  Corrected `triggerSearch` operation.  
-* 0.8.8	Added `Search in this File` and `Search in this Folder` editor/tab context menu options.  
-* 0.9.0	Added `Search in this File` and `Search in this Folder` Explorer context menu options.  
-* 0.9.1	Added support for special variables in `find/replace` in `findInCurrentFile` and `runInSearchPanel`.  
-  &emsp;&emsp; Added `${resultsFiles}` variable and `searchInResults` command.  
-* 0.9.4	A lot of work on variables for multi-root workspaces.   
 * 0.9.5	Added support for variables in `filesToExclude`.   
 * 0.9.6	Added support for **conditionals** in `replace` in `findInCurrentFile`.  
   &emsp;&emsp; Added `${\d:/upcase/downcase/capitalize/camelcase/pascalcase}` to `findInCurrentFile` `replace` argument.   

@@ -27,10 +27,111 @@ At the end of this file, see how to use the **context menus** to run a search.
 
 This extension will generate a command for each of the settings, they will appear as, e.g., "`Find-Transform: <your title here>`" in the Command Palette.
 
-----------------------
+----------------------  
 
 
-### Example keybindings:
+## `runInSearchPanel` arguments and types:  
+
+```jsonc
+"title": "<some string>",        // can have spaces, will be shown in the Command Palette: "Find-Transform:My Title"
+
+"find": "<string or regexp>",    // if no find key or empty value, will use the selected text (as vscode does natively)
+
+"replace": "<string>",
+
+"triggerSearch": <boolean>,      // searches and shows the results
+
+"triggerReplaceAll": <boolean>,  // same as the "Replace All" button, confirmation box will still open
+
+"isRegex": <boolean>,
+
+"filesToInclude": "<paths or variables>",      // default is "" = current workspace
+// "filesToInclude": "",            // using the empty string `""` as the value for `filesToInclude` 
+                                    // will clear any prior value from the "files to include" input
+
+"filesToExclude": "<paths or variables>",
+// "filesToExclude": "",           // using the empty string `""` as the value for `filesToExclude`
+                                   // will clear any prior value from the "files to exclude" input
+
+"preserveCase": <boolean>,
+
+"useExcludeSettingsAndIgnoreFiles": <boolean>,
+
+"isCaseSensitive": <boolean>,
+
+"matchWholeWord": <boolean>,
+
+"onlyOpenEditors": <boolean>    // available in Insiders v1.59 now and Stable v1.59 early August, 2021
+```
+
+You will get intellisense presenting these arguments.   And the completions will be filtered to remove any options arlready used in that setting or keybinding.  
+
+<br/>
+
+> As noted above, if you have a `runInSearchPanel` command with no `find` key at all, then the selected text will be used as the query term.  Likewise, if you have a `find` key but with a value of the empty string `""`, the selected text or nearest word will be used.    
+
+> Note: The Search Panel remembers your option selections, like `matchWholeWord` `true/false` for example.  Thus, that option value will persist from call to call of the Search Panel.  If you want to change a value in a setting or keybinding then realize that value will remain as set the next time `runInSearchPanel` is run.  That is how vscode operates.  You can either set a value in the keybinding or setting or manually change it once the Search Panel pops up.
+
+<br/>
+
+### `"onlyOpenEditors"`  
+
+<br/>
+
+> `"onlyOpenEditors"` support will be in vscode Stable v1.59.  Having this option enabled is just like clicking the little book icon in the Search Panel ("Search Only in Open Editors").  This option too will be remembered by vscode so you may want to get into the habit of always using this argument option and intentionally setting to it to `true` or `false`.
+
+If you use **both** `"onlyOpenEditors"` and `"filesToInclude"` arguments, the `"filesToInclude"` value will limit the scope of `"onlyOpenEditors"` to that include value.  So if you had a file to include value of same file not currently open, **no** files would be searched  even with the `"onlyOpenEditors"` set to true.  Only those files both open and included in the `"filesToInclude"` value will be searched.  
+
+```jsonc
+{
+  "key": "alt+shift+f",
+  "command": "runInSearchPanel",
+  "args": {
+    "triggerSearch": true,    // no find, get word at first cursor
+    "onlyOpenEditors": true
+  }
+}
+```
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/onlyOpenEditors1.jpg?raw=true" width="425" height="700" alt="search in open editors only"/>
+
+Explanation: no `find` value, use the word at the **first** cursor to do a search in open editors only.  
+
+
+-------- 
+
+<br/>
+
+
+### <u>Clear the `"filesToInclude/filesToExclude"` values</u>  
+
+<br/>
+
+Specifically for the `"filesToInclude/filesToExclude"` settings an empty string (`"filesToInclude": ""`) will **clear** the old value for the `filesToInclude/filesToExclude` input boxes in the Search Panel.  So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:   
+
+```jsonc
+{
+  "key": "alt+shift+f",                   // whatever keybinding you wish
+  "command": "runInSearchPanel",
+  "args": {
+    "filesToInclude": "${relativeFile}",  // open Search Panel with current file as the `files to include`
+  }
+},
+{
+  "key": "ctrl+shift+f",                  // the default 'Search: Find in Files' command
+  "command": "runInSearchPanel",
+  "args": {
+    // "find"                            // with no find, use word at cursor 
+    "filesToInclude": "",                // clear the `files to include` input box
+  }
+}
+```
+
+With those keybindings, the default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> would open up the Search Panel with the `filesToInclude` input box empty - thus using the default of all workspace files.  <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> would open a Search Panel with the current filename in the `filesToInclude` input. 
+
+---------------
+
+
+## Example keybindings:
 
 ```jsonc
 {
@@ -103,7 +204,7 @@ When you **save** a change to the settings, you will get the message notificatio
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/searchIntellisense.gif?raw=true" width="750" height="400" alt="demo of search panel setting with intellisense"/>
 
-### Explanation: The `runInSearchPanel` command will do a search using the Search Panel.  This allows you to search the current file, folder or the entire workspace, for example. 
+Explanation: The `runInSearchPanel` command will do a search using the Search Panel.  This allows you to search the current file, folder or the entire workspace, for example. 
 
 <br/>
 
@@ -251,74 +352,7 @@ In the demo below, text with a ***blue background*** is selected:
 <br/>
 
 > Note: With no `find` entry and searching in other files, the current selection will be used to search in those other files!  This can be a fast way to search for a current word in other files and also works for the context menu searches (see below).  
-
------------------------
-
-### -- `runInSearchPanel` arguments and types:  
-
-<br/>
-
-```jsonc
-"title": "<some string>",        // can have spaces, will be shown in the Command Palette: "Find-Transform:My Title"
-
-"find": "<string or regexp>",    // if no find key or empty value, will use the selected text (as vscode does natively)
-
-"replace": "<string>",
-
-"triggerSearch": <boolean>,      // searches and shows the results
-
-"triggerReplaceAll": <boolean>,  // same as the "Replace All" button, confirmation box will still open
-
-"isRegex": <boolean>,
-
-"filesToInclude": "<paths or variables>",      // default is "" = current workspace
-// "filesToInclude": "",            // using the empty string `""` as the value for `filesToInclude` 
-                                    // will clear any prior value from the "files to include" input
-
-"filesToExclude": "<paths or variables>",
-// "filesToExclude": "",           // using the empty string `""` as the value for `filesToExclude`
-                                   // will clear any prior value from the "files to exclude" input
-
-"preserveCase": <boolean>,
-
-"useExcludeSettingsAndIgnoreFiles": <boolean>,
-
-"isCaseSensitive": <boolean>,
-
-"matchWholeWord": <boolean>
-```
-
-You will get intellisense presenting these arguments.   And the completions will be filtered to remove any options arlready used in that setting or keybinding.  
-
-<br/>
-
-> As noted above, if you have a `runInSearchPanel` command with no `find` key at all, then the selected text will be used as the query term.  Likewise, if you have a `find` key but with a value of the empty string `""`, the selected text or nearest word will be used.    
-
-> Note: The Search Panel remembers your option selections, like `matchWholeWord` `true/false` for example.  Thus, that option value will persist from call to call of the Search Panel.  If you want to change a value in a setting or keybinding then realize that value will remain as set the next time `runInSearchPanel` is run.  That is how vscode operates.  You can either set a value in the keybinding or setting or manually change it once the Search Panel pops up.
-
---------  
-
-However, specifically for the `"filesToInclude/filesToExclude"` settings an empty string (`"filesToInclude": ""`) will **clear** the old value for the `filesToInclude/filesToExclude` input boxes in the Search Panel.  So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:   
-
-```jsonc
-{
-  "key": "alt+shift+f",                   // whatever keybinding you wish
-  "command": "runInSearchPanel",
-  "args": {
-    "filesToInclude": "${relativeFile}",  // open Search Panel with current file as the `files to include`
-  }
-},
-{
-  "key": "ctrl+shift+f",                  // the default 'Search: Find in Files' command
-  "command": "runInSearchPanel",
-  "args": {
-    // "find"                            // with no find, use word at cursor 
-    "filesToInclude": "",                // clear the `files to include` input box
-  }
-}
-```
-
-With those keybindings, the default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> would open up the Search Panel with the `filesToInclude` input box empty - thus using the default of all workspace files.  <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> would open a Search Panel with the current filename in the `filesToInclude` input.  
+ 
 
 ------------  
 <br/>
@@ -394,13 +428,15 @@ Explanation: The old 'files to include' entry will be replaced by the associated
 
 <br/>
 
--------------------  
+------------------- 
+
+## Contributed Setting  
 
 Showing the context keys can be disabled (the **default** is to show them) with this setting:
 
-* `Find-and-transform: Enable Context Keys` in the Settings UI or `"find-and-transform.enableContextKeys"` true/false in `settings.json`  
+* `Find-and-transform: Enable Context Keys` in the Settings UI    
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableContextMenuSetting.jpg?raw=true" width="850" height="300" alt="enable context menu setting"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableContextMenuSetting.jpg?raw=true" width="850" height="350" alt="enable context menu setting"/>  
 
 <br/><br/>
 
