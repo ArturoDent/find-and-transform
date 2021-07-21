@@ -80,16 +80,16 @@ exports.useSearchPanel = async function (findArray) {
 
 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 	if (isfilesToInclude) {
-		obj["filesToInclude"] = await variables.parseVariables(isfilesToInclude.filesToInclude, "filesToInclude", false);
+		obj["filesToInclude"] = variables.parseVariables(isfilesToInclude.filesToInclude, "filesToInclude", false);
 	}
 
 	const isfilesToExclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToExclude');
 	if (isfilesToExclude) {
-		obj["filesToExclude"] = await variables.parseVariables(isfilesToExclude.filesToExclude, "filesToExclude", false);
+		obj["filesToExclude"] = variables.parseVariables(isfilesToExclude.filesToExclude, "filesToExclude", false);
 	}
 
 	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
-	if (replace?.replace) obj["replace"] = await variables.parseVariables(replace.replace, "replace", false);
+	if (replace?.replace) obj["replace"] = variables.parseVariables(replace.replace, "replace", false);
 
 	const triggerReplaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
 	if (triggerReplaceAll) {
@@ -102,7 +102,7 @@ exports.useSearchPanel = async function (findArray) {
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
 	// if (find?.find) obj["query"] = find.find;
-	if (find?.find) obj["query"] = await variables.parseVariables(find.find, "find", true);
+	if (find?.find) obj["query"] = variables.parseVariables(find.find, "find", true);  // TODO add parseClipboard to all parseV's
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];

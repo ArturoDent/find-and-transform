@@ -5,14 +5,34 @@ const utilities = require('./utilities');
 
 
 
+exports.parseClipboardVariable = async function (variableToResolve, caller, isRegex) {
+
+	if (typeof variableToResolve !== 'string') return "";
+	let resolved = "";
+
+	await vscode.env.clipboard.readText().then(string => {
+		resolved = string;
+	});
+
+	const re = /(\${\s*CLIPBOARD\s*})/g;
+	variableToResolve = variableToResolve.replaceAll(re, resolved);
+
+		// escape .*{}[]?^$ if using in a find 
+	if (isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+	else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
+	else return variableToResolve;
+}
+
+
 /**
  * If the "filesToInclude/find/replace" value uses a variable(s) return the resolved value  
  * 
  * @param {String} variableToResolve - the "filesToInclude/find/replace" value  
  * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude 
- * @param {Boolean} isRegex 
+ * @param {Boolean} isRegex
+ * @param {vscode.Selection} selection 
  */
-exports.parseVariables = async function (variableToResolve, caller, isRegex) {
+exports.parseVariables = function (variableToResolve, caller, isRegex, selection) {
 
 	// support conditionals here?  ${2:+yada}
 
@@ -99,7 +119,8 @@ exports.parseVariables = async function (variableToResolve, caller, isRegex) {
 			case "${selectedText}":
 			case "${ selectedText }":
 				// resolve for each selection ??
-				resolved = vscode.window.activeTextEditor.document.getText(vscode.window.activeTextEditor.selections[0]);
+				// resolved = vscode.window.activeTextEditor.document.getText(vscode.window.activeTextEditor.selections[0]);
+				resolved = vscode.window.activeTextEditor.document.getText(selection);
 				break;
 
 			case "${pathSeparator}":
@@ -111,19 +132,21 @@ exports.parseVariables = async function (variableToResolve, caller, isRegex) {
 			case "${ lineNumber }":
 				// resolve for each selection
 				// +1 because it is 0-based ? which seems weird to me
-				resolved = String(vscode.window.activeTextEditor.selection.active.line + 1);
+				// resolved = String(vscode.window.activeTextEditor.selection.active.line + 1);
+				resolved = String(selection.active.line + 1);
 				break;
 
-			case "${CLIPBOARD}":
-			case "${ CLIPBOARD }":
-				await vscode.env.clipboard.readText().then(string => {
-					resolved = string;
-				});
-				break;
+			// case "${CLIPBOARD}":
+			// case "${ CLIPBOARD }":
+			// 	// vscode.env.clipboard.readText().then(string => {
+			// 	// 	resolved = string;
+			// 	resolved = await vscode.env.clipboard.readText();
+			// 	// });
+			// 	break;
 
 			case "${resultsFiles}":
 			case "${ resultsFiles }":
-				resolved = await this.getSearchResultsFiles();
+				resolved = this.getSearchResultsFiles();
 				break;
 
 			default:

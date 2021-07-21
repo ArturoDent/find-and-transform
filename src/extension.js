@@ -19,6 +19,7 @@ let enableWarningDialog = false;
  */
 async function activate(context) {
 
+
 	let firstRun = true;
 
 	await _loadSettingsAsCommands(context, disposables, firstRun);

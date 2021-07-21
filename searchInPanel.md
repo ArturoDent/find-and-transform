@@ -9,15 +9,15 @@ At the end of this file, see how to use the **context menus** to run a search.
 ```jsonc
 "runInSearchPanel": {
 
-	"removeDigits": {
-		"title": "Remove digits from Arturo",
-		"find": "^(\\s*Arturo)\\d+",         // using the '^' to indicate start of a line
-		"replace": "$1",                     // all the args options will be shown by intellisense
-		"isRegex": true,
-		"triggerSearch": true,
-		"triggerReplaceAll": true,           // explained below
-		"filesToInclude": "${relativeFile}"  // or ${file} for the full path, some variables are supported, see below
-	}
+  "removeDigits": {
+    "title": "Remove digits from Arturo",
+    "find": "^(\\s*Arturo)\\d+",         // using the '^' to indicate start of a line
+    "replace": "$1",                     // all the args options will be shown by intellisense
+    "isRegex": true,
+    "triggerSearch": true,
+    "triggerReplaceAll": true,           // explained below
+    "filesToInclude": "${relativeFile}"  // or ${file} for the full path, some variables are supported, see below
+  }
 }
 ``` 
 
@@ -45,13 +45,13 @@ This extension will generate a command for each of the settings, they will appea
 
 "isRegex": <boolean>,
 
-"filesToInclude": "<paths or variables>",      // default is "" = current workspace
-// "filesToInclude": "",            // using the empty string `""` as the value for `filesToInclude` 
-                                    // will clear any prior value from the "files to include" input
+"filesToInclude": "<paths or variables>",     // default is "" = current workspace
+// "filesToInclude": "",             // using the empty string `""` as the value for `filesToInclude` 
+                                     // will clear any prior value from the "files to include" input
 
 "filesToExclude": "<paths or variables>",
-// "filesToExclude": "",           // using the empty string `""` as the value for `filesToExclude`
-                                   // will clear any prior value from the "files to exclude" input
+// "filesToExclude": "",            // using the empty string `""` as the value for `filesToExclude`
+                                    // will clear any prior value from the "files to exclude" input
 
 "preserveCase": <boolean>,
 
@@ -61,7 +61,7 @@ This extension will generate a command for each of the settings, they will appea
 
 "matchWholeWord": <boolean>,
 
-"onlyOpenEditors": <boolean>    // available in Insiders v1.59 now and Stable v1.59 early August, 2021
+"onlyOpenEditors": <boolean>        // available in Insiders v1.59 now and Stable v1.59 early August, 2021
 ```
 
 You will get intellisense presenting these arguments.   And the completions will be filtered to remove any options arlready used in that setting or keybinding.  
@@ -87,7 +87,7 @@ If you use **both** `"onlyOpenEditors"` and `"filesToInclude"` arguments, the `"
   "key": "alt+shift+f",
   "command": "runInSearchPanel",
   "args": {
-    "triggerSearch": true,    // no find, get word at first cursor
+    "triggerSearch": true,         // no find, get word at first cursor
     "onlyOpenEditors": true
   }
 }
@@ -120,8 +120,8 @@ Specifically for the `"filesToInclude/filesToExclude"` settings an empty string 
   "key": "ctrl+shift+f",                  // the default 'Search: Find in Files' command
   "command": "runInSearchPanel",
   "args": {
-    // "find"                            // with no find, use word at cursor 
-    "filesToInclude": "",                // clear the `files to include` input box
+    // "find"                             // with no find, use word at cursor 
+    "filesToInclude": "",                 // clear the `files to include` input box
   }
 }
 ```
@@ -135,25 +135,25 @@ With those keybindings, the default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd
 
 ```jsonc
 {
-	"key": "alt+s",
-	"command": "runInSearchPanel.removeDigits"      // from the settings
-}                                                	// any "args" here will be ignored, they are in the settings
+  "key": "alt+s",
+  "command": "runInSearchPanel.removeDigits"      // from the settings
+}                                                 // any "args" here will be ignored, they are in the settings
 ```
 
 ```jsonc
 // below: a generic "runInSearchPanel" keybinding command, no need for any settings to run these
 {
-	"key": "alt+z",
-	"command": "runInSearchPanel",       // note: no second part of a command name
-	"args": {                            // args not set here will use their last values set in the Search Panel 
-		"find": "(?<=Arturo)\\d+",
-		"replace": "###",
-		"matchWholeWord": false,
-		"isRegex": true,
-		"filesToInclude": "${relativeFile}",
-		// "filesToInclude": "<relative or absolute paths supported>",  // but see below
-		"triggerSearch": true
-	}
+  "key": "alt+z",
+  "command": "runInSearchPanel",       // note: no second part of a command name
+  "args": {                            // args not set here will use their last values set in the Search Panel 
+    "find": "(?<=Arturo)\\d+",
+    "replace": "###",
+    "matchWholeWord": false,
+    "isRegex": true,
+    "filesToInclude": "${relativeFile}",
+    // "filesToInclude": "<relative or absolute paths supported>",  // but see below
+    "triggerSearch": true
+  }
 }
 ```
 
@@ -216,22 +216,22 @@ The `runInSearchPanel` settings commands can be used in keybindings just like th
 
 ```jsonc
 {
-	"key": "alt+z",
-	"command": "runInSearchPanel.removeDigits"
+  "key": "alt+z",
+  "command": "runInSearchPanel.removeDigits"
 }
 ```
 Just like with `findInCurrentFile` keybindings if you add arguments to a command that already exists in a setting, the keybinding arguments will be ignored.  
 
 ```jsonc
 {
-	"key": "alt+z",
-	"command": "runInSearchPanel.removeDigits",  // assume this exists in settings
-
-	"args": {                     // then all args are ignored, the settings args are applied instead
-		"find": "(?<=Arturo)\\d+",
-		"replace": "###",
-		"isRegex": true
-	}
+  "key": "alt+z",
+  "command": "runInSearchPanel.removeDigits",     // assume this exists in settings
+  
+  "args": {                          // then all args are ignored, the settings args are applied instead
+    "find": "(?<=Arturo)\\d+",
+    "replace": "###",
+    "isRegex": true
+  }
 }
 ```
 
@@ -239,35 +239,35 @@ You can also create commands solely in a keybinding like:
 
 ```jsonc
 {
-	"key": "alt+z",
-	"command": "runInSearchPanel",
-	"args": {
-		"find": "(?<=^Arturo)\\d+",   // fixed-width lookbehinds and multiline supported
-		"replace": "###",
-		"matchWholeWord": false,
-		"isRegex": true,
-		"filesToInclude": "${relativeFile}",  // resolves to current file
-		"triggerSearch": true,
-		"triggerReplaceAll": true     // if using this, must have triggerSearch: true
-	}
+  "key": "alt+z",
+  "command": "runInSearchPanel",
+  "args": {
+    "find": "(?<=^Arturo)\\d+",             // fixed-width lookbehinds and multiline supported
+    "replace": "###",
+    "matchWholeWord": false,
+    "isRegex": true,
+    "filesToInclude": "${relativeFile}",    // resolves to current file
+    "triggerSearch": true,
+    "triggerReplaceAll": true               // if using this, must have triggerSearch: true
+  }
 }
 ```
 
 This is the same as creating a command in the settings like so (and then triggering it from the Command Palette or using the keybinding which follows):  
 
 ```jsonc
-"runInSearchPanel": {                        // in settings.json
+"runInSearchPanel": {                       // in settings.json
   "removeArturosDigits":  {
-      "title": "Remove Arturo's Digits",
-      "find": "(?<=^Arturo)\\d+",
-      "replace": "###",
-      "matchWholeWord": false,
-      "isRegex": true,
-      "filesToInclude": "${relativeFile}",
-      "triggerSearch": true,
-      "triggerReplaceAll": true        // if using this, must have triggerSearch: true
+    "title": "Remove Arturo's Digits",
+    "find": "(?<=^Arturo)\\d+",
+    "replace": "###",
+    "matchWholeWord": false,
+    "isRegex": true,
+    "filesToInclude": "${relativeFile}",
+    "triggerSearch": true,
+    "triggerReplaceAll": true               // if using this, must have triggerSearch: true
   }
-},
+}
 ```
 
 ```jsonc
@@ -301,13 +301,13 @@ This works:
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "findInCurrentFile",         // findInCurrentFile
-	"args": {
-		"find": "(?<=^Art[\\w]*)\\d+",      // not fixed-length, but okay in findInCurrentFile
-		"replace": "###",
-		"isRegex": true,
-	}
+  "key": "alt+y",
+  "command": "findInCurrentFile",       // findInCurrentFile
+  "args": {
+    "find": "(?<=^Art[\\w]*)\\d+",      // not fixed-length, but okay in findInCurrentFile
+    "replace": "###",
+    "isRegex": true,
+  }
 }
 ```
 
@@ -315,13 +315,13 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "runInSearchPanel",            // runInSearchPanel
-	"args": {
-		"find": "(?<=^Art[\\w]*)\\d+",        // not fixed-length: ERROR will not run
-		"replace": "###",
-		"isRegex": true,
-	}
+  "key": "alt+y",
+  "command": "runInSearchPanel",         // runInSearchPanel
+  "args": {
+    "find": "(?<=^Art[\\w]*)\\d+",       // not fixed-length: ERROR will not run
+    "replace": "###",
+    "isRegex": true,
+  }
 }
 ```
 
@@ -331,13 +331,13 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 
 ```jsonc
 {
-	"key": "alt+z",
-	"command": "runInSearchPanel",
-	"args": {
-		//"find": "<someText>",  // assume no "find" entry
-		"replace": "###",        // optional
-		"triggerSearch": true    // optional
-	}
+  "key": "alt+z",
+  "command": "runInSearchPanel",
+  "args": {
+    //"find": "<someText>",       // assume no "find" entry
+    "replace": "###",             // optional
+    "triggerSearch": true         // optional
+  }
 }
 ```
 
@@ -475,25 +475,25 @@ At this point, vscode does not allow the context menu of the search results view
 
 ```jsonc
 {
-  "key": "shift+alt+s",                  // whatever keybinding you wish
+  "key": "shift+alt+s",                              // whatever keybinding you wish
   "command": "find-and-transform.searchInResults",
   "args": {
     "find": "Second",
     "replace": "Fourth",
-    "filesToInclude": "${relativeFile}",  // will be ignored in this command
-    "triggerSearch": false        // will be ignored, true will be applied
-
-		// other available args
-
-		// "triggerReplaceAll"
-		// "isRegex"
-		// "preserveCase"
-		// "useExcludeSettingsAndIgnoreFiles"
-		// "isCaseSensitive"
-		// "matchWholeWord"
-		// "filesToExclude"
+    "filesToInclude": "${relativeFile}",             // will be ignored in this command
+    "triggerSearch": false                           // will be ignored, true will be applied
+    
+    // other available args
+    
+    // "triggerReplaceAll"
+    // "isRegex"
+    // "preserveCase"
+    // "useExcludeSettingsAndIgnoreFiles"
+    // "isCaseSensitive"
+    // "matchWholeWord"
+    // "filesToExclude"
   },
-  "when": "hasSearchResult"      // I suggest this but it isn't mandatory
+  "when": "hasSearchResult"                         // I suggest this but it isn't mandatory
 }
 ```
 
@@ -510,15 +510,15 @@ At this point, vscode does not allow the context menu of the search results view
 
 ```jsonc
 {
-  "key": "ctrl+shift+f",            // whatever keybinding you want
-  "command": "runInSearchPanel",    // note runInSearchPanel command here
+  "key": "ctrl+shift+f",                   // whatever keybinding you want
+  "command": "runInSearchPanel",           // note runInSearchPanel command here
   "args": {
-    "find": "Second",               // plus all the other args, see above 
+    "find": "Second",                      // plus all the other args, see above 
     "replace": "Third",
     "filesToInclude": "${resultsFiles}",   // !!
     "triggerSearch": false                 // this will be respected here
   },
-	"when": "hasSearchResult"      // I suggest this but it isn't mandatory
+  "when": "hasSearchResult"                // I suggest this but it isn't mandatory
 }
 ```
 
@@ -531,12 +531,12 @@ Other usages:
 "filesToInclude": "${resultsFiles}, noFirst.txt"         // add any file(s) to the scope   
 "filesToInclude": "${resultsFiles}, ${relativeFile}"     // add the current file to the scope
 
-   // search in the results files but exclude the current file   
+     // search in the results files but exclude the current file   
 
 "filesToInclude": "${resultsFiles}",
 "filesToExclude": "${relativeFile}"  
 
-   // search in the results files but exclude the current file's entire folder  
+     // search in the results files but exclude the current file's entire folder  
 
 "filesToInclude": "${resultsFiles}",
 "filesToExclude": "${relativeFileDirname}"  
@@ -551,14 +551,14 @@ Other usages:
 
 ```jsonc
 "runInSearchPanel": {
-  "reSearchForSecond":  {                 // use this 'name' in a keybinding
-      "title": "reSearch for 'Second'",   // Command Palette as Find-Transform: reSearch for 'Second'
-      "find": "Second",
-      "replace": "Third",
-      "isRegex": true,
-      "filesToInclude": "${resultsFiles}",
-      "triggerSearch": true,
-      // "triggerReplaceAll": true // if using this, triggerSearch: true is assumed
+  "reSearchForSecond":  {               // use this 'name' in a keybinding
+    "title": "reSearch for 'Second'",   // Command Palette as Find-Transform: reSearch for 'Second'
+    "find": "Second",
+    "replace": "Third",
+    "isRegex": true,
+    "filesToInclude": "${resultsFiles}",
+    "triggerSearch": true,
+    // "triggerReplaceAll": true // if using this, triggerSearch: true is assumed
   }
 }
 ```

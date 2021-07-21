@@ -37,16 +37,16 @@ This setting controls whether the extension will attempt to find errors in your 
 
 ```jsonc
 {
-	"key": "alt+r",
-	"command": "findInCurrentFile",
-	"args": {
-      "find": "trouble",
-      "replace": "howdy",
-      "isRegex2": true,          // error, no "isRegex2" key, should be "isRegex"
-      "restrictFind": "twice",   // error, no such value allowed for "restrictFind"
-      "matchCase": "true",       // error, should be a boolean not a string
-      "matchCase": true          // correct
-	}
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "trouble",
+    "replace": "howdy",
+    "isRegex2": true,              // error, no "isRegex2" key, should be "isRegex"
+    "restrictFind": "twice",       // error, no such value allowed for "restrictFind"
+    "matchCase": "true",           // error, should be a boolean not a string
+    "matchCase": true              // correct
+    }
 }
 ```
 
@@ -64,41 +64,41 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 ```jsonc
 {
-	"key": "alt+r",
-	"command": "findInCurrentFile",            // in keybindings.json  
-
-	"args": {
-
-		"find": "(trouble)",          //  can be plain text, a regexp or a special variable
-		"replace": "\\U$1",           //  text, variables, conditionals, case modifiers, etc.
-
-		"isRegex": true,              //  boolean, will apply to 'cursorMoveSelect' as well as the find query
-		"matchWholeWord": true,       //  boolean, same as above
-		"matchCase": true,            //  boolean, same as above
-		"restrictFind": "selections", //  restrict find to document, selections, line, once on line or next
-
-		"cursorMoveSelect": "^\\s*pa[rn]am"  //  select this text/regexp after making the replacement
-	}
+  "key": "alt+r",
+  "command": "findInCurrentFile",      // in keybindings.json  
+  
+  "args": {
+  
+    "find": "(trouble)",               // can be plain text, a regexp or a special variable
+    "replace": "\\U$1",                // text, variables, conditionals, case modifiers, etc.
+    
+    "isRegex": true,                   // boolean, will apply to 'cursorMoveSelect' as well as the find query
+    "matchWholeWord": true,            // boolean, same as above
+    "matchCase": true,                 // boolean, same as above
+    "restrictFind": "selections",      // restrict find to document, selections, line, once on line or next
+    
+    "cursorMoveSelect": "^\\s*pa[rn]am"     // select this text/regexp after making the replacement
+  }
 }
 ```
 
 ```jsonc
-"findInCurrentFile": {                       // in settings.json
+"findInCurrentFile": {                        // in settings.json
 
-	"upcaseSelectedKeywords": {
-
-		"title": "Uppercase selected Keywords",  //  used for Command Palette
-
-		"find": "(Hello) (World)",
-		"replace": "\\U$1--${2:-WORLD}",         //  if no capture group 2, add "WORLD"
-
-		"isRegex": true,                         //  default = false
-		"matchCase": false,                      //  default = false
-		"matchWholeWord": true,                  //  default = false
-		"restrictFind": "selections",            //  default = document
-
-		"cursorMoveSelect": "Select me"
-	}
+  "upcaseSelectedKeywords": {
+  
+    "title": "Uppercase selected Keywords",   // used for Command Palette
+    
+    "find": "(Hello) (World)",
+    "replace": "\\U$1--${2:-WORLD}",          // if no capture group 2, add "WORLD"
+    
+    "isRegex": true,                          // default = false
+    "matchCase": false,                       // default = false
+    "matchWholeWord": true,                   // default = false
+    "restrictFind": "selections",             // default = document
+    
+    "cursorMoveSelect": "Select me"
+  }
 }
 ```
 
@@ -185,29 +185,29 @@ Examples:
 
 ```jsonc
 {
-	"key": "alt+r",
-	"command": "findInCurrentFile",
-	"args": {
-		"find": "(First)|(Second)|(Third)",  // your regexp with possible capture groups
-
-		"replace": "${3:-yada3} \\U$1",      // if no group 3, add "yada3" then upcase group 1
-
-		                                    // groups within conditionals must be surrounded by backticks `$2`
-		"replace": "${1:+abcd`$2`efgh}",    // if group 1, add group 2 plus surrounding text
-
-		"replace": "${1:+aaa\\}bbb}",       // must double-escape closing brackets if want it as text
-
-		"replace": "${1:+*`$1``$1`*}${2:+*`$2``$2`*}",  // lots of combinations possible
-
-		"replace": "$0",                      // can use whole match as a replacement
-
-		"replace": "${2:?yada2:yada3}\\U$1",  // if group 2, add "yada2", else add "yada3"
-		                                      // then follow with upcased group 1
-
-		"replace": "${2:?`$3`:`$1`}",         // if group 2, add group 3, else add group 1
-
-		"isRegex": true
-	}
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "(First)|(Second)|(Third)",   // your regexp with possible capture groups
+    
+    "replace": "${3:-yada3} \\U$1",       // if no group 3, add "yada3" then upcase group 1
+    
+                                          // groups within conditionals must be surrounded by backticks `$2`
+    "replace": "${1:+abcd`$2`efgh}",      // if group 1, add group 2 plus surrounding text
+    
+    "replace": "${1:+aaa\\}bbb}",         // must double-escape closing brackets if want it as text
+    
+    "replace": "${1:+*`$1``$1`*}${2:+*`$2``$2`*}",      // lots of combinations possible
+    
+    "replace": "$0",                      // can use whole match as a replacement
+    
+    "replace": "${2:?yada2:yada3}\\U$1",  // if group 2, add "yada2", else add "yada3"
+                                          // then follow with upcased group 1
+    
+    "replace": "${2:?`$3`:`$1`}",         // if group 2, add group 3, else add group 1
+    
+    "isRegex": true
+  }
 }
 ```
 
@@ -242,15 +242,15 @@ If you wanted to find multiple items and then transform each in its own way **on
 
 ```jsonc
 {
-	"key": "alt+r",
-	"command": "findInCurrentFile",
-	"args": {
-		"find": "(first)|(Second)|(Third)",
-		"replace": "${1:+ Found first!!}${2:/upcase}${3:/downcase}",
-		"isRegex": true,
-		"restrictFind": "nextSelect"
-		// 'nextMoveCursor' would do the same, moving the cursor but not selecting
-	}
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "(first)|(Second)|(Third)",
+    "replace": "${1:+ Found first!!}${2:/upcase}${3:/downcase}",
+    "isRegex": true,
+    "restrictFind": "nextSelect"
+    // 'nextMoveCursor' would do the same, moving the cursor but not selecting
+  }
 }
 ```
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/individualTransforms.gif?raw=true" width="500" height="200" alt="apply transforms one by one"/>
@@ -275,12 +275,12 @@ Explanation:
 
 ```jsonc
 "args": {
-	"find": "(trouble)",                 // only a capture group 1
-	// "find": "trouble",                // no capture groups!, same bad result
-	"replace": "\\U$2",                  // but using capture group 2!!, so replacing with nothing
-	// "replace": "${2:/pascalcase}",    // same bad result
-
-	"isRegex": true
+  "find": "(trouble)",                 // only a capture group 1
+  // "find": "trouble",                // no capture groups!, same bad result
+  "replace": "\\U$2",                  // but using capture group 2!!, so replacing with nothing
+  // "replace": "${2:/pascalcase}",    // same bad result
+  
+  "isRegex": true
 }
 ```
 
@@ -301,10 +301,10 @@ Example keybinding:
   "key": "alt+r",
   "command": "findInCurrentFile",
   "args": {
-    "find": "FIXME",    		// or use the word at the cursor
+    "find": "FIXME",                       // or use the word at the cursor
     "replace": "DONE",
     "restrictFind": "nextDontMoveCursor",
-    // "cursorMoveSelect": "FIXME"   // will be ignored with the 'next...` options
+    // "cursorMoveSelect": "FIXME"         // will be ignored with the 'next...` options
   }
 }
 ```
@@ -333,26 +333,26 @@ If, for example you use these args:
 
 ```jsonc
 {
-	"key": "alt+r",
-	"command": "findInCurrentFile",
-	"args": {
-		"find": "(trouble)",
-		"replace": "\\U$1",
-		"isRegex": true,
-
-		// "matchWholeWord": true,          // applies to both find and cursorMoveSelect
-		// "matchCase": true,               // applies to both find and cursorMoveSelect
-
-		// "restrictFind": "selections",    // select 'pa[rn]am' only in the selection(s) after making the replacement(s) 
-		"restrictFind": "line",             // select 'pa[rn]am' on the current line after making the replacement(s) 
-
-                                            // select only if at beginning of same line
-		"cursorMoveSelect": "^\\s*pa[rn]am" // will be interpreted as a regexp since 'isRegex' is true 
-		// "cursorMoveSelect": "^"          // cursor will go to beginning of line (if matchWholeWord is false)
-
-		// "restrictFind": "selections", 
-		// "cursorMoveSelect": "^"          // cursor will go to beginning of each single-line selection
-	}
+"key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "(trouble)",
+    "replace": "\\U$1",
+    "isRegex": true,
+    
+    // "matchWholeWord": true,          // applies to both find and cursorMoveSelect
+    // "matchCase": true,               // applies to both find and cursorMoveSelect
+    
+    // "restrictFind": "selections",    // select 'pa[rn]am' only in the selection(s) after making the replacement(s) 
+    "restrictFind": "line",             // select 'pa[rn]am' on the current line after making the replacement(s) 
+    
+                                        // select only if at beginning of same line
+    "cursorMoveSelect": "^\\s*pa[rn]am" // will be interpreted as a regexp since 'isRegex' is true 
+    // "cursorMoveSelect": "^"          // cursor will go to beginning of line (if matchWholeWord is false)
+    
+    // "restrictFind": "selections", 
+    // "cursorMoveSelect": "^"          // cursor will go to beginning of each single-line selection
+  }
 }
 ```
 Note `^` and `$` work well for `restrictFind` selections/line/once, but are disabled for `"restrictFind": "document"`.  
@@ -405,9 +405,9 @@ For `"restrictFind": "once"`, &nbsp; `cursorMoveSelect` will select the first ma
   "key": "alt+r",
   "command": "findInCurrentFile",
   "args": {
-    // "find": "FIXME",   // !! no find or replace !!
+    // "find": "FIXME",                 // !! no find or replace !!
     // "replace": "DONE",
-    "restrictFind": "nextMoveCursor"   // or try `nextSelect` here  
+    "restrictFind": "nextMoveCursor"    // or try `nextSelect` here  
   }
 }
 ```
@@ -422,41 +422,41 @@ Explanation: With no `find` argument, the current nearest word to the cursor (se
 In your `settings.json`:  
 
 ```jsonc
-"findInCurrentFile": {                 // perform a find/replace in the current file or selection(s)
+"findInCurrentFile": {                   // perform a find/replace in the current file or selection(s)
 
-	"upcaseSwap2": {                       	// <== the "name" that can be used in a keybinding, no spaces
-		"title": "swap iif <==> hello",  	// title that will appear in the Command Palette
-		"find": "(iif) (hello)",
-		"replace": "_\\u$2_ _\\U$1_",  		// double-escaped case modifiers
-		"isRegex": true,
-		"restrictFind": "selections"
-	},
-	"capitalizeIIF": {
-		"title": "capitalize 'iif'",     	// all settings must have a "title" field
-		"find": "^(iif)",
-		"replace": "\\U$1",
+  "upcaseSwap2": {                       // <== the "name" that can be used in a keybinding, no spaces
+    "title": "swap iif <==> hello",      // title that will appear in the Command Palette
+    "find": "(iif) (hello)",
+    "replace": "_\\u$2_ _\\U$1_",        // double-escaped case modifiers
+    "isRegex": true,
+    "restrictFind": "selections"
+  },
+  "capitalizeIIF": {
+    "title": "capitalize 'iif'",         // all settings must have a "title" field
+    "find": "^(iif)",
+    "replace": "\\U$1",
     "isRegex": true
-	},
-	"addClassToElement": {
+  },
+  "addClassToElement": {
     "title": "Add Class to Html Element",
     "find": ">",
     "replace": " class=\"@\">",
     "restrictFind": "selections",
-    "cursorMoveSelect": "@"                  // after the replacement, move to and select this text
+    "cursorMoveSelect": "@"               // after the replacement, move to and select this text
   }
 },
 
 // perform a search/replace using the Search Panel, optionally in current file/folder/workspace/etc.
 
-"runInSearchPanel": {                  // use this as first part of command name in keybindings
+"runInSearchPanel": {                     // use this as first part of command name in keybindings
 
-	"removeDigits": {                           // used in the keybindings so no spaces allowed
-		"title": "Remove digits from Art....",
-		"find": "^Arturo\\d+",   			            // double-escaped
-		"replace": "",
-		"triggerSearch": "true",
-		"isRegex": true
-	}
+  "removeDigits": {                           // used in the keybindings so no spaces allowed
+    "title": "Remove digits from Art....",
+    "find": "^Arturo\\d+",                    // double-escaped
+    "replace": "",
+    "triggerSearch": "true",
+    "isRegex": true
+  }
 }
 ```  
 
@@ -471,23 +471,23 @@ Examples of possible keybindings (in your `keybindings.json`):
 // below: keybindings generated from commands in the settings  
 
 {
-	"key": "alt+u",
-	"command": "findInCurrentFile.upcaseKeywords"   // from the settings
-},                                   // any "args" here will be ignored, they are in the settings
+  "key": "alt+u",
+  "command": "findInCurrentFile.upcaseKeywords"       // from the settings
+},                                      // any "args" here will be ignored, they are in the settings
 
  
 // below: a generic "findInCurrentFile" keybinding command, no need for any settings to run these
 
 {                                         
-	"key": "alt+y",
-	"command": "findInCurrentFile",       // note no second part of a command name
-	"args": {                             // must set the "args" here since no associated settings command
-		"find": "^(iif)",                 // note the ^ = beginning of line
-		"replace": "\\U$1",               // all the "args" are optional
-		"isRegex": true,
-		"restrictFind": "selections",
-		"cursorMoveSelect": "IIF"         // this text will be selected; "$" goes to the end of the selections
-	}
+  "key": "alt+y",
+  "command": "findInCurrentFile",       // note no second part of a command name
+  "args": {                             // must set the "args" here since no associated settings command
+    "find": "^(iif)",                   // note the ^ = beginning of line
+    "replace": "\\U$1",                 // all the "args" are optional
+    "isRegex": true,
+    "restrictFind": "selections",
+    "cursorMoveSelect": "IIF"           // this text will be selected; "$" goes to the end of the selections
+  }
 },
 ```  
 
@@ -507,21 +507,21 @@ An example of keybinding with **NO associated setting**, in `keybindings.json`:
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "findInCurrentFile",  // note no setting command here
-	"args": {
-
-		// multiline regexp ^ and $ are supported, "m" flag is automatically applied to all searches  
-		// if finding within a selection(s), '^' refers to the start of a selection, NOT the start of a line
-		// if finding within a selection(s), '$' refers to the end of a selection, NOT the end of a line
-
-		"find": "^([ \\t]*const\\s*)(\\w*)",  // double escaping
-
-		"replace": "$1\\U$2",		              // capitalize the word following "const"
-		"isRegex": true,
-
-		"restrictFind": "selections"     	    // find only in selections
-	}
+  "key": "alt+y",
+  "command": "findInCurrentFile",          // note no setting command here
+  "args": {
+    
+    // multiline regexp ^ and $ are supported, "m" flag is automatically applied to all searches  
+    // if finding within a selection(s), '^' refers to the start of a selection, NOT the start of a line
+    // if finding within a selection(s), '$' refers to the end of a selection, NOT the end of a line
+    
+    "find": "^([ \\t]*const\\s*)(\\w*)",   // double escaping
+    
+    "replace": "$1\\U$2",                  // capitalize the word following "const"
+    "isRegex": true,
+    
+    "restrictFind": "selections"           // find only in selections
+  }
 },
 ```  
 
@@ -555,8 +555,8 @@ This is demonstrated in some of the demos below.
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "findInCurrentFile"
+  "key": "alt+y",
+  "command": "findInCurrentFile"
 },
 ```
 
@@ -572,12 +572,12 @@ Explanation: With no `find` key, find matches of selections or nearest words at 
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "findInCurrentFile",
-	"args": {
-		"find": "(create|table|exists)",
-		"isRegex": true
-	}
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "(create|table|exists)",
+    "isRegex": true
+  }
 }
 ```   
 
@@ -593,13 +593,13 @@ Explanation: Will find according to the `find` value and select all those matche
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "findInCurrentFile",
-	"args": {
-		"find": "(create|table|exists)",
-		"replace": "\\U$1",
-		"isRegex": true
-	}
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "(create|table|exists)",
+    "replace": "\\U$1",
+    "isRegex": true
+  }
 }
 ```  
 
@@ -615,13 +615,13 @@ Explanation: Find using its value in `args` and replace each with its value in t
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "findInCurrentFile",
-	"args": {
-		// "find": "(create|table|exists)",
-		"replace": "\\U$1",
-		"isRegex": true
-	}
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+    // "find": "(create|table|exists)",
+    "replace": "\\U$1",
+    "isRegex": true
+  }
 }
 ```  
 
@@ -637,15 +637,15 @@ Explanation: With no `find` value find all the words at the cursors or selection
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "findInCurrentFile",
-	"args": {
-		"find": "(create|table|exists)",   // find each of these words
-		"replace": "_\\U$1_",              // capitalize _capture group 1_
-		"isRegex": true,
-		"restrictFind": "selections",
-		"cursorMoveSelect": "TABLE"        // will select 'TABLE' only if it is within a selection 
-	}
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "(create|table|exists)",    // find each of these words
+    "replace": "_\\U$1_",               // capitalize _capture group 1_
+    "isRegex": true,
+    "restrictFind": "selections",
+    "cursorMoveSelect": "TABLE"         // will select 'TABLE' only if it is within a selection 
+  }
 }
 ``` 
 
@@ -667,14 +667,14 @@ The above keybinding is no different than this setting (in your `settings.json`)
 
 ```jsonc
 "findInCurrentFile": {
-	"upcaseSelectedKeywords": {
-		"title": "Uppercase selected Keywords",      // a "title" is required in the settings
-		"find": "(create|table|exists)",
-		"replace": "_\\U$1_",
-		"isRegex": true,
-		"restrictFind": "selections",
-		"cursorMoveSelect": "TABLE"
-	}
+  "upcaseSelectedKeywords": {
+    "title": "Uppercase selected Keywords",     // a "title" is required in the settings
+    "find": "(create|table|exists)",
+    "replace": "_\\U$1_",
+    "isRegex": true,
+    "restrictFind": "selections",
+    "cursorMoveSelect": "TABLE"
+  }
 }
 ```
 except that a **reload of vscode is required** prior to using the generated command from this setting (no reload necessary for the keybinding) and the `title`, in this case `"Uppercase selected Keywords"` will appear and be searchable in the Command Palette (not true for keybinding "commands").  
@@ -688,28 +688,28 @@ except that a **reload of vscode is required** prior to using the generated comm
 * demonstrating `cursorMoveSelect` after replacement  
 
 ```jsonc
-"findInCurrentFile": {               // in settings.json
+"findInCurrentFile": {              // in settings.json
   "addClassToElement": {
     "title": "Add Class to Html Element",
     "find": ">",
     "replace": " class=\"@\">",
-		"isRegex": true,
+    "isRegex": true,
     "restrictFind": "once", 
-    "cursorMoveSelect": "@"          // select the next '@'
+    "cursorMoveSelect": "@"         // select the next '@'
   }
 }
 ```
 
 ```jsonc
-  {                                 // a keybinding for the above setting
-    "key": "alt+q",                 // whatever you want
-
-	      // should get intellisense for available settings commands after typing `findInCurrentFile.`  
-    "command": "findInCurrentFile.addClassToElement"
-
-	// "when": ""                   // can be used here
-	// "args": {}                   // will be ignored, the args in the settings rule  
-  },
+{                                   // a keybinding for the above setting
+  "key": "alt+q",                   // whatever you want
+  
+      // should get intellisense for available settings commands after typing `findInCurrentFile.`  
+  "command": "findInCurrentFile.addClassToElement"
+  
+  // "when": ""                     // can be used here
+  // "args": {}                     // will be ignored, the args in the settings rule  
+}
 ```
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMoveSelect arg with restrictFind of 'once'"/>
@@ -730,14 +730,14 @@ Explanation: Find the first `>` within selection(s) and replace them with ` clas
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "findInCurrentFile",
-	"args": {
-		"find": "(create|table|exists)",
-		// "replace": "_\\U$1_",
-		"isRegex": true,
-		"restrictFind": "selections"
-	}
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "(create|table|exists)",
+    // "replace": "_\\U$1_",
+    "isRegex": true,
+    "restrictFind": "selections"
+  }
 }
 ```
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceSelectionDemo.gif?raw=true" width="650" height="250" alt="demo of using restrictFind arg to 'selection'" with no replace/>  
@@ -759,13 +759,13 @@ This works:
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "findInCurrentFile",         // findInCurrentFile
-	"args": {
-		"find": "(?<=^Art[\\w]*)\\d+",      // not fixed-length, but okay in findInCurrentFile
-		"replace": "###",
-		"isRegex": true,
-	}
+  "key": "alt+y",
+  "command": "findInCurrentFile",         // findInCurrentFile
+  "args": {
+    "find": "(?<=^Art[\\w]*)\\d+",        // not fixed-length, but okay in findInCurrentFile
+    "replace": "###",
+    "isRegex": true,
+  }
 }
 ```
 
@@ -773,13 +773,13 @@ but the same keybinding in `runInSearchPanel` **will error and not produce any r
 
 ```jsonc
 {
-	"key": "alt+y",
-	"command": "runInSearchPanel",            // runInSearchPanel
-	"args": {
-		"find": "(?<=^Art[\\w]*)\\d+",        // not fixed-length: ERROR will not run
-		"replace": "###",
-		"isRegex": true,
-	}
+  "key": "alt+y",
+  "command": "runInSearchPanel",          // runInSearchPanel
+  "args": {
+    "find": "(?<=^Art[\\w]*)\\d+",        // not fixed-length: ERROR will not run
+    "replace": "###",
+    "isRegex": true,
+  }
 }
 ```
 The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input and `###` into the replace but will error when actually triggered.  
