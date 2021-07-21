@@ -13,20 +13,20 @@ let disposable = vscode.commands.registerTextEditorCommand('find-and-transform.u
   const docString = editor.document.getText();
   const re = /(?<!\w)(create|select|sum|drop|table|if|exists|day|group|by|order)(?!\w)/g;
   const matches = [...docString.matchAll(re)];
-
-	if (matches) {
-	  matches.forEach((match) => {
-		
-	    // this matchRange can be used if find matches are single words only
-	    // const matchRange = editor.document.getWordRangeAtPosition(editor.document.positionAt(match.index));
-
-	    // use this matchRange if matches can be more than a single word
-	    const matchRange = new vscode.Range(editor.document.positionAt(match.index), editor.document.positionAt(match.index + match[0].length));
-
-		  // hard-coded to upperCase
-	    edit.replace(matchRange, match[1].toUpperCase());
-	  });
-    }
+  
+  if (matches) {
+  
+    matches.forEach((match) => {
+    // this matchRange can be used if find matches are single words only
+    // const matchRange = editor.document.getWordRangeAtPosition(editor.document.positionAt(match.index));
+    
+    // use this matchRange if matches can be more than a single word
+      const matchRange = new vscode.Range(editor.document.positionAt(match.index), editor.document.positionAt(match.index + match[0].length));
+    
+    // hard-coded to upperCase
+      edit.replace(matchRange, match[1].toUpperCase());
+    });
+  }
 });
 context.subscriptions.push(disposable);
 ```  

@@ -113,7 +113,7 @@ Specifically for the `"filesToInclude/filesToExclude"` settings an empty string 
   "key": "alt+shift+f",                   // whatever keybinding you wish
   "command": "runInSearchPanel",
   "args": {
-    "filesToInclude": "${relativeFile}",  // open Search Panel with current file as the `files to include`
+    "filesToInclude": "${relativeFile}"   // open Search Panel with current file as the `files to include`
   }
 },
 {
@@ -121,7 +121,7 @@ Specifically for the `"filesToInclude/filesToExclude"` settings an empty string 
   "command": "runInSearchPanel",
   "args": {
     // "find"                             // with no find, use word at cursor 
-    "filesToInclude": "",                 // clear the `files to include` input box
+    "filesToInclude": ""                  // clear the `files to include` input box
   }
 }
 ```
@@ -306,7 +306,7 @@ This works:
   "args": {
     "find": "(?<=^Art[\\w]*)\\d+",      // not fixed-length, but okay in findInCurrentFile
     "replace": "###",
-    "isRegex": true,
+    "isRegex": true
   }
 }
 ```
@@ -320,7 +320,7 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
   "args": {
     "find": "(?<=^Art[\\w]*)\\d+",       // not fixed-length: ERROR will not run
     "replace": "###",
-    "isRegex": true,
+    "isRegex": true
   }
 }
 ```
@@ -557,7 +557,7 @@ Other usages:
     "replace": "Third",
     "isRegex": true,
     "filesToInclude": "${resultsFiles}",
-    "triggerSearch": true,
+    "triggerSearch": true
     // "triggerReplaceAll": true // if using this, triggerSearch: true is assumed
   }
 }

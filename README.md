@@ -303,7 +303,7 @@ Example keybinding:
   "args": {
     "find": "FIXME",                       // or use the word at the cursor
     "replace": "DONE",
-    "restrictFind": "nextDontMoveCursor",
+    "restrictFind": "nextDontMoveCursor"
     // "cursorMoveSelect": "FIXME"         // will be ignored with the 'next...` options
   }
 }
@@ -325,7 +325,7 @@ You can use the `cursorMoveSelect` option with the below `restrictFind` options.
 4. `"restrictFind": "document"` the **default**, make all replacements in the document, select all of them.  
 5. `"restrictFind": "once"` make the next replacement on the **same line** only.  
 6. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
-7.  `"restrictFind": "selections"` make all replacements in the selections only. 
+7. `"restrictFind": "selections"` make all replacements in the selections only. 
 
 The `cursorMoveSelect` option takes any text as its value.  That text, which can be part of the replacement text or any text, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp.  `matchCase` and `matchWholeWord` settings will be honored for both the `cursorMoveSelect` and `find` text.  
 
@@ -380,7 +380,7 @@ For `"restrictFind": "once"`, &nbsp; `cursorMoveSelect` will select the first ma
   "args": {
     "find": "FIXME",
     "replace": "DONE!",
-    "restrictFind": "nextMoveCursor",
+    "restrictFind": "nextMoveCursor"
   }
 }
 ```
@@ -394,7 +394,7 @@ For `"restrictFind": "once"`, &nbsp; `cursorMoveSelect` will select the first ma
   "args": {
     "find": "FIXME",
     "replace": "DONE!",
-    "restrictFind": "nextSelect",
+    "restrictFind": "nextSelect"
   }
 }
 ```
@@ -444,7 +444,7 @@ In your `settings.json`:
     "restrictFind": "selections",
     "cursorMoveSelect": "@"               // after the replacement, move to and select this text
   }
-},
+}
 
 // perform a search/replace using the Search Panel, optionally in current file/folder/workspace/etc.
 
@@ -473,7 +473,7 @@ Examples of possible keybindings (in your `keybindings.json`):
 {
   "key": "alt+u",
   "command": "findInCurrentFile.upcaseKeywords"       // from the settings
-},                                      // any "args" here will be ignored, they are in the settings
+}                                     // any "args" here will be ignored, they are in the settings
 
  
 // below: a generic "findInCurrentFile" keybinding command, no need for any settings to run these
@@ -482,13 +482,22 @@ Examples of possible keybindings (in your `keybindings.json`):
   "key": "alt+y",
   "command": "findInCurrentFile",       // note no second part of a command name
   "args": {                             // must set the "args" here since no associated settings command
-    "find": "^(iif)",                   // note the ^ = beginning of line
-    "replace": "\\U$1",                 // all the "args" are optional
+
+    "find": "^(this)",                   // note the ^ = beginning of selection because restrictFind = selections
+                                        // or ^ = beginning of line within a selection 
+
+    // "find": "^(${CLIPBOARD})",       // same result as above if 'this' on the clipboard
+                        // remember to have the matching capture group used in the replace in your find!
+
+    "replace": "\\U$1", 
+    // "replace": "${1:/upcase}",       // same as '\\U$1'
+
     "isRegex": true,
+    "matchCase": true,
     "restrictFind": "selections",
-    "cursorMoveSelect": "IIF"           // this text will be selected; "$" goes to the end of the selections
+    "cursorMoveSelect": "THIS"          // this text will be selected; "$" goes to the end of ALL the selections
   }
-},
+}
 ```  
 
 ------------
@@ -508,7 +517,7 @@ An example of keybinding with **NO associated setting**, in `keybindings.json`:
 ```jsonc
 {
   "key": "alt+y",
-  "command": "findInCurrentFile",          // note no setting command here
+  "command": "findInCurrentFile",           // note no setting command here
   "args": {
     
     // multiline regexp ^ and $ are supported, "m" flag is automatically applied to all searches  
@@ -562,7 +571,22 @@ This is demonstrated in some of the demos below.
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindNoReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of no find and no replace keys in args"/> 
 
-Explanation: With no `find` key, find matches of selections or nearest words at cursors (multi-cursors work) and select all those matches.  Blue text are selections in the demo gif.     
+Explanation: With no `find` key, find matches of selections or nearest words at cursors (multi-cursors work) and select all those matches.  Blue text are selections in the demo gif.  
+
+<br/>
+
+```jsonc
+{
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+    "matchCase": true,
+    "restrictFind": "nextSelect"
+  }
+}
+```
+
+The above will repeatedly select the next matching word under the cursor (the 'matchCase' option is up to you).  
 
 ---------------
 
@@ -620,7 +644,8 @@ Explanation: Find using its value in `args` and replace each with its value in t
   "args": {
     // "find": "(create|table|exists)",
     "replace": "\\U$1",
-    "isRegex": true
+    "isRegex": true,
+    "matchWholeWord": true
   }
 }
 ```  
@@ -760,11 +785,11 @@ This works:
 ```jsonc
 {
   "key": "alt+y",
-  "command": "findInCurrentFile",         // findInCurrentFile
+  "command": "findInCurrentFile",
   "args": {
     "find": "(?<=^Art[\\w]*)\\d+",        // not fixed-length, but okay in findInCurrentFile
     "replace": "###",
-    "isRegex": true,
+    "isRegex": true
   }
 }
 ```
@@ -778,7 +803,7 @@ but the same keybinding in `runInSearchPanel` **will error and not produce any r
   "args": {
     "find": "(?<=^Art[\\w]*)\\d+",        // not fixed-length: ERROR will not run
     "replace": "###",
-    "isRegex": true,
+    "isRegex": true
   }
 }
 ```

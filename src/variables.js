@@ -8,19 +8,23 @@ const utilities = require('./utilities');
 exports.parseClipboardVariable = async function (variableToResolve, caller, isRegex) {
 
 	if (typeof variableToResolve !== 'string') return "";
-	let resolved = "";
+  let resolved = "";
+  
+  const re = /(\${\s*CLIPBOARD\s*})/g;
+  if (variableToResolve.includes("${CLIPBOARD}")) {
 
-	await vscode.env.clipboard.readText().then(string => {
-		resolved = string;
-	});
+    await vscode.env.clipboard.readText().then(string => {
+      resolved = string;
+    });
 
-	const re = /(\${\s*CLIPBOARD\s*})/g;
-	variableToResolve = variableToResolve.replaceAll(re, resolved);
+    variableToResolve = variableToResolve.replaceAll(re, resolved);
 
-		// escape .*{}[]?^$ if using in a find 
-	if (isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-	else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
-	else return variableToResolve;
+    // escape .*{}[]?^$ if using in a find 
+    if (!isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+    else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
+    else return variableToResolve;
+  }
+  else return variableToResolve;
 }
 
 
@@ -38,7 +42,11 @@ exports.parseVariables = function (variableToResolve, caller, isRegex, selection
 
 	if (typeof variableToResolve !== 'string') return "";
 	// couldn't this be built from some list  TODO
-	const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})/g;
+	// const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})/g;
+
+  // const vars = _getVariables().join("|").replace("\\${", "\\${\\s*").replace("\\}", "\\s*}");
+  const vars = _getVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+  const re = new RegExp(`(${vars})`, "g");
 
 	const matches = [...variableToResolve.matchAll(re)];
 	if (!matches.length) return variableToResolve;
@@ -118,9 +126,11 @@ exports.parseVariables = function (variableToResolve, caller, isRegex, selection
 
 			case "${selectedText}":
 			case "${ selectedText }":
-				// resolve for each selection ??
-				// resolved = vscode.window.activeTextEditor.document.getText(vscode.window.activeTextEditor.selections[0]);
-				resolved = vscode.window.activeTextEditor.document.getText(selection);
+        if (selection.isEmpty) {
+          const wordRange = vscode.window.activeTextEditor.document.getWordRangeAtPosition(selection.start);
+          resolved = vscode.window.activeTextEditor.document.getText(wordRange);
+        }
+				else resolved = vscode.window.activeTextEditor.document.getText(selection);
 				break;
 
 			case "${pathSeparator}":
@@ -156,7 +166,7 @@ exports.parseVariables = function (variableToResolve, caller, isRegex, selection
 	}
 
 	// escape .*{}[]?^$ if using in a find 
-	if (isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+	if (!isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
 	// else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
 	else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
 	else return variableToResolve;
@@ -405,4 +415,13 @@ function _addToNextIdentifier(identifiers, i, replaceValue) {
 		return _stringBetweenIdentifiers(identifiers, i, replaceValue);
 	else                       // get to end of input string
 		return replaceValue.substring(identifiers[i].index + identifiers[i][0].length);
+}
+
+function _getVariables() {
+
+  return [
+    "${file}", "${relativeFile}", "${fileBasename}", "${fileBasenameNoExtension}", "${fileExtname}", "${fileDirname}",
+    "${fileWorkspaceFolder}", "${workspaceFolder}", "${relativeFileDirname}", "${workspaceFolderBasename}", 
+    "${selectedText}", "${pathSeparator}", "${lineNumber}", "${CLIPBOARD}", "${resultsFiles}"
+  ];
 }
