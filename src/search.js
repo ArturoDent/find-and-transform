@@ -80,29 +80,28 @@ exports.useSearchPanel = async function (findArray) {
 
 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 	if (isfilesToInclude) {
-		obj["filesToInclude"] = variables.parseVariables(isfilesToInclude.filesToInclude, "filesToInclude", false);
+		obj["filesToInclude"] = variables.parseVariables(isfilesToInclude.filesToInclude, "filesToInclude", false, vscode.window.activeTextEditor.selections[0]);
 	}
 
 	const isfilesToExclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToExclude');
 	if (isfilesToExclude) {
-		obj["filesToExclude"] = variables.parseVariables(isfilesToExclude.filesToExclude, "filesToExclude", false);
+		obj["filesToExclude"] = variables.parseVariables(isfilesToExclude.filesToExclude, "filesToExclude", false, vscode.window.activeTextEditor.selections[0]);
 	}
 
 	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
-	if (replace?.replace) obj["replace"] = variables.parseVariables(replace.replace, "replace", false);
+	if (replace?.replace) obj["replace"] = variables.parseVariables(replace.replace, "replace", false, vscode.window.activeTextEditor.selections[0]);
 
 	const triggerReplaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
 	if (triggerReplaceAll) {
 		obj["triggerSearch"] = true;
 	}
 	else {
-		let triggerSearch = findArray.find(arg => Object.keys(arg)[0] === 'triggerSearch');
-		if (triggerSearch) obj["triggerSearch"] = triggerSearch.triggerSearch;
+		let triggerSearch = findArray.find(arg => Object.keys(arg)[0] === 'triggerSearch');		if (triggerSearch) obj["triggerSearch"] = triggerSearch.triggerSearch;
 	}
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
 	// if (find?.find) obj["query"] = find.find;
-	if (find?.find) obj["query"] = variables.parseVariables(find.find, "find", true);  // TODO add parseClipboard to all parseV's
+	if (find?.find) obj["query"] = variables.parseVariables(find.find, "find", true, vscode.window.activeTextEditor.selections[0]);  // TODO add parseClipboard to all parseV's
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];
