@@ -5,26 +5,73 @@ const utilities = require('./utilities');
 
 
 
-exports.parseClipboardVariable = async function (variableToResolve, caller, isRegex) {
+exports.resolveClipboardVariable = async function (variableToResolve, caller, isRegex) {
 
-	if (typeof variableToResolve !== 'string') return "";
-  let resolved = "";
-  
-  const re = /(\${\s*CLIPBOARD\s*})/g;
+  if (typeof variableToResolve !== 'string') return variableToResolve;
+  let clipText = "";
+
   if (variableToResolve.includes("${CLIPBOARD}")) {
-
     await vscode.env.clipboard.readText().then(string => {
-      resolved = string;
+      clipText = string;
     });
-
-    variableToResolve = variableToResolve.replaceAll(re, resolved);
-
-    // escape .*{}[]?^$ if using in a find 
-    if (!isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-    else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
-    else return variableToResolve;
   }
   else return variableToResolve;
+  
+  let re = /((\\[UuLl])?(\${\s*CLIPBOARD\s*}))/g;
+  const matches = [...variableToResolve.matchAll(re)];
+
+  // for (let index = 0; index < matches.length; index++) {
+
+  for (const match of matches) {
+
+    let resolved = "";
+
+    if (match[2]) resolved = _applyCaseModifier(match[2], clipText);
+    else resolved = clipText;
+
+    // let index = match.index;
+    // if (match[0].length >= resolved.length) index = match.index - (match[0].length - resolved.length);
+    // else index = match.index + (resolved.length - match[0].length);
+
+    variableToResolve = variableToResolve.replace(match[1], resolved);
+  }
+  if (!isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+  else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
+  else return variableToResolve;
+}
+
+
+/**
+ * Aplply case modifier, like '\\U' to text.
+ * @param   {String} modifier 
+ * @param   {String} modify
+ * @returns {String} - modified text
+ */
+function _applyCaseModifier(modifier, modify) {
+  
+  let resolved = modify;
+  switch (modifier) {
+    case "\\U":
+      resolved = modify.toLocaleUpperCase();
+      break;
+
+    case "\\u":
+      resolved = modify[0].toLocaleUpperCase() + modify.substring(1);
+      break;
+
+    case "\\L":
+      resolved = modify.toLocaleLowerCase();
+      break;
+
+    case "\\l":
+      resolved = modify[0].toLocaleLowerCase() + modify.substring(1);
+      break;
+
+    default:
+      break;
+  }
+
+  return resolved;
 }
 
 
@@ -36,15 +83,12 @@ exports.parseClipboardVariable = async function (variableToResolve, caller, isRe
  * @param {Boolean} isRegex
  * @param {vscode.Selection} selection 
  */
-exports.parseVariables = function (variableToResolve, caller, isRegex, selection) {
+exports.resolveVariables = function (variableToResolve, caller, isRegex, selection) {
 
 	// support conditionals here?  ${2:+yada}
 
 	if (typeof variableToResolve !== 'string') return "";
-	// couldn't this be built from some list  TODO
-	// const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})/g;
-
-  // const vars = _getVariables().join("|").replace("\\${", "\\${\\s*").replace("\\}", "\\s*}");
+	// const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|...)/g;
   const vars = _getVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
   const re = new RegExp(`(${vars})`, "g");
 
@@ -62,11 +106,11 @@ exports.parseVariables = function (variableToResolve, caller, isRegex, selection
 
 	// if no filePath message to open an editor TODO
 
-	for (const item of matches) {
+	for (const match of matches) {
 
 		let resolved = "";
 
-		switch (item[1]) {
+		switch (match[1]) {
 
 			case "${file}":
 			case "${ file }":
@@ -162,19 +206,18 @@ exports.parseVariables = function (variableToResolve, caller, isRegex, selection
 			default:
 				break;
 		}
-		variableToResolve = variableToResolve.replace(item[1], resolved);
+		variableToResolve = variableToResolve.replace(match[1], resolved);
 	}
 
 	// escape .*{}[]?^$ if using in a find 
 	if (!isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-	// else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
 	else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
 	else return variableToResolve;
 };
 
 
 /**
- * Build the replacestring by updating the setting 'replaceValue' to
+ * Build the replaceString by updating the setting 'replaceValue' to
  * account for case modifiers and capture groups
  *
  * @param {String} replaceValue
@@ -196,7 +239,7 @@ exports.buildReplace = function (replaceValue, groups) {
 	if (replaceValue !== null)
 		// (?<caseTransform>\$\{(\d\d ?): \/((up|down|pascal|camel)case|capitalize)\})
 		// identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})/g)];
-		identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)|(?<caseTransform>\$\{(\d\d?):\/((up|down|pascal|camel)case|capitalize)\})|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})/g)];
+    identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)|(?<caseTransform>\$\{(\d\d?):\/((up|down|pascal|camel)case|capitalize)\})|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})/g)];
 
 	if (!identifiers.length) return replaceValue;
 
@@ -324,7 +367,8 @@ exports.buildReplace = function (replaceValue, groups) {
 
 					case "\\u":
 						if (groups && groups[thisGroup]) {
-							buildReplace += groups[thisGroup].substring(0, 1).toLocaleUpperCase() + groups[thisGroup].substring(1);
+							// buildReplace += groups[thisGroup].substring(0, 1).toLocaleUpperCase() + groups[thisGroup].substring(1);
+							buildReplace += groups[thisGroup][0].toLocaleUpperCase() + groups[thisGroup].substring(1);
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
 						// else if (!groups[thisGroup]) {
@@ -348,7 +392,8 @@ exports.buildReplace = function (replaceValue, groups) {
 
 					case "\\l":
 						if (groups && groups[thisGroup]) {
-							buildReplace += groups[thisGroup].substring(0, 1).toLocaleLowerCase() + groups[thisGroup].substring(1);
+							// buildReplace += groups[thisGroup].substring(0, 1).toLocaleLowerCase() + groups[thisGroup].substring(1);
+							buildReplace += groups[thisGroup][0].toLocaleLowerCase() + groups[thisGroup].substring(1);
 							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
 						}
 						// else if (!groups[thisGroup]) {

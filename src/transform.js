@@ -6,7 +6,7 @@ const variables = require('./variables');
  * Find and transform any case identifiers with or without capture groups
  * @param {vscode.TextEditor} editor
  * @param {vscode.TextEditorEdit} edit
- * @param {String[] | any[]} findReplaceArray - this setting
+ * @param { String[] | any[] } findReplaceArray - this setting
  */
 exports.findTransform = async function (editor, edit, findReplaceArray) {
 
@@ -23,8 +23,7 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
 	const findItem = Object.entries(findReplaceArray).filter(item => (item[1].find || item[0] === 'find'));
 	if (findItem.length) {
 		findValue = findItem[0][1].find ?? findItem[0][1];
-		// true in parseVariables(..., true) will escape resolved variables for use in a regex
-		findValue = await variables.parseClipboardVariable(findValue, "find", loopKeys.isRegex);
+		findValue = await variables.resolveClipboardVariable(findValue, "find", loopKeys.isRegex);
 	}
 	// no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
 	// TODO  what if find === "" empty string?
@@ -45,11 +44,11 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
 	if (replaceItem.length) {
 		if (typeof replaceItem[0][1] === 'string') {
 			replaceValue = replaceItem[0][1];
-			replaceValue = await variables.parseClipboardVariable(replaceValue, "replace", loopKeys.isRegex);
+			replaceValue = await variables.resolveClipboardVariable(replaceValue, "replace", loopKeys.isRegex);
 		}
 		else {
 			replaceValue = replaceItem[0][1].replace;
-			replaceValue = await variables.parseClipboardVariable(replaceValue, "replace", loopKeys.isRegex);
+			replaceValue = await variables.resolveClipboardVariable(replaceValue, "replace", loopKeys.isRegex);
 		}
 	}
 	else if (!findItem.length) {  // no find and no replace, TODO check here late parse effect?
@@ -95,6 +94,10 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
 }
 
 
+
+
+
+
 /**
  * Make a new args object using updated findValue and replaceValue
  * @param {Object} args - all the args like findValue, etc.
@@ -102,8 +105,8 @@ exports.findTransform = async function (editor, edit, findReplaceArray) {
  */
 function _buildNewArgsArray(args) {
   
-  const replaceValue = variables.parseVariables(args.replaceValue, "replace", false, vscode.window.activeTextEditor.selections[0]);
-  let findValue = variables.parseVariables(args.findValue, "find", args.isRegex, vscode.window.activeTextEditor.selections[0]);
+  const replaceValue = variables.resolveVariables(args.replaceValue, "replace", false, vscode.window.activeTextEditor.selections[0]);
+  let findValue = variables.resolveVariables(args.findValue, "find", args.isRegex, vscode.window.activeTextEditor.selections[0]);
   findValue = _adjustFindValue(findValue, args.isRegex, args.matchWholeWord, args.madeFind);
   const newArgs = {};
   Object.assign(newArgs, args);
@@ -232,7 +235,7 @@ function _findAndSelect(editor, args) {
 
     editor.selections.forEach(selection => {
       
-      let resolvedFind = variables.parseVariables(args.findValue, "find", args.isRegex, selection);
+      let resolvedFind = variables.resolveVariables(args.findValue, "find", args.isRegex, selection);
       resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
 			if (selection.isEmpty) {
@@ -284,8 +287,8 @@ async function _replaceInLine(editor, edit, args) {
 
 			editor.selections.forEach(selection => {
 
-				let resolvedReplace = variables.parseVariables(args.replaceValue, "replace", false, selection);
-				let resolvedFind = variables.parseVariables(args.findValue, "find", args.isRegex, selection);
+				let resolvedReplace = variables.resolveVariables(args.replaceValue, "replace", false, selection);
+				let resolvedFind = variables.resolveVariables(args.findValue, "find", args.isRegex, selection);
 				resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
 				const re = new RegExp(resolvedFind, args.regexOptions);
@@ -348,8 +351,8 @@ async function _replaceInLine(editor, edit, args) {
 
 			editor.selections.forEach(selection => {
 
-				let resolvedReplace = variables.parseVariables(args.replaceValue, "replace", false, selection);
-				let resolvedFind = variables.parseVariables(args.findValue, "find", args.isRegex, selection);
+				let resolvedReplace = variables.resolveVariables(args.replaceValue, "replace", false, selection);
+				let resolvedFind = variables.resolveVariables(args.findValue, "find", args.isRegex, selection);
         resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
         
 				const re = new RegExp(resolvedFind, args.regexOptions);
@@ -447,7 +450,7 @@ async function _replaceNextInWholeDocument(editor, edit, args) {
 
 		if (args.replaceValue) {
 			// replacement = variables.buildReplace(replaceValue, matches[0]);
-			let replaceValue = variables.parseVariables(args.replaceValue, "replace", false, vscode.window.activeTextEditor.selections[0]);
+			let replaceValue = variables.resolveVariables(args.replaceValue, "replace", false, vscode.window.activeTextEditor.selections[0]);
 
 			if (!args.isRegex) replacement = replaceValue;
 			else replacement = variables.buildReplace(replaceValue, matches[0]);
@@ -557,8 +560,8 @@ function _replaceSelectionsLoop(editor, edit, args) {
 
     editor.selections.forEach(selection => {
 
-      let resolvedReplace = variables.parseVariables(args.replaceValue, "replace", false, selection);
-      let resolvedFind = variables.parseVariables(args.findValue, "find", args.isRegex, selection);
+      let resolvedReplace = variables.resolveVariables(args.replaceValue, "replace", false, selection);
+      let resolvedFind = variables.resolveVariables(args.findValue, "find", args.isRegex, selection);
       resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
       const re = new RegExp(resolvedFind, args.regexOptions);
