@@ -82,16 +82,16 @@ exports.useSearchPanel = async function (findArray) {
 
 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 	if (isfilesToInclude) {
-		obj["filesToInclude"] = variables.resolveVariables(isfilesToInclude.filesToInclude, "filesToInclude", false, vscode.window.activeTextEditor.selections[0]);
+		obj["filesToInclude"] = variables.resolvePathVariables(isfilesToInclude.filesToInclude, "filesToInclude", false, vscode.window.activeTextEditor.selections[0]);
 	}
 
 	const isfilesToExclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToExclude');
 	if (isfilesToExclude) {
-		obj["filesToExclude"] = variables.resolveVariables(isfilesToExclude.filesToExclude, "filesToExclude", false, vscode.window.activeTextEditor.selections[0]);
+		obj["filesToExclude"] = variables.resolvePathVariables(isfilesToExclude.filesToExclude, "filesToExclude", false, vscode.window.activeTextEditor.selections[0]);
 	}
 
 	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
-	if (replace?.replace) obj["replace"] = variables.resolveVariables(replace.replace, "replace", false, vscode.window.activeTextEditor.selections[0]);
+	if (replace?.replace) obj["replace"] = variables.resolvePathVariables(replace.replace, "replace", false, vscode.window.activeTextEditor.selections[0]);
 
 	const triggerReplaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
 	if (triggerReplaceAll) {
@@ -103,7 +103,7 @@ exports.useSearchPanel = async function (findArray) {
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
 	// if (find?.find) obj["query"] = find.find;
-	if (find?.find) obj["query"] = variables.resolveVariables(find.find, "find", true, vscode.window.activeTextEditor.selections[0]);  // TODO add parseClipboard to all parseV's
+  if (find?.find) obj["query"] = variables.resolvePathVariables(find.find, "find", true, vscode.window.activeTextEditor.selections[0]);  // TODO add parseClipboard to all parseV's
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];

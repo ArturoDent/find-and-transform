@@ -4,7 +4,14 @@ const os = require('os');
 const utilities = require('./utilities');
 
 
-
+/**
+ * Resolve the launch/task-like path variables.
+ * 
+ * @param {String} variableToResolve 
+ * @param {String} caller  - for a find/replace/filesToInclude value?
+ * @param {Boolean} isRegex 
+ * @returns 
+ */
 exports.resolveClipboardVariable = async function (variableToResolve, caller, isRegex) {
 
   if (typeof variableToResolve !== 'string') return variableToResolve;
@@ -33,6 +40,7 @@ exports.resolveClipboardVariable = async function (variableToResolve, caller, is
     // if (match[0].length >= resolved.length) index = match.index - (match[0].length - resolved.length);
     // else index = match.index + (resolved.length - match[0].length);
 
+    // pattern is a string, so only first match is replaced
     variableToResolve = variableToResolve.replace(match[1], resolved);
   }
   if (!isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
@@ -42,54 +50,20 @@ exports.resolveClipboardVariable = async function (variableToResolve, caller, is
 
 
 /**
- * Aplply case modifier, like '\\U' to text.
- * @param   {String} modifier 
- * @param   {String} modify
- * @returns {String} - modified text
- */
-function _applyCaseModifier(modifier, modify) {
-  
-  let resolved = modify;
-  switch (modifier) {
-    case "\\U":
-      resolved = modify.toLocaleUpperCase();
-      break;
-
-    case "\\u":
-      resolved = modify[0].toLocaleUpperCase() + modify.substring(1);
-      break;
-
-    case "\\L":
-      resolved = modify.toLocaleLowerCase();
-      break;
-
-    case "\\l":
-      resolved = modify[0].toLocaleLowerCase() + modify.substring(1);
-      break;
-
-    default:
-      break;
-  }
-
-  return resolved;
-}
-
-
-/**
  * If the "filesToInclude/find/replace" value uses a variable(s) return the resolved value  
  * 
  * @param {String} variableToResolve - the "filesToInclude/find/replace" value  
  * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude 
  * @param {Boolean} isRegex
- * @param {vscode.Selection} selection 
+ * @param {vscode.Selection} selection - current selection
+ * @param {String} clipText - the clipBoard text
  */
-exports.resolveVariables = function (variableToResolve, caller, isRegex, selection) {
+exports.resolvePathVariables = function (variableToResolve, caller, isRegex, selection, clipText) {
 
 	// support conditionals here?  ${2:+yada}
 
 	if (typeof variableToResolve !== 'string') return "";
-	// const re = /(\${\s*file\s*}|\${\s*relativeFile\s*}|...)/g;
-  const vars = _getVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+  const vars = _getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
   const re = new RegExp(`(${vars})`, "g");
 
 	const matches = [...variableToResolve.matchAll(re)];
@@ -120,7 +94,6 @@ exports.resolveVariables = function (variableToResolve, caller, isRegex, selecti
 
 			case "${relativeFile}":
 			case "${ relativeFile }":
-				// resolved = relativePath;
 				resolved = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, false);
 				break;
 
@@ -146,7 +119,6 @@ exports.resolveVariables = function (variableToResolve, caller, isRegex, selecti
 
 			case "${fileWorkspaceFolder}":
 			case "${ fileWorkspaceFolder }":
-				// resolved = relativePath.replace(/(^[^/\\]*).*/, "$1");
 				resolved = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.path;
 				break;
 
@@ -186,17 +158,13 @@ exports.resolveVariables = function (variableToResolve, caller, isRegex, selecti
 			case "${ lineNumber }":
 				// resolve for each selection
 				// +1 because it is 0-based ? which seems weird to me
-				// resolved = String(vscode.window.activeTextEditor.selection.active.line + 1);
 				resolved = String(selection.active.line + 1);
 				break;
 
-			// case "${CLIPBOARD}":
-			// case "${ CLIPBOARD }":
-			// 	// vscode.env.clipboard.readText().then(string => {
-			// 	// 	resolved = string;
-			// 	resolved = await vscode.env.clipboard.readText();
-			// 	// });
-			// 	break;
+      case "${CLIPBOARD}":
+      case "${ CLIPBOARD }":
+          resolved = clipText;
+        break;
 
 			case "${resultsFiles}":
 			case "${ resultsFiles }":
@@ -205,7 +173,8 @@ exports.resolveVariables = function (variableToResolve, caller, isRegex, selecti
 
 			default:
 				break;
-		}
+    }
+    // pattern is a string, only first match replaced
 		variableToResolve = variableToResolve.replace(match[1], resolved);
 	}
 
@@ -218,251 +187,220 @@ exports.resolveVariables = function (variableToResolve, caller, isRegex, selecti
 
 /**
  * Build the replaceString by updating the setting 'replaceValue' to
- * account for case modifiers and capture groups
+ * account for case modifiers, capture groups and conditionals
  *
  * @param {String} replaceValue
- * @param {Array} groups - the result of matching the docString with the regexp findValue
- * @returns {String} - the replace string
+ * @param {Array} groups - 
+ * @returns {String} - the resolved string
  */
 exports.buildReplace = function (replaceValue, groups) {
 
-	// support conditional here?  ${2:+yada}
+  // groups.capGroupOnly is for '$n' with no case modifier
+  let identifiers;
 
-	let buildReplace = "";
+  if (replaceValue === "") return replaceValue;
 
-	// array of case modifiers + $n's
-	// groups.capGroupOnly is for '$n' with no case modifier
-	let identifiers;
+  if (replaceValue !== null) {
+    // const re1 = "(?<case>\\\\[UuLl])(?<capGroup>\\$\\d\\d?)|(?<capGroupOnly>\\$\\d\\d?)";
+    const re1 = "(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{\\d\\d?\\})|(?<capGroupOnly>\\$\\{?\\d\\d?\\}?)";
+    const re2 = "|(?<caseTransform>\\$\\{(\\d\\d?):\\/((up|down|pascal|camel)case|capitalize)\\})";
+    const re3 = "|(?<conditional>\\$\\{\\d\\d?:[-+?]?(.*?)(?<!\\\\)\\})";
+    const re = new RegExp(`${ re1 }${ re2 }${ re3 }`, "g");
+    identifiers = [...replaceValue.matchAll(re)];
+  }
 
-	if (replaceValue === "") return replaceValue;
+  if (!identifiers.length) return replaceValue;
 
-	if (replaceValue !== null)
-		// (?<caseTransform>\$\{(\d\d ?): \/((up|down|pascal|camel)case|capitalize)\})
-		// identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})/g)];
-    identifiers = [...replaceValue.matchAll(/(?<case>\\[UuLl])(?<capGroup>\$\d\d?)|(?<capGroupOnly>\$\d\d?)|(?<caseTransform>\$\{(\d\d?):\/((up|down|pascal|camel)case|capitalize)\})|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})/g)];
+  for (const identifier of identifiers) {
 
-	if (!identifiers.length) return replaceValue;
+    let resolved = "";
 
-	else {
-		buildReplace = replaceValue.substring(0, identifiers[0].index);
+    if (identifier.groups.capGroupOnly) {   // so no case modifier, only an unmodified capture group: "$n"
+      // const thisCapGroup = identifier.groups.capGroupOnly.substring(1);
+      const thisCapGroup = identifier.groups.capGroupOnly.replace(/[^\d]/g, "");
+      if (groups && groups[thisCapGroup]) {
+        replaceValue = replaceValue.replace(identifier[0], groups[thisCapGroup]);
+      }
+      // continue;
+    }
 
-		// loop through case modifiers/capture groups in the replace setting
-		for (let i = 0; i < identifiers.length; i++) {
+    else if (identifier.groups.caseTransform) {
 
-			if (identifiers[i].groups.capGroupOnly) {   // so no case modifier, only an unmodified capture group: "$n"
-				const thisCapGroup = identifiers[i].groups.capGroupOnly.substring(1);
-				if (groups && groups[thisCapGroup]) {
-					buildReplace += groups[thisCapGroup];
-					buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-				}
-				else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
-				continue;
-			}
+      if (groups && groups[identifier[5]] && identifier[6]) 
+        resolved = _applyCaseTransform(identifier[6], groups[identifier[5]])
+      else resolved = "";
+    }
 
-			else if (identifiers[i].groups.caseTransform) {
+    else if (identifier.groups.conditional) {
 
-				if (groups && groups[identifiers[i][5]]) {
+      // if a '}' in a replacement? => '\\}' must be escaped
+      // ${1:+${2}}  ?  => ${1:+`$2`} note the backticks
+      // easy to ${1:capitalize} when mean ${1:/capitalize}  TODO warning?
 
-					switch (identifiers[i][6]) {
+      const conditionalRE = /\$\{(?<capGroup>\d\d?):(?<ifElse>[-+?]?)(?<replacement>(.*?)(?<!\\))\}/;
+      const matches = identifier.groups.conditional.match(conditionalRE);
+      const thisCapGroup = matches.groups.capGroup;
+      const replacement = matches.groups.replacement.replace(/\\/g, "");
 
-						case "upcase":
-							buildReplace += groups[identifiers[i][5]].toLocaleUpperCase();
-							break;
+      resolved = _applyConditionalTransform(matches.groups.ifElse, replacement, groups, thisCapGroup);
+    }
 
-						case "downcase":
-							buildReplace += groups[identifiers[i][5]].toLocaleLowerCase();
-							break;
+    else {   // case modifiers identifier.groups.caseModifier
 
-						case "capitalize":
-							buildReplace += groups[identifiers[i][5]][0].toLocaleUpperCase() + groups[identifiers[i][5]].substring(1);
-							break;
+      let thisCapGroup = "0";
+      if (identifier[2]) {
+        thisCapGroup = identifier[2].replace(/[^\d]/g, "");
 
-						case "pascalcase":   			// first_second_third => FirstSecondThird
-							buildReplace += utilities.toPascalCase(groups[identifiers[i][5]]);
-							break;
+        if (groups[thisCapGroup]) {
+          // thisCapGroup = identifier[2].substring(1);			 // "1" or "2", etc.
+          // thisCapGroup = identifier[2].replace(/[^\d]/g, "");
+          resolved = _applyCaseModifier(identifier.groups.caseModifier, groups[thisCapGroup]);
+        }
+        else resolved = "";
+      }
+    }
 
-						case "camelcase":        // first_second_third => firstSecondThird
-							buildReplace += utilities.toCamelCase(groups[identifiers[i][5]]);
-							break;
-					}
-				}
-				buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-			}
-
-			else if (identifiers[i].groups.conditional) {
-
-				// if a '}' in a replacement? => '\\}' must be escaped
-				// ${1:+${2}}  ?  => ${1:+`$2`} note the backticks
-				// easy to ${1:capitalize} when mean ${1:/capitalize}  TODO warning?
-
-				const conditionalRE = /\$\{(?<capGroup>\d\d?):(?<ifElse>[-+?]?)(?<replacement>(.*?)(?<!\\))\}/;
-				const matches = identifiers[i].groups.conditional.match(conditionalRE);
-				const thisCapGroup = matches.groups.capGroup;
-				const replacement = matches.groups.replacement.replace(/\\/g, "");
-
-				switch (matches.groups.ifElse) {
-
-					case "+":                        // if ${1:+yes}
-						if (groups && groups[thisCapGroup]) {
-							// buildReplace += matches.groups.replacement;
-							// buildReplace += replacement;
-							buildReplace += _checkForCaptureGroupsInReplacement(replacement, groups);
-						}
-						// "if" but no matching capture group
-
-						if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
-						else buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						break;
-
-					case "-":                       // else ${1:-no} or ${1:no}
-					case "":
-						if (groups && !groups[thisCapGroup]) {
-							// buildReplace += matches.groups.replacement;
-							// buildReplace += replacement;
-							buildReplace += _checkForCaptureGroupsInReplacement(replacement, groups);
-						}
-						// "else" and there is a matching capture group
-
-						if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
-						else buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						break;
-
-					case "?":                        // if/else ${1:?yes:no}
-						// const replacers = matches.groups.replacement.split(":");
-						const replacers = replacement.split(":");
-
-						if (groups && groups[thisCapGroup]) {
-							// buildReplace += replacers[0];
-							buildReplace += _checkForCaptureGroupsInReplacement(replacers[0], groups);
-						}
-						// else buildReplace += replacers[1] ?? "";
-						else buildReplace += _checkForCaptureGroupsInReplacement(replacers[1] ?? "", groups);
-
-
-						if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
-						else buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						break;
-				}
-			}
-
-			else {
-
-				let thisGroup = "0";
-				if (identifiers[i][2]) thisGroup = identifiers[i][2].substring(1);			 // "1" or "2", etc.
-
-				switch (identifiers[i].groups.case) {  // "\\U", "\\l", etc.  // identifiers[i].groups.case
-
-					case "\\U":
-						if (groups && groups[thisGroup]) {
-							buildReplace += groups[thisGroup].toLocaleUpperCase();
-							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						}
-						// else if (!groups[thisGroup]) {
-						// 	buildReplace += `\\U$${ thisGroup }`;
-						// 	buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						// }
-						// case "\\U$n" but there is no matching capture group
-						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
-						break;
-
-					case "\\u":
-						if (groups && groups[thisGroup]) {
-							// buildReplace += groups[thisGroup].substring(0, 1).toLocaleUpperCase() + groups[thisGroup].substring(1);
-							buildReplace += groups[thisGroup][0].toLocaleUpperCase() + groups[thisGroup].substring(1);
-							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						}
-						// else if (!groups[thisGroup]) {
-						// buildReplace += `\\u$${ thisGroup }`;
-						// buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						// }
-						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
-						break;
-
-					case "\\L":
-						if (groups && groups[thisGroup]) {
-							buildReplace += groups[thisGroup].toLocaleLowerCase();
-							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						}
-						// else if (!groups[thisGroup]) {
-						// buildReplace += `\\L$${ thisGroup }`;
-						// buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						// }
-						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
-						break;
-
-					case "\\l":
-						if (groups && groups[thisGroup]) {
-							// buildReplace += groups[thisGroup].substring(0, 1).toLocaleLowerCase() + groups[thisGroup].substring(1);
-							buildReplace += groups[thisGroup][0].toLocaleLowerCase() + groups[thisGroup].substring(1);
-							buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						}
-						// else if (!groups[thisGroup]) {
-						// buildReplace += `\\l$${ thisGroup }`;
-						// buildReplace += _addToNextIdentifier(identifiers, i, replaceValue);
-						// }
-						else if (identifiers[i + 1]) buildReplace += _stringBetweenIdentifiers(identifiers, i, replaceValue);
-						break;
-
-					default:
-						break;
-				}
-			}
-		}
-	}
-	return buildReplace;
+    // end of identifiers loop
+    replaceValue = replaceValue.replace(identifier[0], resolved);
+  }
+  return replaceValue;
 };
 
+
 /**
- * 
+ * Apply case modifier, like '\\U' to text.
+ * @param   {String} modifier 
+ * @param   {String} textToModify
+ * @returns {String} - modified text
+ */
+function _applyCaseModifier(modifier, textToModify) {
+
+  let resolved = textToModify;
+
+  switch (modifier) {
+    case "\\U":
+      resolved = textToModify.toLocaleUpperCase();
+      break;
+
+    case "\\u":
+      resolved = textToModify[0].toLocaleUpperCase() + textToModify.substring(1);
+      break;
+
+    case "\\L":
+      resolved = textToModify.toLocaleLowerCase();
+      break;
+
+    case "\\l":
+      resolved = textToModify[0].toLocaleLowerCase() + textToModify.substring(1);
+      break;
+
+    default:
+      break;
+  }
+  return resolved;
+}
+
+
+/**
+ * Apply case transform, like '${1:/upcase}' to text.
+ * @param   {String} transform 
+ * @param   {String} textToModify
+ * @returns {String} - modified text
+ */
+function _applyCaseTransform(transform, textToModify) {
+
+  let resolved = textToModify;
+
+  switch (transform) {
+
+    case "upcase":
+      resolved = textToModify.toLocaleUpperCase();
+      break;
+
+    case "downcase":
+      resolved = textToModify.toLocaleLowerCase();
+      break;
+
+    case "capitalize":
+      resolved = textToModify[0].toLocaleUpperCase() + textToModify.substring(1);
+      break;
+
+    case "pascalcase":   			// first_second_third => FirstSecondThird
+      resolved = utilities.toPascalCase(textToModify);
+      break;
+
+    case "camelcase":        // first_second_third => firstSecondThird
+      resolved = utilities.toCamelCase(textToModify);
+      break;
+  }
+  return resolved;
+}
+
+
+/**
+ * Apply conditional transform, like '${1:+ add text }' to text.
+ * @param   {String} whichConditional - '+-:' 
+ * @param   {String} conditionalText
+ * @returns {String} - modified text
+ */
+function _applyConditionalTransform(whichConditional, conditionalText, groups, thisCapGroup) {
+
+  let resolved = conditionalText;
+
+  switch (whichConditional) {
+
+    case "+":                        // if ${1:+yes}
+      if (groups && groups[thisCapGroup]) {
+        resolved = _checkForCaptureGroupsInReplacement(conditionalText, groups);
+      }
+      // "if" but no matching capture group
+      break;
+
+    case "-":                       // else ${1:-no} or ${1:no}
+    case "":
+      if (groups && !groups[thisCapGroup]) {
+        resolved = _checkForCaptureGroupsInReplacement(conditionalText, groups);
+      }
+      // "else" and there is a matching capture group
+      break;
+
+    case "?":                        // if/else ${1:?yes:no}
+      const replacers = conditionalText.split(":");
+
+      if (groups && groups[thisCapGroup]) {
+        resolved = _checkForCaptureGroupsInReplacement(replacers[0], groups);
+      }
+      else resolved = _checkForCaptureGroupsInReplacement(replacers[1] ?? "", groups);
+      break;
+  }
+  return resolved;
+}
+
+
+/**
+ * Are there capture groups, like `$1` in this conditional replacement text?
  * @param {String} replacement 
  * @param {Array} groups 
+ * @returns {String} - resolve the capture group
  */
 function _checkForCaptureGroupsInReplacement(replacement, groups) {
 
-	const re = /(?<ticks>`\$(\d+)`)|(?<escapes>\$\{(\d+)\})/g;
-	const capGroups = [...replacement.matchAll(re)];
+  const re = /(?<ticks>`\$(\d+)`)/g;
+  const capGroups = [...replacement.matchAll(re)];
 
-	for (let i = 0; i < capGroups.length; i++) {
-		if (capGroups[i].groups.ticks) {
-			replacement = replacement.replace(capGroups[i][0], groups[capGroups[i][2]] ?? "");
-		}
-		else if (capGroups[i].groups.escapes) {
-			replacement = replacement.replace(capGroups[i][0], groups[capGroups[i][4]] ?? "");
-		}
-	}
-	return replacement;
+  for (let i = 0; i < capGroups.length; i++) {
+    if (capGroups[i].groups.ticks) {
+      replacement = replacement.replace(capGroups[i][0], groups[capGroups[i][2]] ?? "");
+    }
+  }
+  return replacement;
 }
 
 
 /**
- * Add any intervening characters, only between identifier groups, to the replace string
- *
- * @param {Array} identifiers - case modifiers and capture groups
- * @param {Number} i - index of currrent identifier
- * @param {String} replaceValue
- * @returns {String} - new ReplaceValue
+ * @returns {Array} - all the available path variables
  */
-function _stringBetweenIdentifiers(identifiers, i, replaceValue) {
-	return replaceValue.substring(identifiers[i].index + identifiers[i][0].length, identifiers[i + 1].index);
-}
-
-/**
- * If a next case modifier or capture group, add any intervening characters to the replace string,
- * otherwise, add to end of input string
- *
- * @param {Array} identifiers - case modifiers and capture groups
- * @param {Number} i - index of currrent identifier
- * @param {String} replaceValue
- * @returns {String} - new ReplaceValue
- */
-function _addToNextIdentifier(identifiers, i, replaceValue) {
-	if (identifiers[i + 1])    // if there is a later case modifier in the replace field
-		return _stringBetweenIdentifiers(identifiers, i, replaceValue);
-	else                       // get to end of input string
-		return replaceValue.substring(identifiers[i].index + identifiers[i][0].length);
-}
-
-function _getVariables() {
+function _getPathVariables() {
 
   return [
     "${file}", "${relativeFile}", "${fileBasename}", "${fileBasenameNoExtension}", "${fileExtname}", "${fileDirname}",
