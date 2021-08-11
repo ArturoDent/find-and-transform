@@ -454,7 +454,7 @@ Explanation: With no `find` argument, the current nearest word to the cursor (se
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/lineNumberAtEndWrap?raw=true" width="450" height="300" alt="demo of putting the lineNumber at the end of lines with content and wrapping to start of file"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/parseBySelection/images/lineNumberAtEndWrap.gif?raw=true" width="600" height="400" alt="demo of putting the lineNumber at the end of lines with content and wrapping to start of file"/>
 
 Explanation: Find the end of non-empty lines and append '-' and that line number.  `nextSelect` => do one at a time.  
 
@@ -840,7 +840,7 @@ These variables can be used in the `replace` and/or `cursorMoveSelect` positions
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/matchIndex.gif?raw=true" width="450" height="300" alt="demo of using ${matchIndex} with cursorMoveSelect"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/parseBySelection/images/matchIndex.gif?raw=true" width="600" height="400" alt="demo of using ${matchIndex} with cursorMoveSelect"/>
 
 Explanation: The match in this case is "text$" ('text' at the end of a line).  The first instance of a match has `matchNumber` = 1 and that will be used in the replacement.  `${matchIndex}` is the same but 0-based.  
 
@@ -860,7 +860,7 @@ Explanation: The match in this case is "text$" ('text' at the end of a line).  T
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/matchNumberCase.gif?raw=true" width="450" height="300" alt="demo of using ${matchNumber} with case transform"/>    
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/parseBySelection/images/matchNumberCase.gif?raw=true" width="600" height="400" alt="demo of using ${matchNumber} with case transform"/>    
 
 <br/>  
 
