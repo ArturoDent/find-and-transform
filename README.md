@@ -394,7 +394,7 @@ Note `^` and `$` work for `restrictFind` selections/line/once/document.
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/selecedTextWithReveal.gif?raw=true" width="650" height="300" alt="demo of selectedText with reveal"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/selectedTextWithReveal.gif?raw=true" width="700" height="500" alt="demo of selectedText with reveal"/>
 
 Explanation: Very simple keybinding uses the selected text, either a word actually selected, or if none, the word under the cursor, as part of the `find` term - with a positive lookahead after the selected text.  In this case, the match will be revealed by editor scroll if necessary.  
 
