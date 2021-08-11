@@ -13,10 +13,6 @@ const searchCommands = require('./search');
  */
 exports.getRelativeFilePath = function (filePath) {
 
-	// const isWindows = process.platform === 'win32';
-	// const env = process.env;
-	// const homedir = os.homedir();
-
 	const basename = path.basename(filePath);
 	let relativePath = vscode.workspace.asRelativePath(filePath, false);
 

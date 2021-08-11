@@ -134,7 +134,7 @@ ${workspaceFolder}
 ${workspaceFolderBasename}
 ${pathSeparator}
 
-${selectedText}
+${selectedText}            can be used in the find/replace/cursorMoveSelect fields  
 ${CLIPBOARD}
 
 ${resultsFiles}            ** explained below
@@ -367,17 +367,36 @@ If, for example you use these args:
 ```
 Note `^` and `$` work for `restrictFind` selections/line/once/document.    
 
-`cursorMoveSelect` will select **all** matches in each `selections` whether there was a find/replace in that selection or line.    
+1. `cursorMoveSelect` will select **all** matches in each `selections` **only** if there was a match in the same selection.     
 
-`cursorMoveSelect` will select the first match using `restrictFind` : `once` **only** if there was a match on the same line.  
+2. `cursorMoveSelect` will select the first `cursorMoveSelect` match using `restrictFind` : `once` **only** if there was a match on the same line before a `cursorMoveSelect` match.  So a `find` match first and then a `cursorMoveSelect` match after that on the same line.  
 
-`cursorMoveSelect` will select matches in the `document` **only** if there was a match on the same line!!   
+3. `cursorMoveSelect` will select matches in the `document` **only** if there was a match on the same line!!   
 
-`cursorMoveSelect` will select all matches on a line using `restrictFind` : `line` **only** if there was a match on the same line.  
+4. `cursorMoveSelect` will select all matches on a line using `restrictFind` : `line` **only** if there was a match on the same line.  
 
-For `"restrictFind": "once"`, &nbsp; `cursorMoveSelect` will select the first match **after** the cursor. 
+<br/>
 
-> When you use the `cursorMoveSelect` argument for a `restrictFind: document` or the `nextMoveCursor` or `nextSelect` options for the `restrictFind` key, it is assumed that you actually want to go there and see the result.  So the editor will be scrolled to reveal the line of that match if it is not curently visible in the editor's viewport.  For `selections/line/once` no scolling will occur - it is assumed that you can see the resultant match already (the only way that wouldn't typically be true is if you had a long selection that went off-screen).  
+> When you use the `cursorMoveSelect` argument for a `restrictFind: document` or the `nextMoveCursor` or `nextSelect` options for the `restrictFind` key, it is assumed that you actually want to go there and see the result.  So the editor will be scrolled to reveal the line of that match if it is not curently visible in the editor's viewport.  For `selections/line/once` no scolling will occur - it is assumed that you can see the resultant match already (the only way that wouldn't typically be true is if you had a long selection that went off-screen). 
+
+<br/>  
+
+```jsonc
+{
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+
+    // uses the selected text, which may simply be the word under the cursor
+    "find": "${selectedText}(?=\\s*[}\\]]?\\s*=)",  // double-escaping, positive lookahead 
+    "isRegex": true,
+  }
+}
+```
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/selecedTextWithReveal.gif?raw=true" width="650" height="300" alt="demo of selectedText with reveal"/>
+
+Explanation: Very simple keybinding uses the selected text, either a word actually selected, or if none, the word under the cursor, as part of the `find` term - with a positive lookahead after the selected text.  In this case, the match will be revealed by editor scroll if necessary.  
 
 <br/>
 

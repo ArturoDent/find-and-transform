@@ -2,7 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "0.9.7",
+ "version": "0.9.8",
  "preview": true,
  "engines": {
   "vscode": "^1.56.0"
@@ -25,7 +25,7 @@
   "transform",
   "case",
   "regular expression",
-  "regex"
+  "regex", "path variable"
  ],
  "activationEvents": [
   "onStartupFinished"

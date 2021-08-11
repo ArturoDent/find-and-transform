@@ -198,7 +198,7 @@ function _findAndSelect(editor, args) {
     let matches;
 
     // "ignoreLineNumbers" so lineNumber/Index are passed through unresolved
-    let resolvedFind = variables.buildReplace(args.findValue, null, "ignoreLineNumbers", args.isRegex, editor.selections[0], args.clipText, "document");
+    let resolvedFind = variables.buildReplace(args.findValue, null, "ignoreLineNumbers", args.isRegex, editor.selection, args.clipText, "document");
     resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
     if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
@@ -367,7 +367,7 @@ async function _replaceInLine(editor, edit, args) {
 
         for (const line of lines) {
 
-          let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, line, "cursorMoveSelect", args.isRegex, null, args.clipText, "line");
+          let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, line, "cursorMoveSelect", args.isRegex, editor.selection, args.clipText, "line");
           cursorMoveSelect = variables.resolveMatchVariable(cursorMoveSelect, index++);
 
           if (args.isRegex) {
@@ -444,7 +444,7 @@ async function _replaceInLine(editor, edit, args) {
         let index = 0;
         for (const line of lines) {
 
-          let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, line, "cursorMoveSelect", args.isRegex, null, args.clipText, "once");
+          let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, line, "cursorMoveSelect", args.isRegex, editor.selection, args.clipText, "once");
           cursorMoveSelect = variables.resolveMatchVariable(cursorMoveSelect, index);
 
           if (args.isRegex) {
@@ -702,7 +702,7 @@ async function _replaceInWholeDocument(editor, edit, args) {
 
       for (const match of matches) {
 
-        let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, match, "cursorMoveSelect", args.isRegex, null, args.clipText, "document", match.index);
+        let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, match, "cursorMoveSelect", args.isRegex, editor.selection, args.clipText, "document", match.index);
         if (cursorMoveSelect === "") return;
 
         cursorMoveSelect = variables.resolveMatchVariable(cursorMoveSelect, index++);
@@ -746,7 +746,8 @@ async function _replaceInWholeDocument(editor, edit, args) {
 function _replaceInSelections(editor, edit, args) {
 
   const document = vscode.window.activeTextEditor.document;
-  const originalSelections = editor.selections;
+  // const originalSelections = editor.selections;
+  let selectionsWithMatches = [];
   let resolvedFind;
   let resolvedReplace;
   let matches;
@@ -787,6 +788,8 @@ function _replaceInSelections(editor, edit, args) {
 
         if (resolvedReplace !== null) edit.replace(matchRange, resolvedReplace);
         else editor.selections = editor.selections.filter(otherSelection => otherSelection !== selection);
+
+        selectionsWithMatches.push(selection);
       }
       if (matches.length) matchesPerSelection.push(matches.length);
     })
@@ -798,7 +801,8 @@ function _replaceInSelections(editor, edit, args) {
       let index = 0;
       const foundSelections = [];
 
-      originalSelections.forEach(selection => {
+      // originalSelections.forEach(selection => {
+      selectionsWithMatches.forEach(selection => {
         
         let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, selection.active.line, "cursorMoveSelect", args.isRegex, selection, args.clipText, "selections");
 
