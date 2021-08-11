@@ -37,7 +37,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 								completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null, "", "A 'findInCurrentFile' from your settings."));
 							}
 							else if (search && pcommand.command.startsWith("runInSearchPanel")) {
-								completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null, "", "'runInSearchPanel' from your settings."));
+								completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null, "", "A 'runInSearchPanel' from your settings."));
 							}
 						});
 						return completionArray;
@@ -84,24 +84,32 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 						// }
 					}
 
-					re$ =  /^\s*"replace"\s*:\s*".*\$$/m;     // just for 'replace'
-					re$2 = /^\s*"replace"\s*:\s*".*\\$/m;    // just for 'replace'
+          re$ = /^\s*"replace"\s*:\s*".*\$$/m;     // just for 'replace'
+          // re$2 = /^\s*"replace"\s*:\s*".*\$\{\w*$/m;
+					let re$3 =  /^\s*"replace"\s*:\s*".*\\$/m;
 					if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
 						return _completeReplaceFindVariables(position, '$');
-					}
+          }
+          // else if (find && linePrefix.substring(0, position.character).search(re$2) !== -1) {
+          //   return _completeReplaceFindVariables(position, '${');
+          // }
 					else if (search && linePrefix.substring(0, position.character).search(re$) !== -1) {
 						return _completeVariables(position, '$');
 					}
-					else if (linePrefix.substring(0, position.character).search(re$2) !== -1) {
+					else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
 						return _completeReplaceFindCaseTransforms(position, '\\');
-					}
+          }
+          
+          re$  = /^\s*"cursorMoveSelect"\s*:\s*".*\$$/m;     // just for 'cursorMoveSelect'
+          re$2 = /^\s*"cursorMoveSelect"\s*:\s*".*\\$/m;
+          if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
+            return _completeReplaceFindVariables(position, '$');
+          }
+          else if (find && linePrefix.substring(0, position.character).search(re$2) !== -1) {
+            return _completeReplaceFindCaseTransforms(position, '\\');
+          }
 
-					// re$ = /^\s*"replace"\s*:\s*".*\\$/m;    // just for 'replace'
-					// if (linePrefix.substring(0, position.character).search(re$) !== -1) {
-					// 	return _completeReplaceFindCaseTransforms(position, '\\');
-					// }
-					
-					re$ = /^\s*"restrictFind"\s*:\s*"$/m;
+					re$ = /^\s*"restrictFind"\s*:\s*"\w*$/m;
 					if (find && linePrefix.search(re$) !== -1)
 						return _completeRestrictFindValues(position);
 
@@ -178,15 +186,28 @@ exports.makeSettingsCompletionProvider = function(context) {
 					}
 				}
 
-				re$ = /^\s*"replace"\s*:\s*".*\$$/;    // just for 'replace'
-				if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
-					return _completeReplaceFindVariables(position, '$');
-				}
-				else if (search && linePrefix.substring(0, position.character).search(re$) !== -1) {
-					return _completeVariables(position, '$');
-				}
+        re$      = /^\s*"replace"\s*:\s*".*\$$/m;     // just for 'replace'
+        let re$2 = /^\s*"replace"\s*:\s*".*\\$/m;
+        if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
+          return _completeReplaceFindVariables(position, '$');
+        }
+        else if (search && linePrefix.substring(0, position.character).search(re$) !== -1) {
+          return _completeVariables(position, '$');
+        }
+        else if (linePrefix.substring(0, position.character).search(re$2) !== -1) {
+          return _completeReplaceFindCaseTransforms(position, '\\');
+        }
+        
+        re$  = /^\s*"cursorMoveSelect"\s*:\s*".*\$$/m;     // just for 'cursorMoveSelect'
+        re$2 = /^\s*"cursorMoveSelect"\s*:\s*".*\\$/m;
+        if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
+          return _completeReplaceFindVariables(position, '$');
+        }
+        else if (find && linePrefix.substring(0, position.character).search(re$2) !== -1) {
+          return _completeReplaceFindCaseTransforms(position, '\\');
+        }
 
-				if (find && linePrefix.search(/"restrictFind":\s*"$/m) !== -1)
+        if (find && linePrefix.search(/"restrictFind":\s*"\w*$/m) !== -1)   // just for 'restrictFind'
 					return _completeRestrictFindValues(position);
 
 				// -----------------------------------------------------------------------
@@ -293,7 +314,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 }
 
 /**
- * Make completion items for 'filesToInclude/filesToExclude' values starting with a '$' sign
+ * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
  * 
  * @param   {vscode.Position} position
  * @param   {String} dollarSign - triggered by '$' so include its range
@@ -309,22 +330,26 @@ function _completeVariables(position, dollarSign) {
 	return [
 		_makeCompletionItem("${file}", replaceRange, "", "01", "The full path (`/home/UserName/myProject/folder/test.txt`) of the current editor."),
 		_makeCompletionItem("${relativeFile}", replaceRange, "", "011", "The path of the current editor relative to the workspaceFolder (`folder/file.ext`)."),
-		_makeCompletionItem("${fileBasename}", replaceRange, "", "02", "The basename (`file.ext`) of the current editor."),
-		_makeCompletionItem("${fileBasenameNoExtension}", replaceRange, "", "03", "The basename  (`file`) of the current editor without its extension."),
-		_makeCompletionItem("${fileExtname}", replaceRange, "", "04", "The extension (`.ext`) of the current editor."),
+		_makeCompletionItem("${fileBasename}", replaceRange, "", "012", "The basename (`file.ext`) of the current editor."),
+		_makeCompletionItem("${fileBasenameNoExtension}", replaceRange, "", "013", "The basename  (`file`) of the current editor without its extension."),
+		_makeCompletionItem("${fileExtname}", replaceRange, "", "014", "The extension (`.ext`) of the current editor."),
 
-		_makeCompletionItem("${fileDirname}", replaceRange, "", "05", "The full path of the current editor's parent directory."),
-		_makeCompletionItem("${relativeFileDirname}", replaceRange, "", "051", "The path of the current editor's parent directory relative to the workspaceFolder."),
+		_makeCompletionItem("${fileDirname}", replaceRange, "", "02", "The full path of the current editor's parent directory."),
+		_makeCompletionItem("${relativeFileDirname}", replaceRange, "", "021", "The path of the current editor's parent directory relative to the workspaceFolder."),
 
-		_makeCompletionItem("${fileWorkspaceFolder}", replaceRange, "", "06", "The full path of the current editor's workspaceFolder."),
-		_makeCompletionItem("${workspaceFolder}", replaceRange, "", "061", "The full path (`/home/UserName/myProject`) to the currently opened workspaceFolder."),
-		_makeCompletionItem("${workspaceFolderBasename}", replaceRange, "", "062", "The name (`myProject`) of the workspaceFolder."),
+		_makeCompletionItem("${fileWorkspaceFolder}", replaceRange, "", "03", "The full path of the current editor's workspaceFolder."),
+		_makeCompletionItem("${workspaceFolder}", replaceRange, "", "031", "The full path (`/home/UserName/myProject`) to the currently opened workspaceFolder."),
+		_makeCompletionItem("${workspaceFolderBasename}", replaceRange, "", "032", "The name (`myProject`) of the workspaceFolder."),
 
-		_makeCompletionItem("${selectedText}", replaceRange, "", "071", "The **first** selection in the current editor."),
-		_makeCompletionItem("${CLIPBOARD}", replaceRange, "", "072", "The clipboard contents."),
-		_makeCompletionItem("${pathSeparator}", replaceRange, "", "073", "`/` on linux/macOS, `\\` on Windows."),
-		_makeCompletionItem("${lineNumber}", replaceRange, "", "074", "The line number of the **first** cursor in the current editor, lines start at 1."),
-		_makeCompletionItem("${resultsFiles}", replaceRange, "", "075", "A comma-separated list of the files in the current search results."),
+		_makeCompletionItem("${selectedText}", replaceRange, "", "04", "The **first** selection in the current editor."),
+		_makeCompletionItem("${CLIPBOARD}", replaceRange, "", "041", "The clipboard contents."),
+    _makeCompletionItem("${pathSeparator}", replaceRange, "", "042", "`/` on linux/macOS, `\\` on Windows."),
+    _makeCompletionItem("${lineIndex}", replaceRange, "", "043", "The line number of the **first** cursor in the current editor, lines start at 0."),
+		_makeCompletionItem("${lineNumber}", replaceRange, "", "044", "The line number of the **first** cursor in the current editor, lines start at 1."),
+		_makeCompletionItem("${resultsFiles}", replaceRange, "", "045", "A comma-separated list of the files in the current search results."),
+
+    _makeCompletionItem("${matchIndex}", replaceRange, "", "05", "The 0-based find match index. Is this the first, second, etc. match?"),
+    _makeCompletionItem("${matchNumber}", replaceRange, "", "051", "The 1-based find match index. Is this the first, second, etc. match?"),
 	];
 }
 
@@ -349,7 +374,7 @@ function _completeReplaceFindVariables(position, trigger) {
 Replace ***n*** with some number 0-99.`;
 
 	return [
-		...specialVariableArray,
+    ...specialVariableArray,  // or just ..._completeVariables(position, trigger); ?
 
 		_makeCompletionItem("${n:/upcase}", replaceRange, "", "080", `Transform to uppercase the ***nth*** capture group.${text}`),
 		_makeCompletionItem("${n:/downcase}", replaceRange, "", "081", `Transform to lowercase the ***nth*** capture group.${text}`),
@@ -427,7 +452,11 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 	const item = new vscode.CompletionItem(key, vscode.CompletionItemKind.Text);
 	item.range = replaceRange;
 	// // item.range = { inserting: new vscode.Range(replaceRange.start, replaceRange.start), replacing: replaceRange};
-	if (defaultValue) item.detail = `default: ${ defaultValue }`;
+  if (defaultValue) item.detail = `default: ${ defaultValue }`;
+  // if (defaultValue) item.insertText = `${key}": ${ defaultValue }`;
+  // below works for boolean but not string.  if typeof defaultValue === "string"
+  // if (defaultValue) item.range = new vscode.Range(replaceRange.start.line, replaceRange.start.character, replaceRange.end.line, replaceRange.end.character+1);
+
 	if (sortText) item.sortText = sortText;
 	if (documentation) item.documentation = new vscode.MarkdownString(documentation);
 
@@ -441,7 +470,6 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 	}
 	else if (key.search(/^\\\\[UuLl]\$n/m) !== -1) {
 		let newCommand = {};
-		// call command 'selectDigitInCompletion' defined in extension.js
 		newCommand.command = "find-and-transform.selectDigitInCompletion";
 		newCommand.title = "Select the digit 'n' in completionItem";
 		newCommand.arguments = [key, replaceRange];

@@ -57,7 +57,8 @@ This extension will generate a command for each of the settings, they will appea
 
 "useExcludeSettingsAndIgnoreFiles": <boolean>,
 
-"isCaseSensitive": <boolean>,
+      // "isCaseSensitive" is the built-in key, but using 'matchCase' to be consistent with Find and hovers
+"matchCase": <boolean>,
 
 "matchWholeWord": <boolean>,
 
@@ -78,7 +79,9 @@ You will get intellisense presenting these arguments.   And the completions will
 
 <br/>
 
-> `"onlyOpenEditors"` support will be in vscode Stable v1.59.  Having this option enabled is just like clicking the little book icon in the Search Panel ("Search Only in Open Editors").  This option too will be remembered by vscode so you may want to get into the habit of always using this argument option and intentionally setting to it to `true` or `false`.
+> `"onlyOpenEditors"` support is in vscode Stable v1.59.  Having this option enabled is just like clicking the little book icon in the Search Panel ("Search Only in Open Editors").  This option too will be remembered by vscode so you may want to get into the habit of always using this argument option and intentionally setting to it to `true` or `false`.
+
+> There is a limitation in vscode that `"onlyOpenEditors"` will not include `settings.json` or `keybindings.json` although they may be opened.  They will be ignored. This is a vscode issue, not this extension.  
 
 If you use **both** `"onlyOpenEditors"` and `"filesToInclude"` arguments, the `"filesToInclude"` value will limit the scope of `"onlyOpenEditors"` to that include value.  So if you had a file to include value of same file not currently open, **no** files would be searched  even with the `"onlyOpenEditors"` set to true.  Only those files both open and included in the `"filesToInclude"` value will be searched.  
 
@@ -489,7 +492,7 @@ At this point, vscode does not allow the context menu of the search results view
     // "isRegex"
     // "preserveCase"
     // "useExcludeSettingsAndIgnoreFiles"
-    // "isCaseSensitive"
+    // "matchCase"
     // "matchWholeWord"
     // "filesToExclude"
   },

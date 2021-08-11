@@ -20,7 +20,6 @@ exports.getObjectFromArgs = function (args) {
 		obj[`${ key }`] = value;
 		argsArray.push(obj);
 	}
-
 	return argsArray;
 }
 
@@ -28,20 +27,20 @@ exports.getObjectFromArgs = function (args) {
  * Get just the runInSearchPanel args keys, like "title", "find", etc.
  * @returns {Array}
  */
-exports.getKeys = function () {
-	return ["title", "find", "replace", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude", "preserveCase",
-		"useExcludeSettingsAndIgnoreFiles", "isCaseSensitive", "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors"];
+exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "matchCase"
+  return ["title", "find", "replace", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude", "preserveCase", 
+		"useExcludeSettingsAndIgnoreFiles", "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors"];
 }
 
 /**
  * Get just the runSearchInPanel args values, like true/false, "selections", etc.
  * @returns {Object}
  */
-exports.getValues = function () {
+exports.getValues = function () {    // removed "isCaseSensitive" in favor of "matchCase"
 	return {
 		title: "string", find: "string", replace: "string", isRegex: [true, false], matchCase: [true, false],
 		matchWholeWord: [true, false], triggerSearch: [true, false], triggerReplaceAll: [true, false],
-		preserveCase: [true, false], useExcludeSettingsAndIgnoreFiles: [true, false], isCaseSensitive: [true, false],
+    useExcludeSettingsAndIgnoreFiles: [true, false], preserveCase: [true, false],
 		filesToInclude: "string", filesToExclude: "string", onlyOpenEditors: [true, false]
 	};
 }
@@ -59,7 +58,7 @@ exports.getDefaults = function () {
 		"triggerSearch": true,
 		"triggerReplaceAll": 'false',
 		// "isRegex": true,
-		"filesToInclude": "",               	// default is current workspace
+		"filesToInclude": "",          // default is current workspace
 		// "preserveCase": false,
 		// "useExcludeSettingsAndIgnoreFiles": true,
 		// "isCaseSensitive": false,
@@ -77,33 +76,42 @@ exports.getDefaults = function () {
 exports.useSearchPanel = async function (findArray) {
 
   const obj = new Object();
+
+  let clipText = "";
+  await vscode.env.clipboard.readText().then(string => {
+    clipText = string;
+  });
   
   // TODO combine these like in transform.js
 
 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 	if (isfilesToInclude) {
-		obj["filesToInclude"] = variables.resolvePathVariables(isfilesToInclude.filesToInclude, "filesToInclude", false, vscode.window.activeTextEditor.selections[0]);
+		obj["filesToInclude"] = 
+    variables.resolvePathVariables(isfilesToInclude.filesToInclude, "filesToInclude", false, vscode.window.activeTextEditor.selections[0], clipText);
 	}
 
 	const isfilesToExclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToExclude');
 	if (isfilesToExclude) {
-		obj["filesToExclude"] = variables.resolvePathVariables(isfilesToExclude.filesToExclude, "filesToExclude", false, vscode.window.activeTextEditor.selections[0]);
+		obj["filesToExclude"] = 
+      variables.resolvePathVariables(isfilesToExclude.filesToExclude, "filesToExclude", false, vscode.window.activeTextEditor.selections[0], clipText);
 	}
 
 	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
-	if (replace?.replace) obj["replace"] = variables.resolvePathVariables(replace.replace, "replace", false, vscode.window.activeTextEditor.selections[0]);
+  if (replace?.replace) obj["replace"] =
+    variables.resolvePathVariables(replace.replace, "replace", false, vscode.window.activeTextEditor.selections[0], clipText);
 
 	const triggerReplaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
 	if (triggerReplaceAll) {
 		obj["triggerSearch"] = true;
 	}
 	else {
-		let triggerSearch = findArray.find(arg => Object.keys(arg)[0] === 'triggerSearch');		if (triggerSearch) obj["triggerSearch"] = triggerSearch.triggerSearch;
+    let triggerSearch = findArray.find(arg => Object.keys(arg)[0] === 'triggerSearch');
+    if (triggerSearch) obj["triggerSearch"] = triggerSearch.triggerSearch;
 	}
 
 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
-	// if (find?.find) obj["query"] = find.find;
-  if (find?.find) obj["query"] = variables.resolvePathVariables(find.find, "find", true, vscode.window.activeTextEditor.selections[0]);  // TODO add parseClipboard to all parseV's
+  // if (find?.find) obj["query"] = variables.resolvePathVariables(find.find, "find", true, vscode.window.activeTextEditor.selections[0], clipText);
+  if (find) obj["query"] = variables.resolvePathVariables(find.find, "find", true, vscode.window.activeTextEditor.selections[0], clipText);
 
 	findArray.forEach(arg => {
 		const key = Object.keys(arg)[0];
@@ -124,8 +132,9 @@ exports.useSearchPanel = async function (findArray) {
 			}
 			else obj['query'] = document.getText(selections[0]);
 		}
-	}
-
+  }
+  
+  if (obj["matchCase"]) obj["isCaseSensitive"] = obj["matchCase"];  // because search doesn't use "matchCase"!!
 
 	vscode.commands.executeCommand('workbench.action.findInFiles',
 		obj	).then(() => {

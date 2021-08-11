@@ -4,7 +4,8 @@
 
 Find and transform text in a single file, folder, workspace or custom groups.  
 Search across files with pre-defined options.  
-Do a second search only in the files with matches from a previous search.      
+
+Do a second search in the files with matches from a previous search only.      
 
 *   &emsp; Any number of find/replace combinations can be saved in settings and triggered either by the Command Palette or a keybinding.
 *   &emsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1, add other text, snippet-like transforms like `${1:/pascalcase}` and more.   
@@ -23,7 +24,7 @@ Do a second search only in the files with matches from a previous search.
 
 -----------------
 
-Below you will find information on using the `findInCurrentFile` command - which performs a find within the current file, like using the Find Widget but with the ability to save these file/replaces as settings or keybindings.  Some of the information here will be useful to using the `runInSearchPanel` as well - so you should read both.  See  [Search using the Panel](searchInPanel.md).  
+Below you will find information on using the `findInCurrentFile` command - which performs a find within the current file, like using the Find Widget but with the ability to save these file/replaces as settings or keybindings and many more variables supported.  Some of the information here will be useful to using the `runInSearchPanel` as well - so you should read both.  See  [Search using the Panel](searchInPanel.md).  
 
 ------------------
 
@@ -131,17 +132,26 @@ ${relativeFileDirname}     the current file's parent directory only
 ${fileWorkspaceFolder}
 ${workspaceFolder}
 ${workspaceFolderBasename}
+${pathSeparator}
 
 ${selectedText}
 ${CLIPBOARD}
-${pathSeparator}
-${lineNumber}              only resolved once for first cursor, line numbers start at 1, not 0
+
 ${resultsFiles}            ** explained below
+
+${lineIndex}               line index starts at 0
+${lineNumber}              line number start at 1
+
+${matchIndex}              0-based, replace with the find match index - first match, second, etc.   
+${matchNumber}             1-based, replace with the find match index
+
 ```
 
-These variables should have the same resolved values as found at &nbsp; [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
+The first 11 of those variables should have the same resolved values as found at &nbsp; [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
 
-> ` ${resultsFiles}` is a specially created variable that will scope the next search to those files in the previous search's results. In this way you can run successive searches narrowing the scope each time to the previous search results files.  See &nbsp;  [Search using the Panel](searchInPanel.md).  
+> ` ${resultsFiles}` is a specially created variable that will scope the next search to those files in the previous search's results. In this way you can run successive searches narrowing the scope each time to the previous search results files.  See &nbsp;  [Search using the Panel](searchInPanel.md). 
+
+> Examples are given below using `lineIndex/Number` and `matchIndex/Number`.  
 
 <br/>
 <br/>
@@ -248,7 +258,7 @@ If you wanted to find multiple items and then transform each in its own way **on
     "find": "(first)|(Second)|(Third)",
     "replace": "${1:+ Found first!!}${2:/upcase}${3:/downcase}",
     "isRegex": true,
-    "restrictFind": "nextSelect"
+    "restrictFind": "nextSelect"  // one match at a time
     // 'nextMoveCursor' would do the same, moving the cursor but not selecting
   }
 }
@@ -278,7 +288,7 @@ Explanation:
   "find": "(trouble)",                 // only a capture group 1
   // "find": "trouble",                // no capture groups!, same bad result
   "replace": "\\U$2",                  // but using capture group 2!!, so replacing with nothing
-  // "replace": "${2:/pascalcase}",    // same bad result
+  // "replace": "${2:/pascalcase}",    // same bad result, refers to capture group 2 that doesn't exist
   
   "isRegex": true
 }
@@ -355,15 +365,23 @@ If, for example you use these args:
   }
 }
 ```
-Note `^` and `$` work well for `restrictFind` selections/line/once, but are disabled for `"restrictFind": "document"`.  
+Note `^` and `$` work for `restrictFind` selections/line/once/document.    
 
-`cursorMoveSelect` will select **all** matches in each `selections` or `line` (remember a `line` will find matches in each line with a cursor.)  
+`cursorMoveSelect` will select **all** matches in each `selections` whether there was a find/replace in that selection or line.    
 
-For `"restrictFind": "once"`, &nbsp; `cursorMoveSelect` will select the first match **after** the cursor. That is why if using `"cursorMoveSelect": "^"` the cursor won't go there because the cursor is already after the start of the line and the search is only forward from the cursor. `"cursorMoveSelect": "$"` will always work with `"restrictFind": "once"`.  
+`cursorMoveSelect` will select the first match using `restrictFind` : `once` **only** if there was a match on the same line.  
+
+`cursorMoveSelect` will select matches in the `document` **only** if there was a match on the same line!!   
+
+`cursorMoveSelect` will select all matches on a line using `restrictFind` : `line` **only** if there was a match on the same line.  
+
+For `"restrictFind": "once"`, &nbsp; `cursorMoveSelect` will select the first match **after** the cursor. 
+
+> When you use the `cursorMoveSelect` argument for a `restrictFind: document` or the `nextMoveCursor` or `nextSelect` options for the `restrictFind` key, it is assumed that you actually want to go there and see the result.  So the editor will be scrolled to reveal the line of that match if it is not curently visible in the editor's viewport.  For `selections/line/once` no scolling will occur - it is assumed that you can see the resultant match already (the only way that wouldn't typically be true is if you had a long selection that went off-screen).  
 
 <br/>
 
-> Note: if there is no find and no replace, the `cursorMoveSelect` argument is ignored.  
+> Note: if there is no find and no replace or a find but no replace, the `cursorMoveSelect` argument is ignored.  
 
 <br/>
 
@@ -415,6 +433,33 @@ For `"restrictFind": "once"`, &nbsp; `cursorMoveSelect` will select the first ma
 
 Explanation: With no `find` argument, the current nearest word to the cursor (see more on this below) will be used as the `find` value.  So, in the above example `FIXME` will be used as the find query.  And with `nextMoveCursor` the cursor will move to the next match.  `nextSelect` could be used here as well.  
 
+```jsonc
+{
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+
+    // "find": "$",             // go to the end '$' of each line one at a time
+
+    // go to the end '$' of each line if it isn't an empty line - using a positive lookbehind - one at a time
+    "find": "(?<=\\w)$",
+
+    "replace": "-${lineNumber}",  // insert the lineNumber (1-based) at the match (the end of a line)
+    // "replace": "${lineIndex}",   // insert the lineIndex (0-based) at the match (the end of a line)
+
+    "isRegex": true,
+    "restrictFind": "nextSelect"
+      // note in the demo that nextSelect/nextMoveCursor/nextDontMoveCursor will wrap back to start of the file  
+  }
+}
+```
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/lineNumberAtEndWrap?raw=true" width="450" height="300" alt="demo of putting the lineNumber at the end of lines with content and wrapping to start of file"/>
+
+Explanation: Find the end of non-empty lines and append '-' and that line number.  `nextSelect` => do one at a time.  
+
+<br/>  
+
 -------------------
 
 ## Sample Usages in Settings  
@@ -452,7 +497,7 @@ In your `settings.json`:
 
   "removeDigits": {                           // used in the keybindings so no spaces allowed
     "title": "Remove digits from Art....",
-    "find": "^Arturo\\d+",                    // double-escaped
+    "find": "^Arturo \\+ \\d+",                    // double-escaped '+' and '\d'
     "replace": "",
     "triggerSearch": "true",
     "isRegex": true
@@ -531,7 +576,7 @@ An example of keybinding with **NO associated setting**, in `keybindings.json`:
     
     "restrictFind": "selections"           // find only in selections
   }
-},
+}
 ```  
 
 <br/>
@@ -775,6 +820,52 @@ If you have set `"restrictFind": "document"` any actual selections in the file w
 
 ---------------------- 
 
+### `${matchNumber}` and `${matchIndex}`  
+
+These variables can be used in the `replace` and/or `cursorMoveSelect` positions.  You cannot use them in `find`.  
+
+```jsonc
+{
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "text$",                        // find lines that end with text
+    "replace": "text_${matchIndex}",        // replace with 'text_' than match index 0-based
+    "isRegex": true,
+
+    "cursorMoveSelect": "${matchIndex}"    // now select each of those matchNumbers
+    //     if you don't want the text to be selected, just right or left arrow to lose the selections
+    //     but maintain all the multiple cursors.
+  }
+}
+```
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/matchIndex.gif?raw=true" width="450" height="300" alt="demo of using ${matchIndex} with cursorMoveSelect"/>
+
+Explanation: The match in this case is "text$" ('text' at the end of a line).  The first instance of a match has `matchNumber` = 1 and that will be used in the replacement.  `${matchIndex}` is the same but 0-based.  
+
+<br/>  
+
+```jsonc  
+{
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {  
+    "find": "(text)",                       // capture group 1
+    "replace": "\\U$1_${matchNumber}",      // upcase group 1 and add _ then that match number
+    "isRegex": true,
+
+    "cursorMoveSelect": "${matchNumber}"    // select the matchNumber part of each instance 
+  }
+}
+```
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/matchNumberCase.gif?raw=true" width="450" height="300" alt="demo of using ${matchNumber} with case transform"/>    
+
+<br/>  
+
+-------------------  
+
 <br/>
 
 > Note: Regex lookbehinds that are **not fixed-length** (also called fixed-width sometimes), like `(?<=^Art[\w]*)` are not supported in the Search Panel.  But non-fixed-length lookbehinds are supported in vscode's Find in a file (as in using the Find widget) so they can be used in `findInCurrentFile` settings or keybindings.  
@@ -819,19 +910,14 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?    
 * Explore more string operations (e.g., `substring()`, `trim()`, `++`) in the replace settings/args?    
-* Explore replacing with current match index?
-* Resolve `${lineNumber}` for each cursor/selection.  Need new api?  
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
+* Add a `cursorMove` option (like `cursorMoveSelect` without the selection).    
 
 
 ## Release Notes
 
-* 0.9.5	Added support for variables in `filesToExclude`.   
-* 0.9.6	Added support for **conditionals** in `replace` in `findInCurrentFile`.  
-  &emsp;&emsp; Added `${\d:/upcase/downcase/capitalize/camelcase/pascalcase}` to `findInCurrentFile` `replace` argument.   
-  &emsp;&emsp; Added `isRegex/matchCase/matchWholeWord` to `findInCurrentFile` arguments.  
-  &emsp;&emsp; Added intellisense for case modifiers with selection of nth group number for editing.  
-* 0.9.7 Added error checking for arguments.  Added support for `onlyOpenEditors` argument.  	
+* 0.9.7 Added error checking for arguments.  Added support for `onlyOpenEditors` argument. 
+* 0.9.8 Added more `lineNumber/Index` support.  Added `matchNumber/Index` variable 	
 
 <br/> 
 
