@@ -17,7 +17,7 @@ exports.getRelativeFilePath = function (filePath) {
 	let relativePath = vscode.workspace.asRelativePath(filePath, false);
 
 	if (basename === "settings.json" || basename === "keybindings.json") {
-		if (os.type() === "Windows_NT") relativePath = filePath.substring(4);  // for Windows
+		if (os.type() === "Windows_NT") relativePath = filePath.substring(3);  // for Windows
 		// else relativePath = filePath.substring(1); // test for linux/mac
 	}
 	// else {
@@ -88,7 +88,7 @@ exports.toPascalCase = function(value) {
 	}
 	return match.map(word => {
 		return word.charAt(0).toUpperCase()
-			+ word.substr(1).toLowerCase();
+			+ word.substring(1).toLowerCase();
 	})
 		.join('');
 }
@@ -113,7 +113,7 @@ exports.toCamelCase = function (value) {
 			return word.toLowerCase();
 		} else {
 			return word.charAt(0).toUpperCase()
-				+ word.substr(1).toLowerCase();
+				+ word.substring(1).toLowerCase();
 		}
 	})
 		.join('');
@@ -125,9 +125,9 @@ exports.toCamelCase = function (value) {
  *  
  * @param {Array} args from keybindings or settings
  * @param {String} fromWhere findBinding/findSetting/searchBinding/searchSetting
- * @returns {Object}  of badKeys or badValues 
+ * @returns {Promise<Object>}  of badKeys or badValues 
  */
-exports.checkArgs = function (args, fromWhere) {
+exports.checkArgs = async function (args, fromWhere) {
 
 	let goodKeys;
 	let goodValues;
@@ -191,7 +191,9 @@ exports.showBadKeyValueMessage = async function (badObject, modal, name) {
 		findSetting: ['Run As Is', 'Stop'],
 		searchBinding: ['Run As Is'],
 		searchSetting: ['Run As Is', 'Stop']
-	}
+  }
+  
+  
 
 	if (badObject.badKeys.length === 1) message = `${ origin[badObject.fromWhere] } this key does not exist: "${ badObject.badKeys[0] }".`;
 	else if (badObject.badKeys.length > 1) message = `${ origin[badObject.fromWhere] } these keys do not exist: "${ badObject.badKeys.join('", "') }".`;

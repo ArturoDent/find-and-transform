@@ -2,7 +2,8 @@ const vscode = require('vscode');
 // const path = require('path');
 
 const commands = require('./commands');
-const findCommands = require('./transform');
+const parseCommands = require('./parseCommands');
+// const findCommands = require('./transform');
 const searchCommands = require('./search');
 const providers = require('./completionProviders');
 const codeActions = require('./codeActions');
@@ -19,10 +20,9 @@ let enableWarningDialog = false;
  */
 async function activate(context) {
 
-
 	let firstRun = true;
 
-	await _loadSettingsAsCommands(context, disposables, firstRun);
+  await _loadSettingsAsCommands(context, disposables, firstRun);
 
 	providers.makeKeybindingsCompletionProvider(context);
 	providers.makeSettingsCompletionProvider(context);
@@ -35,18 +35,25 @@ async function activate(context) {
 	// with 'files to include' this ${file} only
 	let contextMenuCommandFolder = vscode.commands.registerCommand('find-and-transform.searchInFolder', async (args) => {
 
-		let argsArray = [];
+    // args is undefined if coming from Command Palette or keybinding with no args
+		// args.path, args.scheme coming from editor context menu
 
-		if (args) {
+    // don't if args.path = settings.json or keybindings.json, works so ...
+    let editorPath = vscode.window.activeTextEditor.document.uri.path;
 
-			const relativeFolderPath = utilities.getRelativeFolderPath(args.path);
+    if (args) {
+      let argsArray = Object.entries(args).filter(arg => {
+        return searchCommands.getKeys().includes(arg[0]);
+      });
 
-			argsArray = [
-				{ "triggerSearch": true },         // make triggerSearch the default
-				{ "filesToInclude": relativeFolderPath }
-			];
-		}
-		searchCommands.useSearchPanel(argsArray);
+      args = Object.fromEntries(argsArray);
+    }
+    else args = {};
+
+    args.triggerSearch = true;
+    args.filesToInclude = utilities.getRelativeFolderPath(editorPath);
+
+    searchCommands.useSearchPanel(args);
 	});
 
 	context.subscriptions.push(contextMenuCommandFolder);
@@ -57,18 +64,25 @@ async function activate(context) {
 	// with 'files to include' this ${file} only
 	let contextMenuCommandFile = vscode.commands.registerCommand('find-and-transform.searchInFile', async (args) => {
 
-		let argsArray = [];
+		// args is undefined if coming from Command Palette or keybinding with no args
+		// args.path, args.scheme coming from editor context menu
 
-		if (args) {
+    let editorPath = vscode.window.activeTextEditor.document.uri.path;
+    // if (args?.path) editorPath = args.path;
 
-			const relativePath = utilities.getRelativeFilePath(args.path);
+    if (args) {  // filter out args coming from the editro context menu
+      args = Object.entries(args).filter(arg => {            // returns an array
+        return searchCommands.getKeys().includes(arg[0]);
+      });
 
-			argsArray = [
-				{ "triggerSearch": true },            // make triggerSearch the default
-				{ "filesToInclude": relativePath }
-			];
-		}
-		searchCommands.useSearchPanel(argsArray);
+      args = Object.fromEntries(args);  // make an Object from the args array
+    }
+    else args = {};
+
+    args.triggerSearch = true;
+    args.filesToInclude = utilities.getRelativeFilePath(editorPath);
+    
+		searchCommands.useSearchPanel(args);
 	});
 
 	context.subscriptions.push(contextMenuCommandFile);
@@ -79,27 +93,22 @@ async function activate(context) {
 	// with 'files to include' this ${file} only
 	let contextMenuCommandResults = vscode.commands.registerCommand('find-and-transform.searchInResults', async (args) => {
 
-		let argsArray = [];
-
 		// args is undefined if coming from Command Palette or keybinding with no args
 		// args.path, args.scheme coming from editor context menu
 
-		if (args) {
-			for (const [key, value] of Object.entries(args)) {
-				const obj = new Object();
-				// so override these keys if there are in the keybinding or setting ?
-				if (key !== "triggerSearch" && key !== "filesToInclude") {
-					obj[`${key}`] = value;
-					argsArray.push(obj);
-				}
-			}
-		}
+    if (args) {
+      args = Object.entries(args).filter(arg => {
+        return searchCommands.getKeys().includes(arg[0]);
+      });
 
-		// override triggerSearch? override filesToInclude? or add the settingkeybinding to it? 
-		argsArray.push({ "triggerSearch": true }),
-		argsArray.push({ "filesToInclude": await utilities.getSearchResultsFiles() });
+      args = Object.fromEntries(args);
+    }
+    else args = {};
 
-		searchCommands.useSearchPanel(argsArray);
+    args.triggerSearch = true;
+    args.filesToInclude = await utilities.getSearchResultsFiles();
+
+		searchCommands.useSearchPanel(args);
 	});
 
 	context.subscriptions.push(contextMenuCommandResults);
@@ -110,36 +119,22 @@ async function activate(context) {
 	const runDisposable = vscode.commands.registerTextEditorCommand('findInCurrentFile', async (editor, edit, args) => {
 
 		// get this from keybinding:  { find: "(document)", replace: "\\U$1" }
-		// need this:                 [ { find: "(document)"	}, { replace: "\\U$1"	} ]
 
 		// TODO warn if fewer capture groups in the find than used in the replace ? or did you mean isRegex
-		let continueRun = true;
+		let continueRun = true; // TODO what is ContinueRun doing? 
 
 		if (args && enableWarningDialog) {
-			const argsBadObject = utilities.checkArgs(args, "findBinding");
+			const argsBadObject = await utilities.checkArgs(args, "findBinding");
 			// boolean modal or not
 			if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, true, "");
 		}
 
 		if (continueRun) {		
-			let argsArray = [];
-			if (args) {
-				argsArray = [
-					{ "title": "Keybinding for generic command run" },  // "title" is never used?
-					{ "find": args.find },
-					{ "replace": args.replace },
-					{ "restrictFind": args.restrictFind },
-					{ "cursorMoveSelect": args.cursorMoveSelect },
-					{ "isRegex": args.isRegex },
-					{ "matchCase": args.matchCase },
-					{ "matchWholeWord": args.matchWholeWord },
-				];
-			}
-			else argsArray = [
-				{ "title": "Keybinding for generic command run" }
-			];
+      if (!args) args = { title: "Keybinding for generic command run" };
+			else if (!args.title) args.title = "Keybinding for generic command run";
 
-			findCommands.findTransform(editor, edit, argsArray);
+			// findCommands.findTransform(editor, edit, argsArray);
+			parseCommands.splitFindCommands(editor, edit, args);
 		}
 	});
 
@@ -153,19 +148,15 @@ async function activate(context) {
 		let continueRun = true;
 
 		if (args && enableWarningDialog) {
-			const argsBadObject = utilities.checkArgs(args, "searchBinding");
+			const argsBadObject = await utilities.checkArgs(args, "searchBinding");
 			// boolean modal or not
 			if (argsBadObject.length)	continueRun = await utilities.showBadKeyValueMessage(argsBadObject, true, "");
 		}
 
 		if (continueRun) {
-			let argsArray = [];
-			if (args) argsArray = searchCommands.getObjectFromArgs(args);
-			else argsArray = [
-				{ "title": "Keybinding for generic command run" }
-			];
-
-			searchCommands.useSearchPanel(argsArray);
+      if (!args) args = { title: "Keybinding for generic command run"};
+      else if (!args.title) args.title = "Keybinding for generic command run";
+      searchCommands.useSearchPanel(args);
 		}
 	});
 
@@ -175,18 +166,18 @@ async function activate(context) {
 
 	// select the 'n' in completionItems like '${n:/upcase}' or '${n:+add text}'
 	// not exposed in package.json
-	let selectDigitInCompletion = vscode.commands.registerCommand('find-and-transform.selectDigitInCompletion', async (...args) => {
+  let selectDigitInCompletion = vscode.commands.registerCommand('find-and-transform.selectDigitInCompletion', async (completionText, completionRange) => {
 
-		//args = [completionText, Range]
+		// args = [completionText, Range]
 		// if completionText startsWith '\\U$n' or '${n'
 		let keyLength;
-		if (args[0]?.startsWith("${n")) keyLength = 3;
-		else if (args[0]?.search(/^\\\\[UuLl]\$n/m) === 0) keyLength = 5;
+		if (completionText?.startsWith("${n")) keyLength = 3;
+		else if (completionText?.search(/^\\\\[UuLl]\$n/m) === 0) keyLength = 5;
 		else return;
 
-		if (args[1]?.start) {
-			const digitStart = new vscode.Position(args[1].start.line, args[1].start.character + keyLength - 1);
-			const digitEnd = new vscode.Position(args[1].start.line, args[1].start.character + keyLength);
+		if (completionRange?.start) {
+			const digitStart = new vscode.Position(completionRange.start.line, completionRange.start.character + keyLength - 1);
+			const digitEnd = new vscode.Position(completionRange.start.line, completionRange.start.character + keyLength);
 			vscode.window.activeTextEditor.selection = new vscode.Selection(digitStart, digitEnd);
 		}
 	});
@@ -196,12 +187,6 @@ async function activate(context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 
 	context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async (event) => {
-		
-		// if (event.affectsConfiguration("find-and-transform.enableWarningDialog"))
-		// enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
-
-		// else if (event.affectsConfiguration("findInCurrentFile") ||
-		// 		event.affectsConfiguration("runInSearchPanel")) {
 		
 		if (event.affectsConfiguration("find-and-transform.enableWarningDialog")
 			|| event.affectsConfiguration("findInCurrentFile")
@@ -240,8 +225,6 @@ async function activate(context) {
  * @param {Boolean} firstRun 
  */
 async function _loadSettingsAsCommands(context, disposables, firstRun) {
-
-	// if (!firstRun) enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
 
 	const findSettings = await commands.getSettings("findInCurrentFile");
 	const searchSettings = await commands.getSettings("runInSearchPanel");

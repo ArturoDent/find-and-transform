@@ -1,5 +1,11 @@
 # find-and-transform
 
+|Letter | Digit | Character|
+:----: |  :----:| :----:
+|a     | 4      | $        |
+|      | 365    | (        |
+|b     |        | ^        |
+
 [VS Code version 1.56 or greater required.]  
 
 Find and transform text in a single file, folder, workspace or custom groups.  

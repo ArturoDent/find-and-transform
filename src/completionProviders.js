@@ -32,7 +32,6 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 						const completionArray = [];
 
 						packageCommands.forEach(pcommand => {
-							// "command": "findInCurrentFile.upcaseSwap2",
 							if (find && pcommand.command.startsWith("findInCurrentFile")) {
 								completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null, "", "A 'findInCurrentFile' from your settings."));
 							}
@@ -66,47 +65,41 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 					// let re$3 = /^\s*"(find|filesToInclude|filesToExclude)"\s*:\s*".*(\$\{[^}]*}?)$/m;
 
 					if (find || search) {
-
-						// const wordAtCursorRange = doc.getWordRangeAtPosition(position);
-						// const wordAtCursor = doc.getText(wordAtCursorRange);
-						// vscode.window.activeTextEditor.selections =
-						// 	[new vscode.Selection(wordAtCursorRange.start.line, wordAtCursorRange.start.character + 1, wordAtCursorRange.end.line, wordAtCursorRange.end.character - 1)];
-
 						if (linePrefix.substring(0, position.character).search(re$) !== -1) {
-							// return _completeVariables(position, wordAtCursor.substring(1, wordAtCursor.length - 1));
 							return _completeVariables(position, '$');
 						} 
 						else if (linePrefix.substring(0, position.character).search(re$2) !== -1) {
 							return _completeVariables(position, "${");
 						}
-						// else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
-						// 	return _completeVariables(position, wordAtCursor.substring(2));
-						// }
 					}
 
-          re$ = /^\s*"replace"\s*:\s*".*\$$/m;     // just for 'replace'
-          // re$2 = /^\s*"replace"\s*:\s*".*\$\{\w*$/m;
-					let re$3 =  /^\s*"replace"\s*:\s*".*\\$/m;
+          re$ = /^\s*"replace"\s*:\s*".*?\$$/m;     // just for 'replace'
+          re$2 = /^\s*"replace"\s*:\s*"(.*[^\\])\\$/m;
+          let re$3 =  /^\s*"replace"\s*:\s*"(.*[^\\])\\\\$/m;
 					if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
 						return _completeReplaceFindVariables(position, '$');
           }
-          // else if (find && linePrefix.substring(0, position.character).search(re$2) !== -1) {
-          //   return _completeReplaceFindVariables(position, '${');
-          // }
 					else if (search && linePrefix.substring(0, position.character).search(re$) !== -1) {
 						return _completeVariables(position, '$');
 					}
-					else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
+					else if (linePrefix.substring(0, position.character).search(re$2) !== -1) {
 						return _completeReplaceFindCaseTransforms(position, '\\');
+          }
+          else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
+            return _completeReplaceFindCaseTransforms(position, '\\\\');
           }
           
           re$  = /^\s*"cursorMoveSelect"\s*:\s*".*\$$/m;     // just for 'cursorMoveSelect'
-          re$2 = /^\s*"cursorMoveSelect"\s*:\s*".*\\$/m;
+          re$2 = /^\s*"cursorMoveSelect"\s*:\s*"(.*[^\\])\\$/m;
+          re$3 = /^\s*"cursorMoveSelect"\s*:\s*"(.*[^\\])\\\\$/m;
           if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
             return _completeReplaceFindVariables(position, '$');
           }
           else if (find && linePrefix.substring(0, position.character).search(re$2) !== -1) {
             return _completeReplaceFindCaseTransforms(position, '\\');
+          }
+          else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
+            return _completeReplaceFindCaseTransforms(position, '\\\\');
           }
 
 					re$ = /^\s*"restrictFind"\s*:\s*"\w*$/m;
@@ -187,7 +180,8 @@ exports.makeSettingsCompletionProvider = function(context) {
 				}
 
         re$      = /^\s*"replace"\s*:\s*".*\$$/m;     // just for 'replace'
-        let re$2 = /^\s*"replace"\s*:\s*".*\\$/m;
+        let re$2 = /^\s*"replace"\s*:\s*"(.*[^\\])\\$/m;
+        let re$3 = /^\s*"replace"\s*:\s*"(.*[^\\])\\\\$/m;
         if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
           return _completeReplaceFindVariables(position, '$');
         }
@@ -197,14 +191,21 @@ exports.makeSettingsCompletionProvider = function(context) {
         else if (linePrefix.substring(0, position.character).search(re$2) !== -1) {
           return _completeReplaceFindCaseTransforms(position, '\\');
         }
+        else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
+          return _completeReplaceFindCaseTransforms(position, '\\\\');
+        }
         
         re$  = /^\s*"cursorMoveSelect"\s*:\s*".*\$$/m;     // just for 'cursorMoveSelect'
-        re$2 = /^\s*"cursorMoveSelect"\s*:\s*".*\\$/m;
+        re$2 = /^\s*"cursorMoveSelect"\s*:\s*"(.*[^\\])\\$/m;
+        re$3 = /^\s*"cursorMoveSelect"\s*:\s*"(.*[^\\])\\\\$/m;
         if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
           return _completeReplaceFindVariables(position, '$');
         }
         else if (find && linePrefix.substring(0, position.character).search(re$2) !== -1) {
           return _completeReplaceFindCaseTransforms(position, '\\');
+        }
+        else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
+          return _completeReplaceFindCaseTransforms(position, '\\\\');
         }
 
         if (find && linePrefix.search(/"restrictFind":\s*"\w*$/m) !== -1)   // just for 'restrictFind'

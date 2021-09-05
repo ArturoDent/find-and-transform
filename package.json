@@ -25,10 +25,12 @@
   "transform",
   "case",
   "regular expression",
-  "regex", "path variable"
+  "regex",
+  "path variable"
  ],
  "activationEvents": [
-  "onStartupFinished"
+  "onStartupFinished",
+  "onCommand:runInSearchPanel.removeDigits"
  ],
  "main": "./src/extension.js",
  "contributes": {
@@ -95,6 +97,11 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "runInSearchPanel.removeDigits",
+    "title": "Remove digits from Arturo",
     "category": "Find-Transform"
    }
   ],

@@ -2,7 +2,9 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
-const findCommands = require('./transform');
+const parseCommands = require('./parseCommands');
+
+// const findCommands = require('./transform');
 const searchCommands = require('./search');
 const utilities = require('./utilities');
 
@@ -14,7 +16,7 @@ const utilities = require('./utilities');
  * @returns {Promise<object>} array of settings
  */
 exports.getSettings = async function (setting) {
-	const settings = vscode.workspace.getConfiguration().get(setting);
+	const settings = await vscode.workspace.getConfiguration().get(setting);
 	let findArray = [];
 
 	if (settings) {
@@ -57,14 +59,14 @@ exports.loadCommands = async function (findSettings, searchSettings, context, en
 	}
 }
 
-
+// @returns { Array < vscode.Command > | Array; } - package.json form of 'contributes.commands'
 /**
  * Transform the settings into package.json-style commands {command: "", title: ""}
  * @param {object} settings - this extension's settings from getCurrentSettings()
  * @param {Boolean} enableWarningDialog
- * @returns { Array < vscode.Command > | Array } - package.json form of 'contributes.commands'
+ * @returns { Promise<vscode.Command[] | any[]> } - package.json form of 'contributes.commands'
  */
-function _makePackageCommandsFromFindSettings(settings, enableWarningDialog) {
+async function _makePackageCommandsFromFindSettings(settings, enableWarningDialog) {
 
 	// "findInCurrentFile": {z
   //   "upcaseSwap2": {
@@ -81,9 +83,9 @@ function _makePackageCommandsFromFindSettings(settings, enableWarningDialog) {
 		
 		// check here for bad args TODO with setting[1]
 		if (enableWarningDialog) {
-			const argsBadObject = utilities.checkArgs(setting[1], "findSetting");
+			const argsBadObject = await utilities.checkArgs(setting[1], "findSetting");
 		 	// boolean modal or not
-			if (argsBadObject.length) utilities.showBadKeyValueMessage(argsBadObject, false, setting[0]);
+			if (argsBadObject.length) await utilities.showBadKeyValueMessage(argsBadObject, false, setting[0]);
 		}
 
 		let newCommand = {};
@@ -122,9 +124,9 @@ async function _makePackageCommandsFromSearchSettings(settings, enableWarningDia
 	for (const setting of settings) {
 		
 		if (enableWarningDialog) {
-			const argsBadObject = utilities.checkArgs(setting[1], "searchSetting");
+			const argsBadObject = await utilities.checkArgs(setting[1], "searchSetting");
 			// boolean modal or not
-			if (argsBadObject.length) utilities.showBadKeyValueMessage(argsBadObject, false, setting[0]);
+			if (argsBadObject.length) await utilities.showBadKeyValueMessage(argsBadObject, false, setting[0]);
 		}
 
 			let newCommand = {};
@@ -142,7 +144,7 @@ async function _makePackageCommandsFromSearchSettings(settings, enableWarningDia
 
 /**
  * Transform the built-in commands into package.json-style commands {command: "", title: ""}
- * @returns {Array<vscode.Command> | Array} - package.json form of builtin 'contributes.commands'
+ * @returns {Array<vscode.Command>} - package.json form of builtin 'contributes.commands'
  */
 function _makeCommandsFromPackageCommands() {
 
@@ -179,7 +181,7 @@ function _makeCommandsFromPackageCommands() {
 
 /**
  * Transform the settings (already transformed to package.json-style commands)
- * nto package.json 'activationEvents' : 'onCommand:<some command>'
+ * into package.json 'activationEvents' : 'onCommand:<some command>'
  *
  * @param {object} settingsCommands
  * @returns {Array<String>} - an array of strings for package.json activationEvents
@@ -251,19 +253,20 @@ function _activationEventArraysAreEquivalent(settings, packages) {
 exports.registerFindCommands = function (findArray, context, disposables, enableWarningDialog) {
 
 	let disposable;
-	let continueRun = true;
+	let continueRun = true;  // TODO is this doing anything?
 
 	for (const elem in findArray) {
 
 		disposable = vscode.commands.registerTextEditorCommand(`findInCurrentFile.${ findArray[elem][0] }`, async (editor, edit) => {
 			// could check for bad args here - on use of settings commands
 			if (enableWarningDialog) {
-				const argsBadObject = utilities.checkArgs(findArray[elem][1], "findSetting");
+				const argsBadObject = await utilities.checkArgs(findArray[elem][1], "findSetting");
 				// boolean modal or not
 				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, findArray[elem][0]);
 			}
 
-			if (continueRun) await findCommands.findTransform(editor, edit, findArray[elem][1]);
+			// if (continueRun) await findCommands.findTransform(editor, edit, findArray[elem][1]);
+			if (continueRun) await parseCommands.splitFindCommands(editor, edit, findArray[elem][1]);
 		});
 		context.subscriptions.push(disposable);
 		disposables.push(disposable);
@@ -289,7 +292,7 @@ exports.registerSearchCommands = function (searchArray, context, disposables, en
 			let temp = searchArray[0][1];
 			// could check for bad args here - on use of settings commands
 			if (enableWarningDialog) {
-				const argsBadObject = utilities.checkArgs(searchArray[elem][1], "findSetting");
+				const argsBadObject = await utilities.checkArgs(searchArray[elem][1], "findSetting");
 				// boolean modal or not
 				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, searchArray[elem][0]);
 			}

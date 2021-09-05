@@ -7,20 +7,18 @@ const variables = require('./variables');
 
 /**
  * Input args is an object from runInSearchPanel keybindings or settings
- * @param {Array} args
- * @returns {Array<Object>} - an array of objects {key: value}
+ * @param {Array} argsArray
+ * @returns {Object} - an array of objects {key: value}
  */
-exports.getObjectFromArgs = function (args) {
+exports.getObjectFromArgs = function (argsArray) {
 
-	const argsArray = [];
+  const args = {};
 
 	// could be bad keys/values here
-	for (const [key, value] of Object.entries(args)) {
-		const obj = new Object();
-		obj[`${ key }`] = value;
-		argsArray.push(obj);
+	for (const [key, value] of Object.entries(argsArray)) {
+    args[`${ key }`] = value;
 	}
-	return argsArray;
+	return args;
 }
 
 /**
@@ -71,79 +69,131 @@ exports.getDefaults = function () {
 
 /**
  * Register a command that uses the Search Panel
- * @param {Object} findArray
+ * @param {Object} args
  */
-exports.useSearchPanel = async function (findArray) {
+exports.useSearchPanel = async function (args) {
 
-  const obj = new Object();
-
-  let clipText = "";
-  await vscode.env.clipboard.readText().then(string => {
-    clipText = string;
-  });
-  
-  // TODO combine these like in transform.js
-
-	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
-	if (isfilesToInclude) {
-		obj["filesToInclude"] = 
-    variables.resolvePathVariables(isfilesToInclude.filesToInclude, "filesToInclude", false, vscode.window.activeTextEditor.selections[0], clipText);
-	}
-
-	const isfilesToExclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToExclude');
-	if (isfilesToExclude) {
-		obj["filesToExclude"] = 
-      variables.resolvePathVariables(isfilesToExclude.filesToExclude, "filesToExclude", false, vscode.window.activeTextEditor.selections[0], clipText);
-	}
-
-	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
-  if (replace?.replace) obj["replace"] =
-    variables.resolvePathVariables(replace.replace, "replace", false, vscode.window.activeTextEditor.selections[0], clipText);
-
-	const triggerReplaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
-	if (triggerReplaceAll) {
-		obj["triggerSearch"] = true;
-	}
-	else {
-    let triggerSearch = findArray.find(arg => Object.keys(arg)[0] === 'triggerSearch');
-    if (triggerSearch) obj["triggerSearch"] = triggerSearch.triggerSearch;
-	}
-
-	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
-  // if (find?.find) obj["query"] = variables.resolvePathVariables(find.find, "find", true, vscode.window.activeTextEditor.selections[0], clipText);
-  if (find) obj["query"] = variables.resolvePathVariables(find.find, "find", true, vscode.window.activeTextEditor.selections[0], clipText);
-
-	findArray.forEach(arg => {
-		const key = Object.keys(arg)[0];
-		if (key.search(/^(filesToInclude|filesToExclude|find|replace|triggerSearch)$/) === -1) {
-			obj[`${ key }`] = Object.values(arg)[0];
-		}
+	let clipText = "";
+	await vscode.env.clipboard.readText().then(string => {
+		clipText = string;
 	});
 
-	if (!obj['query']) {
+  if (args.filesToInclude) args.filesToInclude = variables.resolveSearchPathVariables(args.filesToInclude, "filesToInclude", false, vscode.window.activeTextEditor.selections[0], clipText);
+  if (args.filesToExclude) args.filesToExclude = variables.resolveSearchPathVariables(args.filesToExclude, "filesToExclude", false, vscode.window.activeTextEditor.selections[0], clipText);
+  if (args.replace) args.replace = variables.resolveSearchPathVariables(args.replace, "replace", args.isRegex, vscode.window.activeTextEditor.selections[0], clipText);
+  
+  if (args.find) {
+    args.query = variables.resolveSearchPathVariables(args.find, "find", true, vscode.window.activeTextEditor.selections[0], clipText);
+    delete args.find;
+  }
+  else {
+    args.query = variables.makeFind(vscode.window.activeTextEditor.selections, args);
+  }
+  
+  if (args.triggerReplaceAll) args.triggerSearch = true;
+  if (args.matchCase) {
+    args.isCaseSensitive = args.matchCase;  // because workbench.action.findInFiles does not use "matchCase"!!
+    delete args.matchCase;
+  }
+
+	if (!args.query) {    // use the first selection "word" if no "query"
 		const document = vscode.window.activeTextEditor?.document;
-		if (!document) obj['query'] = "";
+		if (!document) args.query = "";
 		else {
 			const selections = vscode.window.activeTextEditor?.selections;
 			if (selections[0].isEmpty) {
 				const wordRange = document.getWordRangeAtPosition(selections[0].start);
-				if (wordRange) obj['query'] = document.getText(wordRange);
-				else obj['query'] = "";  // no word at cursor
+				if (wordRange) args.query = document.getText(wordRange);
+				else args.query = "";  // no word at cursor
 			}
-			else obj['query'] = document.getText(selections[0]);
+			else args.query = document.getText(selections[0]);
 		}
-  }
-  
-  if (obj["matchCase"]) obj["isCaseSensitive"] = obj["matchCase"];  // because search doesn't use "matchCase"!!
+	}
 
 	vscode.commands.executeCommand('workbench.action.findInFiles',
-		obj	).then(() => {
-			if (obj['triggerReplaceAll'])
+		args).then(() => {
+			if (args.triggerReplaceAll)
 				setTimeout(() => {
 					vscode.commands.executeCommand('search.action.replaceAll');
 				}, 1000);
 		});
 }
+
+// /**
+//  * Register a command that uses the Search Panel
+//  * @param {Object} findArray
+//  */
+// exports.useSearchPanel = async function (findArray) {
+
+//   const obj = new Object();
+
+//   let clipText = "";
+//   await vscode.env.clipboard.readText().then(string => {
+//     clipText = string;
+//   });
+  
+//   // TODO combine these like in transform.js
+
+// 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
+// 	if (isfilesToInclude) {
+// 		obj["filesToInclude"] = 
+//     variables.resolvePathVariables(isfilesToInclude.filesToInclude, "filesToInclude", false, vscode.window.activeTextEditor.selections[0], clipText);
+// 	}
+
+// 	const isfilesToExclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToExclude');
+// 	if (isfilesToExclude) {
+// 		obj["filesToExclude"] = 
+//       variables.resolvePathVariables(isfilesToExclude.filesToExclude, "filesToExclude", false, vscode.window.activeTextEditor.selections[0], clipText);
+// 	}
+
+// 	const replace = findArray.find(arg => Object.keys(arg)[0] === 'replace');
+//   if (replace?.replace) obj["replace"] =
+//     variables.resolvePathVariables(replace.replace, "replace", false, vscode.window.activeTextEditor.selections[0], clipText);
+
+// 	const triggerReplaceAll = findArray.find(arg => Object.keys(arg)[0] === 'triggerReplaceAll');
+// 	if (triggerReplaceAll) {
+// 		obj["triggerSearch"] = true;
+// 	}
+// 	else {
+//     let triggerSearch = findArray.find(arg => Object.keys(arg)[0] === 'triggerSearch');
+//     if (triggerSearch) obj["triggerSearch"] = triggerSearch.triggerSearch;
+// 	}
+
+// 	const find = findArray.find(arg => Object.keys(arg)[0] === 'find');
+//   // if (find?.find) obj["query"] = variables.resolvePathVariables(find.find, "find", true, vscode.window.activeTextEditor.selections[0], clipText);
+//   if (find) obj["query"] = variables.resolvePathVariables(find.find, "find", true, vscode.window.activeTextEditor.selections[0], clipText);
+
+// 	findArray.forEach(arg => {
+// 		const key = Object.keys(arg)[0];
+// 		if (key.search(/^(filesToInclude|filesToExclude|find|replace|triggerSearch)$/) === -1) {
+// 			obj[`${ key }`] = Object.values(arg)[0];
+// 		}
+// 	});
+
+// 	if (!obj['query']) {
+// 		const document = vscode.window.activeTextEditor?.document;
+// 		if (!document) obj['query'] = "";
+// 		else {
+// 			const selections = vscode.window.activeTextEditor?.selections;
+// 			if (selections[0].isEmpty) {
+// 				const wordRange = document.getWordRangeAtPosition(selections[0].start);
+// 				if (wordRange) obj['query'] = document.getText(wordRange);
+// 				else obj['query'] = "";  // no word at cursor
+// 			}
+// 			else obj['query'] = document.getText(selections[0]);
+// 		}
+//   }
+  
+//   if (obj["matchCase"]) obj["isCaseSensitive"] = obj["matchCase"];  // because search doesn't use "matchCase"!!
+
+// 	vscode.commands.executeCommand('workbench.action.findInFiles',
+// 		obj	).then(() => {
+// 			if (obj['triggerReplaceAll'])
+// 				setTimeout(() => {
+// 					vscode.commands.executeCommand('search.action.replaceAll');
+// 				}, 1000);
+// 		});
+// }
 
 
 /**

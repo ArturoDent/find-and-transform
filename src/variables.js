@@ -225,6 +225,50 @@ exports.resolvePathVariables = function (variableToResolve, caller, isRegex, sel
  * account for case modifiers, capture groups and conditionals
  *
  * @param {String} replaceValue
+ * @param {String} caller - find/replace/cursorMoveSelect
+ * @param {Boolean} isRegex
+ * @param {vscode.Selection} selection - the current selection
+ * @param {String} clipText - the curent clipboard text
+ * @returns {String} - the resolved string
+ */
+exports.resolveSearchPathVariables = function (replaceValue, caller, isRegex, selection, clipText) {
+
+  if (replaceValue === "") return replaceValue;
+
+  let identifiers;
+  let re;
+
+  if (replaceValue !== null) {
+
+    let vars = _getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+    vars = `(?<pathCaseModifier>\\\\[UuLl])?(?<path>${ vars })`;
+
+    re = new RegExp(`${ vars }`, "g");
+    identifiers = [...replaceValue.matchAll(re)];
+  }
+
+  if (!identifiers.length) return replaceValue;
+
+  for (const identifier of identifiers) {
+
+    let resolved = "";
+
+    if (identifier.groups.path) {
+      resolved = this.resolvePathVariables(identifier.groups.path, caller, isRegex, selection, clipText, null, "", null);
+      if (identifier.groups.pathCaseModifier) resolved = _applyCaseModifier(identifier.groups.pathCaseModifier, resolved);
+    }
+
+    // end of identifiers loop
+    replaceValue = replaceValue.replace(identifier[0], resolved);
+  }
+  return replaceValue;
+};
+
+/**
+ * Build the replaceString by updating the setting 'replaceValue' to
+ * account for case modifiers, capture groups and conditionals
+ *
+ * @param {String} replaceValue
  * @param {Array|Number} groups - may be a single match
  * @param {String} caller - find/replace/cursorMoveSelect
  * @param {Boolean} isRegex
@@ -305,7 +349,7 @@ exports.buildReplace = function (replaceValue, groups, caller, isRegex, selectio
       if (identifier[4]) {
         thisCapGroup = identifier[4].replace(/[^\d]/g, "");
 
-        if (groups[thisCapGroup]) {
+        if (groups && groups[thisCapGroup]) {
           // thisCapGroup = identifier[2].substring(1);			 // "1" or "2", etc.
           // thisCapGroup = identifier[2].replace(/[^\d]/g, "");
           resolved = _applyCaseModifier(identifier.groups.caseModifier, groups[thisCapGroup]);
@@ -464,4 +508,47 @@ function _getPathVariables() {
     "${fileWorkspaceFolder}", "${workspaceFolder}", "${relativeFileDirname}", "${workspaceFolderBasename}", 
     "${selectedText}", "${pathSeparator}", "${lineIndex}", "${lineNumber}", "${CLIPBOARD}", "${resultsFiles}"
   ];
+}
+
+
+/**
+ * When no 'find' key in command: make a find value for use as a regexp
+ * from all selected words or words at cursor positions wrapped by word boundaries \b
+ *
+ * @param   {Array<vscode.Selection>} selections
+ * @param   {Object} args
+ * @returns {String} - selected text '(\\ba\\b|\\bb c\\b|\\bd\\b)'
+ */
+exports.makeFind = function (selections, args) {
+
+  const document = vscode.window.activeTextEditor.document;
+  let selectedText = "";
+  let find = "";
+
+  // only use the first selection for these options
+  if (args?.restrictFind?.substring(0, 4) === "next") {
+    selections = [selections[0]];
+  }
+
+  selections.forEach((selection, index) => {
+
+    if (selection.isEmpty) {
+      const wordRange = document.getWordRangeAtPosition(selection.start);
+      selectedText = document.getText(wordRange);
+    }
+    else {
+      const selectedRange = new vscode.Range(selection.start, selection.end);
+      selectedText = document.getText(selectedRange);
+    }
+
+    let boundary = "";
+    if (args.matchWholeWord) boundary = "\\b";
+
+    // wrap with word boundaries \b must be escaped to \\b
+    if (index < selections.length - 1) find += `${ boundary }${ selectedText }${ boundary }|`;  // add an | or pipe to end
+    else find += `${ boundary }${ selectedText }${ boundary }`;
+  });
+
+  if (args.isRegex) find = `(${ find })`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
+  return find;
 }
