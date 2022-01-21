@@ -403,8 +403,8 @@ The `replace` arguments in the `runInSearchPanel` also supports case modifiers l
 
 ### 1.  Editor Context Menu  
 
-* `Search in this File`  opens the Search Panel with the current filename.  
-* `Search in this Folder`  opens the Search Panel with of the current file's parent folder.  
+* `Search in File(s)`  opens the Search Panel with the current filename.  
+* `Search in Folder(s)`  opens the Search Panel with of the current file's parent folder.  
 * `Search in the Results Files`  if there are search results in the Search Panel.  Discussed below.   
 
 <br/>
@@ -415,19 +415,44 @@ The `replace` arguments in the `runInSearchPanel` also supports case modifiers l
 
 ### 2.  Editor Tab Context Menu
 
-* `Search in this File`  opens the Search Panel with the chosen filename when using the context menu of an editor **tab**.  
-* `Search in this Folder`  opens the Search Panel with the chosen editor tab's parent foldername when using the context menu of an editor **tab**.  
+* `Search in File(s)`  opens the Search Panel with the chosen filename when using the context menu of an editor **tab**.  
+* `Search in Folder(s)`  opens the Search Panel with the chosen editor tab's parent foldername when using the context menu of an editor **tab**.  
+
+You can use the context menu of the currently active editor or any other editor.  
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextTab.gif?raw=true" width="700" height="650" alt="demo of editor tabs context menuss"/>
 
 ### 3.  Explorer Context Menu
 
-* `Search in this File`  opens the Search Panel with the (hovered over) filename of that hovered over.   
-* `Search in this Folder` opens the Search Panel with the (hovered over) file's parent folder.   
+* `Search in File(s)`  opens the Search Panel with the selected filename or filename.   
+* `Search in Folder(s)` opens the Search Panel with the selected folder or folder.   
+
+For either of the above Explorer context menu options you can select either multiple files or folders.  Then right-click to bring up the context menu and choose `Search in File(s)` or `Search in Folder(s)`.  Currently, choosing a mix of files and folders is not supported but that will be supported soon.  
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextExplorer.gif?raw=true" width="700" height="300" alt="demo of Explorer file context menus"/>
 
-Explanation: The old 'files to include' entry will be replaced by the associated file or folder.  The `find` query will be the selected word of the **active text editor** - which can be different than the editor tab's context menu.  
+Explanation: The old 'files to include' entry will be replaced by the associated file or folder.  The `find` query will be the selected word of the **active text editor**.  
+
+These can also be used in a keybinding (but not currently in a setting) like so:
+
+```jsonc
+{
+  "key": "alt+r", 
+  // "command": "find-and-transform.searchInResults",
+  // "command": "find-and-transform.searchInFile",
+  "command": "find-and-transform.searchInFolder",
+
+  "args": {
+    // "find": "(NotationType)",  // if empty will use the word or words at cursor
+    // "replace": "\\U$1",
+    // "isRegex": true,
+
+    // below will limit the search to those files within the folder that are opened
+    // "onlyOpenEditors": true
+  },
+  // "when": "hasSearchResult"
+},
+```
 
 <br/>
 
@@ -495,10 +520,13 @@ At this point, vscode does not allow the context menu of the search results view
     // "matchCase"
     // "matchWholeWord"
     // "filesToExclude"
+    // "onlyOpenEditors  
   },
-  "when": "hasSearchResult"                         // I suggest this but it isn't mandatory
+  "when": "hasSearchResult"                         // I suggest this but it isn't mandatory, see note **** below
 }
 ```
+
+> Note***: If there are NO search results and you trigger the `"find-and-transform.searchInResults"` command, what happens?  (A) `"when": "hasSearchResult"` is set: the keybinding will not trigger, it `when` context is not satisfied.  (B) There is NO `hasSearchResult` `when` clause: the command will run using whatever the previous "files to include" input contains.   
 
 * In this command `find-and-transform.searchInResults` any `filesToInclude` will be ignored and all the search results files will be used instead.  
 * The `"triggerSearch"` arg will be ignored as well.  `"triggerSearch": true` will be applied.

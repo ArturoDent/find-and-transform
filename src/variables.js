@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const path = require('path');
+const path = require('path');   
 const os = require('os');
 const utilities = require('./utilities');
 
@@ -38,6 +38,8 @@ exports.resolveLineVariable = function (variableToResolve, index) {
   variableToResolve = variableToResolve.replaceAll(/\$\{lineIndex\}/g, String(line));
   variableToResolve = variableToResolve.replaceAll(/\$\{lineNumber\}/g, String(line + 1));
   return variableToResolve;
+
+  const a = /bqweqe/;
 }
 
 
@@ -131,7 +133,7 @@ exports.resolvePathVariables = function (variableToResolve, caller, isRegex, sel
 				resolved = path.basename(relativePath, path.extname(relativePath));
 			break;
 
-			case "${fileExtname}": case "${ fileExtname }":
+			case "${fileExtname}": case "${ fileExtname }":  // includes the `.` unfortunately
 				resolved = path.extname(relativePath);
 			break;
 
@@ -296,7 +298,9 @@ exports.buildReplace = function (replaceValue, groups, caller, isRegex, selectio
       const re2 = "|(?<caseTransform>\\$\\{(\\d\\d?):\\/((up|down|pascal|camel)case|capitalize)\\})";
       const re3 = "|(?<conditional>\\$\\{\\d\\d?:[-+?]?(.*?)(?<!\\\\)\\})";
       const re4 = "|(?<capGroupOnly>\\$\\{?\\d\\d?(?!:)\\}?)";
-      re = new RegExp(`${ vars }|${ re1 }${ re2 }${ re3 }${ re4 }`, "g");
+      // const re5 = "|(?<mathOp>\\$\\$\\{(.*?)\\})";
+      const re5 = "|(?<mathOp>\\$\\$\\{(.*)\\})";
+      re = new RegExp(`${ vars }|${ re1 }${ re2 }${ re3 }${ re4 }${ re5 }`, "g");
     }
     // else if (caller !== "find" && !isRegex) {
     //   const re1 = "(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d\\d?\\}?)";
@@ -320,6 +324,11 @@ exports.buildReplace = function (replaceValue, groups, caller, isRegex, selectio
     else if (identifier.groups.capGroupOnly) {   // so no case modifier, only an unmodified capture group: "$n" or "${n}""
       const thisCapGroup = identifier.groups.capGroupOnly.replace(/[^\d]/g, "");
       if (groups && groups[thisCapGroup]) resolved = groups[thisCapGroup];
+    }
+
+    // enable //U$1 here?
+    else if (identifier.groups.mathOp) {
+      resolved = _checkForCaptureGroupsInMathOpReplacement(identifier.groups.mathOp, groups);
     }
 
     else if (identifier.groups.caseTransform) {
@@ -450,7 +459,7 @@ function _applyConditionalTransform(whichConditional, conditionalText, groups, t
 
     case "+":                        // if ${1:+yes}
       if (groups && groups[thisCapGroup]) {
-        resolved = _checkForCaptureGroupsInReplacement(conditionalText, groups);
+        resolved = _checkForCaptureGroupsInConditionalReplacement(conditionalText, groups);
       }
       // "if" but no matching capture group
       // else resolved = "";
@@ -459,7 +468,7 @@ function _applyConditionalTransform(whichConditional, conditionalText, groups, t
     case "-":                       // else ${1:-no} or ${1:no}
     case "":
       if (groups && !groups[thisCapGroup]) {
-        resolved = _checkForCaptureGroupsInReplacement(conditionalText, groups);
+        resolved = _checkForCaptureGroupsInConditionalReplacement(conditionalText, groups);
       }
       // "else" and there is a matching capture group
       // else resolved = "";
@@ -469,9 +478,9 @@ function _applyConditionalTransform(whichConditional, conditionalText, groups, t
       const replacers = conditionalText.split(":");
 
       if (groups && groups[thisCapGroup]) {
-        resolved = _checkForCaptureGroupsInReplacement(replacers[0], groups);
+        resolved = _checkForCaptureGroupsInConditionalReplacement(replacers[0], groups);
       }
-      else resolved = _checkForCaptureGroupsInReplacement(replacers[1] ?? "", groups);
+      else resolved = _checkForCaptureGroupsInConditionalReplacement(replacers[1] ?? "", groups);
       break;
   }
   return resolved;
@@ -480,11 +489,12 @@ function _applyConditionalTransform(whichConditional, conditionalText, groups, t
 
 /**
  * Are there capture groups, like `$1` in this conditional replacement text?
+ * 
  * @param {String} replacement 
  * @param {Array} groups 
  * @returns {String} - resolve the capture group
  */
-function _checkForCaptureGroupsInReplacement(replacement, groups) {
+function _checkForCaptureGroupsInConditionalReplacement(replacement, groups) {
 
   const re = /(?<ticks>`\$(\d+)`)/g;
   const capGroups = [...replacement.matchAll(re)];
@@ -495,6 +505,29 @@ function _checkForCaptureGroupsInReplacement(replacement, groups) {
     }
   }
   return replacement;
+}
+
+/**
+ * Are there capture groups, like $1 or ${1} in this math ops replacement text?
+ * 
+ * @param {String} replacement 
+ * @param {Array} groups 
+ * @returns {String} - resolve the capture group
+ */
+ function _checkForCaptureGroupsInMathOpReplacement(replacement, groups) {
+
+  const mathOp = replacement.match(/\$\$\{(?<mathOp>.*)\}/);
+  let   operation = mathOp?.groups?.mathOp;
+
+  const re = /(?<captureGroups>\$\{?(\d+)\}?)/g;
+  const capGroups = [...operation?.matchAll(re)];
+
+  for (let i = 0; i < capGroups.length; i++) {
+    if (capGroups[i].groups.captureGroups) {
+      operation = operation.replace(capGroups[i][0], groups[capGroups[i][2]] ?? "");
+    }
+  }
+  return Function('"use strict";return (' + operation + ')')();
 }
 
 
@@ -517,38 +550,40 @@ function _getPathVariables() {
  *
  * @param   {Array<vscode.Selection>} selections
  * @param   {Object} args
- * @returns {String} - selected text '(\\ba\\b|\\bb c\\b|\\bd\\b)'
+ * @returns {Object} - { selected text '(a|b c|d)', mustBeRegex b/c Set.size > 1 }
  */
 exports.makeFind = function (selections, args) {
 
   const document = vscode.window.activeTextEditor.document;
   let selectedText = "";
+  let textSet = new Set();
   let find = "";
+  let mustBeRegex = false;
 
-  // only use the first selection for these options
+  // only use the first selection for these options: nextSelect/nextMoveCursor/nextDontMoveCursor
   if (args?.restrictFind?.substring(0, 4) === "next") {
     selections = [selections[0]];
   }
 
-  selections.forEach((selection, index) => {
+  selections.forEach((selection) => {
 
     if (selection.isEmpty) {
-      const wordRange = document.getWordRangeAtPosition(selection.start);
-      selectedText = document.getText(wordRange);
+      const wordRange = document.getWordRangeAtPosition(selection.start);  // undefined if no word at cursor
+      if (wordRange) selectedText = document.getText(wordRange);
     }
     else {
       const selectedRange = new vscode.Range(selection.start, selection.end);
       selectedText = document.getText(selectedRange);
     }
-
-    let boundary = "";
-    if (args.matchWholeWord) boundary = "\\b";
-
-    // wrap with word boundaries \b must be escaped to \\b
-    if (index < selections.length - 1) find += `${ boundary }${ selectedText }${ boundary }|`;  // add an | or pipe to end
-    else find += `${ boundary }${ selectedText }${ boundary }`;
+    textSet.add(selectedText);
   });
 
+  for (let item of textSet) find += `${ item }|`; // Sets are unique, so this de-duplicates any selected text
+  find = find.substring(0, find.length - 1);  // remove the trailing '|'
+
+  // if .size of the set is greater than 1 then isRegex must be true
+  if (textSet.size > 1) mustBeRegex = true;
   if (args.isRegex) find = `(${ find })`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
-  return find;
+
+  return { find, mustBeRegex };
 }

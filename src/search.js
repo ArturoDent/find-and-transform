@@ -87,7 +87,9 @@ exports.useSearchPanel = async function (args) {
     delete args.find;
   }
   else {
-    args.query = variables.makeFind(vscode.window.activeTextEditor.selections, args);
+    const findObject = variables.makeFind(vscode.window.activeTextEditor.selections, args);
+    args.query = findObject.find;
+    if (!args.isRegex && findObject.mustBeRegex) args.isRegex = true;
   }
   
   if (args.triggerReplaceAll) args.triggerSearch = true;

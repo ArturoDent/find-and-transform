@@ -1,28 +1,32 @@
 # find-and-transform
 
-|Letter | Digit | Character|
-:----: |  :----:| :----:
-|a     | 4      | $        |
-|      | 365    | (        |
-|b     |        | ^        |
-
 [VS Code version 1.56 or greater required.]  
 
-Find and transform text in a single file, folder, workspace or custom groups.  
-Search across files with pre-defined options.  
+*  &nbsp; Find and transform text in a single file, folder, workspace or custom groups.
 
-Do a second search in the files with matches from a previous search only.      
+*  &nbsp; Search across files with pre-defined options.  
 
-*   &emsp; Any number of find/replace combinations can be saved in settings and triggered either by the Command Palette or a keybinding.
-*   &emsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1, add other text, snippet-like transforms like `${1:/pascalcase}` and more.   
+*  &nbsp; Do multiple find/replaces in the current file.  
 
-*   &emsp; Keybindings can be quite generic, not necessarily even including `find` or `replace` keys!    
-*   &emsp; A command can be created right in a keybinding, without using a setting at all.  
+*  &nbsp; Do **math** on regex replacements, like `$${$1 + 10}`: add 10 to capture group 1.  
 
-*   &emsp; Supports using path variables in the Search Panel `find/replace/filesToInclude/filesToExclude`, including the current file only or current directory.    
+*  &nbsp; Do **string** operations on regex replacements, like `$${ '$1'.replace('o','e').toUpperCase() }`.
 
-*   &emsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See &nbsp; [running commands on save](codeActions.md).
-*   &emsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.  
+*  &nbsp; Do a second search using only the files found in a previous search.     
+
+*  &nbsp; Any number of find/replace combinations can be named and saved in settings and triggered either by the Command Palette or a keybinding.
+
+*  &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.   
+
+*  &nbsp; Keybindings can be quite generic, not necessarily even including `find` or `replace` keys! 
+
+*  &nbsp; A command can be created right in a keybinding, without using a setting at all.  
+
+*  &nbsp; Supports using path variables in the Search Panel `find/replace/filesToInclude/filesToExclude` or the Find in file Widget `find/replace` fields, including the current file only or current directory.    
+
+*  &nbsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See &nbsp; [running commands on save](codeActions.md).
+
+*  &nbsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.  
 
 -------------
 
@@ -77,7 +81,7 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
   "args": {
   
     "find": "(trouble)",               // can be plain text, a regexp or a special variable
-    "replace": "\\U$1",                // text, variables, conditionals, case modifiers, etc.
+    "replace": "\\U$1",                // text, variables, conditionals, case modifiers, operations, etc.
     
     "isRegex": true,                   // boolean, will apply to 'cursorMoveSelect' as well as the find query
     "matchWholeWord": true,            // boolean, same as above
@@ -116,6 +120,179 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 -----------
 
 <br/>
+
+## Running multiple finds and replaces with a single keybinding or setting  
+
+The `find` and `replace` fields can either be a string or an array of strings.  Examples:  
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",  
+  
+  "args": {
+  
+    "find": "(trouble)",                      // single string - runs once
+    "find": ["(trouble)"],                    // an array of one string is allowed - runs once
+
+    "replace": "\\U$1",                       // replace "trouble" with "TROUBLE"
+
+
+
+    "find": ["(trouble)", "(more trouble)"],  // as many comma-separated strings as you want
+                                              // run multiple findInCurrentFile commands
+
+    "replace": ["\\U$1", "\\u$1"],            //  replace "trouble" with "TROUBLE" and
+                                              //  replace "more trouble" with "More trouble" 
+
+    "isRegex": true
+  }
+}
+```
+  
+
+1.  If there are more `find` strings than `replace` strings: then the last `replace` value will be used for any remaining runs.  
+2.  If there are more `replace`'s than `find`'s: then a generated find (see more at the "words at cursors" discussion below) using the cursor selections will be used for any remaining runs.   
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",  
+  
+  "args": {
+  
+    "find": ["(trouble)", "(more trouble)"],  // two finds
+
+    "replace": "\\U$1",                       // \\U$1 will be used for both replaces so
+                        // replace "trouble" with "TROUBLE" and "more trouble" with "MORE TROUBLE"
+
+    "isRegex": true
+  }
+}
+```
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",  
+  
+  "args": {
+  
+    "find": "(trouble)",                       // one find
+
+    "replace": ["\\U$1", "\\u$1"],             // more replaces than finds
+                        // replace "trouble" with "TROUBLE" on first run and
+                        //  on second run replace any selected words with their capitalized version
+
+    "isRegex": true
+  }
+}
+```
+
+
+You might want to run two or more commands in a sequence like this to accomplish some replacements that are difficult or impossible to do in one regexp but much simpler with two find/replaces in sequences.  Like:
+
+```jsonc
+"find":    ["(${relativeFile})", "(${fileExtname})"],
+"replace": ["\\U$1", ""],
+"isRegex": true
+```
+
+On the first pass above, the fileName will be uppercased.  On the second run, the file extension (like `.js`) will be matched and replaced with nothing (the empty string) and so will be removed.  
+
+```jsonc
+"find": ["(someWord)", "(WORD)"],
+"replace": ["\\U$1", "-\\L$1"],
+"isRegex": true,
+"matchCase": true
+```
+
+On the first pass above, "someWord" will be replaced with "SOMEWORD".  On the second pass, find "WORD" and replace it with "-word".  So you will replace "someWord" with "SOME-word" after both runs.  Yes, you could make a single regex to do this in one run, but in more complicated cases using two or more runs can make it simpler.    
+
+
+-------------  
+
+<br/>
+
+## Doing math on replacements    
+
+Use the special syntax **`$${<some math op>}`** as a replace value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations , e.g., string operations (see below).  [This does not use the `eval()` function.]  Examples:   
+
+```jsonc
+{
+  "key": "alt+n",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "(?<=<some preceding text>)(\\d+)(?=<some following text>)",  // postive lookbehind/ahead
+
+    "replace": "$${$1 + $1}",             // will double the digits found in capture group 1  
+    "replace": "$${ 2 * $1 }",            // will double the digits found in capture group 1  
+    "replace": "$${$1 + $1}",             // will double the digits found in capture group 1  
+
+    "replace": "$${$1 + $2}",             // add capture group 1 to capture group 2  
+
+    "replace": "$${ $1 * 2 + `,000` }",   // double group 1, append `,000` to it.  1 => 2,000  
+
+    "replace": "$${ $1 * Math.PI }",     // multiply group 1 by Math.PI  
+
+    "isRegex": true  
+  }
+}
+```  
+
+-------------  
+
+<br/>  
+
+## Doing string operations on replacements  
+
+You can also do string operations inside the special syntax `$${<operations>}` as well.  But you will need to ***"cast"*** the string in bacticks, single quotes or escaped double quotes like so:   
+
+*  **$${ \`$1\`.substring(3) }**  use backticks or  
+
+*  **$${ '$1'.substring(3) }**  or  use single quotes
+
+* **$${ \\"$1\\".includes('tro') }**  escape the double quotes
+
+> Any term that you wish to be interpreted as a string must be enclosed as just mentioned.  So in the first example below to replace the match with the string `howdy` I used backticks.  This is only necessary within the operations syntax `$${<operations>}` otherwise it is interpreted as an unknown variable by javascript.  
+
+```jsonc
+{
+  "key": "alt+n",
+  "command": "findInCurrentFile",
+  "args": {
+
+    "find": "(trouble) (brewing)",
+
+    "replace": "$${ `howdy` }",                 // replace trouble brewing => howdy  
+    "replace": "howdy",                         // same result as above   
+
+    "replace": "$${ `$1`.indexOf('b') * 3 }",   // trouble brewing => 12  
+
+    "replace": "$${ `$1`.toUpperCase() + ' C' + `$2`.substring(1).toUpperCase() }",
+    // trouble brewing => TROUBLE CREWING  
+
+    "replace": "$${ `$1`.replace('ou','e') }",  // trouble => treble  
+
+    "replace": "$${ '$1'.split('o')[1] }",      // trouble => uble  
+
+    "find": "(tr\\w+ble)",                      // .includes() returns either 'true' or 'false'  
+    "replace": "$${ '$1'.includes('tro') }",    // trouble will be replaced with true, treble => false  
+
+    "find": "(tr\\w+ble)",           // can have any number of $${...}'s in a replacment
+    "replace": "$${ '$1'.includes('tro') } $${ '$1'.includes('tre') }",
+                                    // trouble => true false, treble => false true
+
+    "isRegex": true  
+  }
+}
+``` 
+
+> You can combine math or string operations within **`$${<operations>}`**.  
+
+<br/>  
+
+------------------  
 
 ## Special variables 
 
@@ -166,16 +343,45 @@ The first 11 of those variables should have the same resolved values as found at
 
 <br/>
 
- The replace transforms can include ***case modifiers*** like:  
+ The find query and the replace transforms can include ***case modifiers*** like:  
 
 ```
+// can be used in the `replace` field:  
+
 \\U$n   uppercase the entire following capture group as in `\\U$1`
 \\u$n   capitalize the first letter only of the following capture group: `\\u$2`
 \\L$n   lowercase the entire following capture group:  `\\L$2`
 \\l$n   lowercase the first letter only of the following capture group: `\\l$3`
+
+// can be used in either the `replace` or `find` fields:  
+
+\\U${relativeFile} or any launch/task-like variable listed above
+\\u${any launch variable}
+\\L${any launch variable}
+\\l${any launch variable}
 ``` 
 
+These case modifier transforms must 
+
 These work in **both** the `findInCurrentFile` and `runInSearchPanel` commands or keybindings.  
+
+Example:
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+                                     // find the lowercased version of the relativeFileName
+    "find": "(\\L${relativeFile})",  // note the outer capture group
+
+    "replace": "\\U$1", // replace with the uppercased version of capture group 1
+
+    "matchCase": true,  // this must be set or the find case will be ignored!
+    "isRegex": true
+  }
+}
+```
 
 <br/>
 
@@ -216,6 +422,8 @@ Examples:
     "replace": "${1:+*`$1``$1`*}${2:+*`$2``$2`*}",      // lots of combinations possible
     
     "replace": "$0",                      // can use whole match as a replacement
+
+    "replace": "",                        // the match will be replaced with nothing, i.e., an empty string
     
     "replace": "${2:?yada2:yada3}\\U$1",  // if group 2, add "yada2", else add "yada3"
                                           // then follow with upcased group 1
@@ -622,9 +830,11 @@ The downside to this method is that the various commands are not kept in one pla
 
 <br/>  
 
->  Important:  &nbsp; What are &nbsp; **`"nearest words at cursors"`**? &nbsp; In VS Code, a cursor immediately next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a `findInCurrentFile` command with no `find` arg it will treat any and all "nearest words at cursors" as if you were asking to find those words.  Actual selections and "nearest words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  It appears that a word at a cursor is defined generally as this: `\b[a-zA-Z0-9_]\b` although some languages may define it differently.  
+>  Important:  &nbsp; What are &nbsp; **`"nearest words at cursors"`**? &nbsp; In VS Code, a cursor immediately next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a `findInCurrentFile` command with no `find` arg it will treat any and all "nearest words at cursors" as if you were asking to find those words.  Actual selections and "nearest words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  It appears that a word at a cursor is defined generally as this: `\b[a-zA-Z0-9_]\b` (consult the word separators for your given language) although some languages may define it differently.  
 
-> So with the cursor at the start or end of `FIXME` or anywhere within the word, `FIXME` is the word at the cursor.  `FIXME-Soon` consists of two words.  If the cursor followed the `*` in `FIXME*` then `FIXME` is **not** the word at the cursor.  
+> If a cursor is on a blank line or next to a non-word character, there is no "nearest word at cursor" by definition and this extension will simply return the empty string for such a cursor.  
+
+> So with the cursor at the start or end of `FIXME` or anywhere within the word, `FIXME` is the word at the cursor.  `FIXME-Soon` consists of two words (in most languages).  If the cursor followed the `*` in `FIXME*` then `FIXME` is **not** the word at the cursor.  
 
 This is demonstrated in some of the demos below.  
 
@@ -641,7 +851,13 @@ This is demonstrated in some of the demos below.
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindNoReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of no find and no replace keys in args"/> 
 
-Explanation: With no `find` key, find matches of selections or nearest words at cursors (multi-cursors work) and select all those matches.  Blue text are selections in the demo gif.  
+Explanation: With no `find` key, find matches of selections or nearest words at cursors (multi-cursors work) and select all those matches.  Blue text are selections in the demo gif.
+
+> Important: If there is no `find` key and there are **mutiple selections** then this extension will create a `find` query using **all** those selections.  The generated `find` will be in the form of `"find": "(word1|word2|some selected text)`.  Note the use of the alternation pipe `|` so any of those selected words can be found.  Thus, the find in file or find across files must have the regex flag enabled.  Therefore, if you have multiple selections with no `find` key, `"isRegex": true` will be set - possibly overriding what you had the settings or keybinding.  
+
+> That should only be a problem if you select text that gets generated into a `find` term that itself contains regexp special characters, like `.?*^$`, etc.  They will not be treated as literal characters but as their usual regexp functionality.  
+
+> Finally, if you select multiple instances of the same text the generated `find` term will have any duplicates removed.  `Set.add()` is a beautiful thing.  
 
 <br/>
 
@@ -934,15 +1150,18 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Add more error messages, like if a capture group used in replace but none in the find.
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?    
-* Explore more string operations (e.g., `substring()`, `trim()`, `++`) in the replace settings/args?    
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
 * Add a `cursorMove` option (like `cursorMoveSelect` without the selection).    
+* Consider how `cursorMoveSelect` should work in full document search?  
 
 
 ## Release Notes
 
 * 0.9.7 Added error checking for arguments.  Added support for `onlyOpenEditors` argument. 
-* 0.9.8 Added more `lineNumber/Index` support.  Added `matchNumber/Index` variable 	
+* 0.9.8 Added more `lineNumber/Index` support.  Added `matchNumber/Index` variable. 	
+
+* 1.0.0 Added ability to do math and string operations on `findInCurrentFile` replacements.  
+&emsp;&emsp;Can do multiple finds and replaces in a single keybinding or setting.  
 
 <br/> 
 

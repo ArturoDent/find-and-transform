@@ -2,8 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "0.9.81",
- "preview": true,
+ "version": "1.0.0",
  "engines": {
   "vscode": "^1.56.0"
  },
@@ -13,6 +12,8 @@
   "type": "git",
   "url": "https://github.com/ArturoDent/find-and-transform"
  },
+ "main": "./src/extension.js",
+ "browser": "./src/extension.js",
  "categories": [
   "Snippets",
   "Other"
@@ -30,9 +31,9 @@
  ],
  "activationEvents": [
   "onStartupFinished",
-  "onCommand:runInSearchPanel.removeDigits"
+  "onCommand:findInCurrentFile.addClassToElement",
+  "onCommand:findInCurrentFile.double"
  ],
- "main": "./src/extension.js",
  "contributes": {
   "menus": {
    "commandPalette": [
@@ -73,12 +74,12 @@
    "explorer/context": [
     {
      "command": "find-and-transform.searchInFile",
-     "when": "config.find-and-transform.enableContextMenus",
+     "when": "config.find-and-transform.enableContextMenus && !explorerResourceIsFolder",
      "group": "4_search"
     },
     {
      "command": "find-and-transform.searchInFolder",
-     "when": "config.find-and-transform.enableContextMenus",
+     "when": "config.find-and-transform.enableContextMenus  && explorerResourceIsFolder",
      "group": "4_search"
     }
    ]
@@ -100,8 +101,13 @@
     "category": "Find-Transform"
    },
    {
-    "command": "runInSearchPanel.removeDigits",
-    "title": "Remove digits from Arturo",
+    "command": "findInCurrentFile.addClassToElement",
+    "title": "Add Class to Html Element",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.double",
+    "title": "Double",
     "category": "Find-Transform"
    }
   ],

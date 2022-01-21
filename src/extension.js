@@ -31,28 +31,26 @@ async function activate(context) {
 
 	// ---------------------------------------------------------------------------------------------
 
-	// make a context menu "searchInFolder" command for searches in the Search Panel
-	// with 'files to include' this ${file} only
-	let contextMenuCommandFolder = vscode.commands.registerCommand('find-and-transform.searchInFolder', async (args) => {
+	// make a context menu "searchInFolder" command for searches in the Search Panel: "Search in Folder(s)"
+	// parse the args to get the filesToInclude entry
+	let contextMenuCommandFolder = vscode.commands.registerCommand('find-and-transform.searchInFolder', async (...commandArgs) => {
 
     // args is undefined if coming from Command Palette or keybinding with no args
-		// args.path, args.scheme coming from editor context menu
+		// args is a vscode.Uri if coming from editor context menu
+    // args is a [0]vscode.Uri, [1].editorIndex if coming from editor tab/title context menu
+    // args from explorer context menu: array of Uri's
 
-    // don't if args.path = settings.json or keybindings.json, works so ...
-    let editorPath = vscode.window.activeTextEditor.document.uri.path;
+    let args = {};
 
-    if (args) {
-      let argsArray = Object.entries(args).filter(arg => {
+    if (commandArgs?.length === 1 && !(commandArgs[0] instanceof vscode.Uri)) {  // if from keybinding
+      let argsArray = Object.entries(commandArgs[0]).filter(arg => {
         return searchCommands.getKeys().includes(arg[0]);
       });
-
-      args = Object.fromEntries(argsArray);
+      Object.assign(args, Object.fromEntries(argsArray))
     }
-    else args = {};
 
+    args.filesToInclude = await parseCommands.parseArgs(commandArgs, "folder");
     args.triggerSearch = true;
-    args.filesToInclude = utilities.getRelativeFolderPath(editorPath);
-
     searchCommands.useSearchPanel(args);
 	});
 
@@ -60,28 +58,21 @@ async function activate(context) {
 
 	// -------------------------------------------------------------------------------------------
 
-	// make a context menu "searchInFile" command for searches in the Search Panel
-	// with 'files to include' this ${file} only
-	let contextMenuCommandFile = vscode.commands.registerCommand('find-and-transform.searchInFile', async (args) => {
+	// make a context menu "searchInFile" command for searches in the Search Panel: "Search in File(s)"
+	// parse args to get filesToInclude entry
+	let contextMenuCommandFile = vscode.commands.registerCommand('find-and-transform.searchInFile', async (...commandArgs) => {
 
-		// args is undefined if coming from Command Palette or keybinding with no args
-		// args.path, args.scheme coming from editor context menu
+    let args = {};
 
-    let editorPath = vscode.window.activeTextEditor.document.uri.path;
-    // if (args?.path) editorPath = args.path;
-
-    if (args) {  // filter out args coming from the editro context menu
-      args = Object.entries(args).filter(arg => {            // returns an array
+    if (commandArgs?.length === 1 && !(commandArgs[0] instanceof vscode.Uri)) {   // if from keybinding
+      let argsArray = Object.entries(commandArgs[0]).filter(arg => {
         return searchCommands.getKeys().includes(arg[0]);
       });
-
-      args = Object.fromEntries(args);  // make an Object from the args array
+      Object.assign(args, Object.fromEntries(argsArray));
     }
-    else args = {};
 
+    args.filesToInclude = await parseCommands.parseArgs(commandArgs, "file");
     args.triggerSearch = true;
-    args.filesToInclude = utilities.getRelativeFilePath(editorPath);
-    
 		searchCommands.useSearchPanel(args);
 	});
 

@@ -16,7 +16,8 @@ const utilities = require('./utilities');
  * @returns {Promise<object>} array of settings
  */
 exports.getSettings = async function (setting) {
-	const settings = await vscode.workspace.getConfiguration().get(setting);
+
+  const settings = await vscode.workspace.getConfiguration().get(setting);
 	let findArray = [];
 
 	if (settings) {
