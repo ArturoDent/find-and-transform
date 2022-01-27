@@ -7,7 +7,7 @@ const variables = require('./variables');
  * @param {vscode.window.activeTextEditor} editor
  * @param {String} regexOptions
  */
-exports.addEmptySelectionMatches = async function (editor, regexOptions) {
+exports.addEmptySelectionMatches = function (editor, regexOptions) {
 
 	editor.selections.forEach(selection => {
 
@@ -51,7 +51,7 @@ exports.addEmptySelectionMatches = async function (editor, regexOptions) {
  * @param {vscode.TextEditor} editor
  * @param {Object} args
  */
-exports.findAndSelect = async function (editor, args) {
+exports.findAndSelect = function (editor, args) {
 
   const foundSelections = [];
   const document = vscode.window.activeTextEditor.document;
@@ -63,7 +63,7 @@ exports.findAndSelect = async function (editor, args) {
     let matches;
 
     // "ignoreLineNumbers" so lineNumber/Index are passed through unresolved
-    let resolvedFind = variables.buildReplace(args.find, null, "ignoreLineNumbers", args.isRegex, editor.selection, args.clipText, "document");
+    let resolvedFind = variables.buildReplace(args.find, null, "ignoreLineNumbers", args.isRegex, editor.selection, args.clipText, "document", null, null);
     resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
     if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
@@ -96,7 +96,8 @@ exports.findAndSelect = async function (editor, args) {
     editor.selections.forEach(selection => {
       
       // "ignoreLineNumbers" so lineNumber/Index are passed through unresolved
-      let resolvedFind = variables.buildReplace(args.find, null, "ignoreLineNumbers", args.isRegex, selection, args.clipText, "");
+      // TODO selection arg = "" ?
+      let resolvedFind = variables.buildReplace(args.find, null, "ignoreLineNumbers", args.isRegex, selection, args.clipText, "", null, null);
       resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
       let searchText;
@@ -193,7 +194,7 @@ exports.findAndSelect = async function (editor, args) {
  * @param {Object} args
  */
 // async function _replaceInLine(editor, edit, args) {
-exports.replaceInLine = async function (editor, edit, args) {
+exports.replaceInLine = function (editor, edit, args) {
 
 	let currentLine = "";
   let foundSelections = [];
@@ -210,7 +211,7 @@ exports.replaceInLine = async function (editor, edit, args) {
 
       editor.selections.forEach(selection => {
 
-        let resolvedFind = variables.buildReplace(args.find, null, "find", args.isRegex, selection, args.clipText, "line");
+        let resolvedFind = variables.buildReplace(args.find, null, "find", args.isRegex, selection, args.clipText, "line", null, index);
         resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
         const re = new RegExp(resolvedFind, args.regexOptions);
@@ -221,8 +222,9 @@ exports.replaceInLine = async function (editor, edit, args) {
 
           lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
 
-          let resolvedReplace = variables.buildReplace(args.replace, match, "replace", args.isRegex, selection, args.clipText, "line");
-          resolvedReplace = variables.resolveMatchVariable(resolvedReplace, index);
+          let resolvedReplace = variables.buildReplace(args.replace, match, "replace", args.isRegex, selection, args.clipText, "line", null, index);
+          // resolvedReplace = variables.resolveMatchVariable(resolvedReplace, index);
+          // TODO test
 					
           const startPos = editor.document.positionAt(lineIndex + match.index);
           const endPos = editor.document.positionAt(lineIndex + match.index + match[0].length);
@@ -242,10 +244,12 @@ exports.replaceInLine = async function (editor, edit, args) {
 
         for (const line of lines) {
 
-          let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, line, "cursorMoveSelect", args.isRegex, editor.selection, args.clipText, "line");
-          cursorMoveSelect = variables.resolveMatchVariable(cursorMoveSelect, index++);
-          // if (args.isRegex) cursorMoveSelect = cursorMoveSelect.replace(/(?<!\r)\n/g, "\r\n");
-
+          // TODO # of args??
+          let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, line, "cursorMoveSelect", args.isRegex, editor.selection, args.clipText, "line", null, index);
+          // cursorMoveSelect = variables.resolveMatchVariable(cursorMoveSelect, index++);
+          // TODO test
+          index++;
+          
           if (args.isRegex) {
             if (cursorMoveSelect === "^") cursorMoveSelect = "^(?!\n)";
             else if (cursorMoveSelect === "$") cursorMoveSelect = "$(?!\n)";
@@ -284,7 +288,7 @@ exports.replaceInLine = async function (editor, edit, args) {
       let index = 0;
       editor.selections.forEach(selection => {
 
-        let resolvedFind = variables.buildReplace(args.find, null, "find", args.isRegex, selection, args.clipText, "once");
+        let resolvedFind = variables.buildReplace(args.find, null, "find", args.isRegex, selection, args.clipText, "once", null, index);
         resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
         const re = new RegExp(resolvedFind, args.regexOptions);
@@ -305,8 +309,9 @@ exports.replaceInLine = async function (editor, edit, args) {
           lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
           // subStringIndex = selection.active.character;
 
-          let resolvedReplace = variables.buildReplace(args.replace, matches[0], "replace", args.isRegex, selection, args.clipText, "once");
-          resolvedReplace = variables.resolveMatchVariable(resolvedReplace, index);
+          let resolvedReplace = variables.buildReplace(args.replace, matches[0], "replace", args.isRegex, selection, args.clipText, "once", null, index);
+          // resolvedReplace = variables.resolveMatchVariable(resolvedReplace, index);
+          // TODO test
 
           const startPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index);
           const endPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
@@ -327,8 +332,9 @@ exports.replaceInLine = async function (editor, edit, args) {
         let index = 0;
         for (const line of lines) {
 
-          let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, line, "cursorMoveSelect", args.isRegex, editor.selection, args.clipText, "once");
-          cursorMoveSelect = variables.resolveMatchVariable(cursorMoveSelect, index);
+          let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, line, "cursorMoveSelect", args.isRegex, editor.selection, args.clipText, "once", null, index);
+          // cursorMoveSelect = variables.resolveMatchVariable(cursorMoveSelect, index);
+          //  TODO test
 
           if (args.isRegex) {
             if (cursorMoveSelect === "^") cursorMoveSelect = "^(?!\n)";
@@ -368,7 +374,7 @@ exports.replaceInLine = async function (editor, edit, args) {
  * @param {vscode.TextEditorEdit} edit
  * @param {Object} args
  */
-exports.replaceNextInWholeDocument = async function (editor, edit, args) {
+exports.replaceNextInWholeDocument = function (editor, edit, args) {
 
   // make work for multiple selections ?? TODO
   const document = editor.document;
@@ -383,7 +389,7 @@ exports.replaceNextInWholeDocument = async function (editor, edit, args) {
   let cursorIndex = document.offsetAt(editor.selection.active);
   const docString = document.getText();
   
-  let resolvedFind = variables.buildReplace(args.find, null, "ignoreLineNumbers", args.isRegex, editor.selection, args.clipText, "next", cursorIndex);
+  let resolvedFind = variables.buildReplace(args.find, null, "ignoreLineNumbers", args.isRegex, editor.selection, args.clipText, "next", cursorIndex, null);
   resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
   if (args.isRegex) {
@@ -440,9 +446,13 @@ exports.replaceNextInWholeDocument = async function (editor, edit, args) {
     let index = 0;
 
     if (args.replace) {
-      resolvedReplace = variables.buildReplace(args.replace, match, "replace", args.isRegex, editor.selection, args.clipText, "next", cursorIndex + match.index);
-      resolvedReplace = variables.resolveMatchVariable(resolvedReplace, index++);
-      resolvedReplace = variables.resolveLineVariable(resolvedReplace, cursorIndex + match.index);
+      resolvedReplace = variables.buildReplace(args.replace, match, "replace", args.isRegex, editor.selection, args.clipText, "next", cursorIndex + match.index, index);
+
+      // TODO test
+      // resolvedReplace = variables.resolveMatchVariable(resolvedReplace, index++);
+      // resolvedReplace = variables.resolveLineVariable(resolvedReplace, cursorIndex + match.index);
+      index++;
+      
       if (args.isRegex) resolvedReplace = resolvedReplace.replace(/(?<!\r)\n/g, "\r\n");
 
 			const startPos = document.positionAt(cursorIndex + match.index);
@@ -525,7 +535,7 @@ function buildLineNumberMatches(find, range) {
  * @param {vscode.TextEditorEdit} edit
  * @param {Object} args
  */
-exports.replaceInWholeDocument = async function (editor, edit, args) {
+exports.replaceInWholeDocument = function (editor, edit, args) {
 
   const document = editor.document;
   let docRange;
@@ -533,7 +543,7 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
   let matches;
   let resolvedReplace;
 
-  let resolvedFind = variables.buildReplace(args.find, null, "ignoreLineNumbers", args.isRegex, editor.selection, args.clipText, "document");
+  let resolvedFind = variables.buildReplace(args.find, null, "ignoreLineNumbers", args.isRegex, editor.selection, args.clipText, "document", null, null);
   resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
   if (args.isRegex) {
@@ -541,7 +551,7 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
     else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
   }
 
-  if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+  if (resolvedFind.search(/\$\{\s*line(Number|Index)\s*\}/) !== -1) {
     // lineCount is 1-based, so need to subtract 1 from it
     const lastLineRange = document.lineAt(document.lineCount - 1).range;
     docRange = new vscode.Range(0, 0, document.lineCount - 1, lastLineRange.end.character);
@@ -553,21 +563,24 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
     fullText = document.getText();
     matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
   }
-
-	editor.edit(function (edit) {
+  
+	editor.edit( (editBuilder) => {
 
     let index = 0;
 
-		for (const match of matches) {
-      resolvedReplace = variables.buildReplace(args.replace, match, "ignoreLineNumbers", args.isRegex, editor.selection, args.clipText, "document");
-      resolvedReplace = variables.resolveMatchVariable(resolvedReplace, index);
-      resolvedReplace = variables.resolveLineVariable(resolvedReplace, match.index);
+    for (const match of matches) {
+      // resolvedReplace = variables.buildReplace(args.replace, match, "ignoreLineNumbers", args.isRegex, editor.selection, args.clipText, "document", null, index);
+      resolvedReplace = variables.buildReplace(args.replace, match, "replace", args.isRegex, editor.selection, args.clipText, "document", null, index);
+      // above seems to work - test TODO
+      // resolvedReplace = variables.resolveMatchVariable(resolvedReplace, index);
+      // resolvedReplace = variables.resolveLineVariable(resolvedReplace, match.index);
+      
       if (args.isRegex) resolvedReplace = resolvedReplace.replace(/(?<!\r)\n/g, "\r\n");  // might be unnecessary
 
 			const matchStartPos = document.positionAt(match.index);
 			const matchEndPos = document.positionAt(match.index + match[0].length);
       const matchRange = new vscode.Range(matchStartPos, matchEndPos);
-      edit.replace(matchRange, resolvedReplace);
+      editBuilder.replace(matchRange, resolvedReplace);
       matches[index++].line = matchStartPos.line;
 		}
 	}).then(success => {
@@ -582,11 +595,14 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
 
       for (const match of matches) {
 
-        let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, match, "cursorMoveSelect", args.isRegex, editor.selection, args.clipText, "document", match.index);
+        let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, match, "cursorMoveSelect", args.isRegex, editor.selection, args.clipText, "document", match.index, index);
         if (cursorMoveSelect === "") return;
 
-        cursorMoveSelect = variables.resolveMatchVariable(cursorMoveSelect, index++);
-        cursorMoveSelect = variables.resolveLineVariable(cursorMoveSelect, match.index);
+        // cursorMoveSelect = variables.resolveMatchVariable(cursorMoveSelect, index++);
+        // cursorMoveSelect = variables.resolveLineVariable(cursorMoveSelect, match.index);
+        index++;
+        // TODO test
+        
         if (args.isRegex) cursorMoveSelect = cursorMoveSelect.replace(/(?<!\r)\n/g, "\r\n");
 
 
@@ -627,7 +643,7 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
  * @param {vscode.TextEditorEdit} edit
  * @param {Object} args
  */
-exports.replaceInSelections = async function (editor, edit, args) {
+exports.replaceInSelections = function (editor, edit, args) {
 
   const document = vscode.window.activeTextEditor.document;
   let selectionsWithMatches = [];
@@ -645,7 +661,7 @@ exports.replaceInSelections = async function (editor, edit, args) {
       const selectedRange = new vscode.Range(selection.start, selection.end);
       let selectionStartIndex = document.offsetAt(selection.start);
 
-      resolvedFind = variables.buildReplace(args.find, null, "ignoreLineNumbers", args.isRegex, selection, args.clipText, "selections");
+      resolvedFind = variables.buildReplace(args.find, null, "ignoreLineNumbers", args.isRegex, selection, args.clipText, "selections", null, index);
       resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
       if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
@@ -661,9 +677,11 @@ exports.replaceInSelections = async function (editor, edit, args) {
 
       for (const match of matches) {
 
-        resolvedReplace = variables.buildReplace(args.replace, match, "replace", args.isRegex, selection, args.clipText, "selections", selectionStartIndex);
-        resolvedReplace = variables.resolveMatchVariable(resolvedReplace, index++);
-        resolvedReplace = variables.resolveLineVariable(resolvedReplace, selectionStartIndex + match.index);
+        resolvedReplace = variables.buildReplace(args.replace, match, "replace", args.isRegex, selection, args.clipText, "selections", selectionStartIndex, index);
+        // resolvedReplace = variables.resolveMatchVariable(resolvedReplace, index++);
+        // resolvedReplace = variables.resolveLineVariable(resolvedReplace, selectionStartIndex + match.index);
+        index++;
+        // TODO test
 
         const startPos = editor.document.positionAt(selectionStartIndex + match.index);
         const endPos = editor.document.positionAt(selectionStartIndex + match.index + match[0].length);
@@ -686,7 +704,7 @@ exports.replaceInSelections = async function (editor, edit, args) {
 
       selectionsWithMatches.forEach(selection => {
         
-        let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, selection.active.line, "cursorMoveSelect", args.isRegex, selection, args.clipText, "selections");
+        let cursorMoveSelect = variables.buildReplace(args.cursorMoveSelect, selection.active.line, "cursorMoveSelect", args.isRegex, selection, args.clipText, "selections", null, index);
         // line/match variables? resolve
 
         if (cursorMoveSelect.length) {  // don't if cursorMoveSelect === ""

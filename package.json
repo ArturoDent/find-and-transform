@@ -32,7 +32,7 @@
  "activationEvents": [
   "onStartupFinished",
   "onCommand:findInCurrentFile.addClassToElement",
-  "onCommand:findInCurrentFile.double"
+  "onCommand:runInSearchPanel.removeDigits"
  ],
  "contributes": {
   "menus": {
@@ -106,8 +106,8 @@
     "category": "Find-Transform"
    },
    {
-    "command": "findInCurrentFile.double",
-    "title": "Double",
+    "command": "runInSearchPanel.removeDigits",
+    "title": "Remove digits from Arturo",
     "category": "Find-Transform"
    }
   ],

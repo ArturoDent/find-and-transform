@@ -77,7 +77,30 @@ async function _buildArgs(args, index)  {
 	let clipText = "";
 	await vscode.env.clipboard.readText().then(string => {
 		clipText = string;
-	});
+  });
+  
+  let resultsFiles = "";
+  
+  await vscode.commands.executeCommand('search.action.copyAll');
+  await vscode.env.clipboard.readText()
+    .then(async results => {
+      if (results) {
+        results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
+        let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
+
+        let pathArray = resultsArray.filter(result => result !== "");
+        pathArray = pathArray.map(path => utilities.getRelativeFilePath(path));
+
+        resultsFiles = pathArray.join(", ");
+      }
+      else {
+        // notifyMessage
+        resultsFiles = "";
+      }
+      // put the previous clipBoard text back on the clipboard
+      await vscode.env.clipboard.writeText(clipText);
+    });
+  
 
 	let  defaultArgs = { restrictFind: "document", isRegex: false, cursorMoveSelect: "", matchWholeWord: false, matchCase: false };
 	Object.assign(defaultArgs, args);
@@ -120,7 +143,7 @@ async function _buildArgs(args, index)  {
 	let regexOptions = "gmi";
 	if (defaultArgs.matchCase) regexOptions = "gm";
 
-	let resolvedArgs = { find:findValue, replace:replaceValue, regexOptions, madeFind, clipText };
+	let resolvedArgs = { find:findValue, replace:replaceValue, regexOptions, madeFind, clipText, resultsFiles };
 	resolvedArgs = Object.assign(defaultArgs, resolvedArgs);
 
 	return resolvedArgs;
