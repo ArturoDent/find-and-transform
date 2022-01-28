@@ -254,7 +254,7 @@ function _activationEventArraysAreEquivalent(settings, packages) {
 exports.registerFindCommands = function (findArray, context, disposables, enableWarningDialog) {
 
 	let disposable;
-	let continueRun = true;  // TODO is this doing anything?
+	let continueRun = true;
 
 	for (const elem in findArray) {
 
@@ -266,7 +266,6 @@ exports.registerFindCommands = function (findArray, context, disposables, enable
 				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, findArray[elem][0]);
 			}
 
-			// if (continueRun) await findCommands.findTransform(editor, edit, findArray[elem][1]);
 			if (continueRun) await parseCommands.splitFindCommands(editor, edit, findArray[elem][1]);
 		});
 		context.subscriptions.push(disposable);

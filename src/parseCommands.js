@@ -109,11 +109,6 @@ async function _buildArgs(args, index)  {
 	if (!Array.isArray(args.find) && args.find) findValue = args.find;
   else if (Array.isArray(args.find) && args.find.length > index) findValue = args.find[index];
     
-  // else if (Array.isArray(args.find)) findValue = args.find[args.find.length - 1];
-    
-  // else if (Array.isArray(args.find)) findValue = "";
-  // if more replaces than finds, the extra finds will be made with v.makeFind()
-
 	// no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
 	// or if find === "" empty string ==> use wordsAtCursors
   else {

@@ -1,6 +1,6 @@
 const vscode = require('vscode');
 // const path = require('path');
-// const utilities = require('./utilities');
+const utilities = require('./utilities');
 const variables = require('./variables');
 
 
@@ -74,20 +74,41 @@ exports.getDefaults = function () {
 exports.useSearchPanel = async function (args) {
 
 	let clipText = "";
-	await vscode.env.clipboard.readText().then(string => {
-		clipText = string;
+  await vscode.env.clipboard.readText().then(string => {
+    args.clipText = string;
 	});
+  
+  await vscode.commands.executeCommand('search.action.copyAll');
+  await vscode.env.clipboard.readText()
+    .then(async results => {
+      if (results) {
+        results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
+        let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
 
-  if (args.filesToInclude) args.filesToInclude = variables.resolveSearchPathVariables(args.filesToInclude, "filesToInclude", false, vscode.window.activeTextEditor.selections[0], clipText);
-  if (args.filesToExclude) args.filesToExclude = variables.resolveSearchPathVariables(args.filesToExclude, "filesToExclude", false, vscode.window.activeTextEditor.selections[0], clipText);
-  if (args.replace) args.replace = variables.resolveSearchPathVariables(args.replace, "replace", args.isRegex, vscode.window.activeTextEditor.selections[0], clipText);
+        let pathArray = resultsArray.filter(result => result !== "");
+        pathArray = pathArray.map(path => utilities.getRelativeFilePath(path));
+
+        args.resultsFiles = pathArray.join(", ");
+      }
+      else {
+        // notifyMessage
+        args.resultsFiles = "";
+      }
+      // put the previous clipBoard text back on the clipboard
+      await vscode.env.clipboard.writeText(clipText);
+    });
+
+  if (args.filesToInclude) args.filesToInclude = await variables.resolveSearchPathVariables(args.filesToInclude, args, "filesToInclude", vscode.window.activeTextEditor.selections[0]);
+  if (args.filesToExclude) args.filesToExclude = await variables.resolveSearchPathVariables(args.filesToExclude, args, "filesToExclude", vscode.window.activeTextEditor.selections[0]);
+  if (args.replace) args.replace = await variables.resolveSearchPathVariables(args.replace, args, "replace", vscode.window.activeTextEditor.selections[0]);
   
   if (args.find) {
-    args.query = variables.resolveSearchPathVariables(args.find, "find", true, vscode.window.activeTextEditor.selections[0], clipText);
+    // regex was passed as true, so changed caller to 'findSearch' from 'find'
+    args.query = await variables.resolveSearchPathVariables(args.find, args, "findSearch", vscode.window.activeTextEditor.selections[0]);
     delete args.find;
   }
   else {
-    const findObject = variables.makeFind(vscode.window.activeTextEditor.selections, args);
+    const findObject = await variables.makeFind(vscode.window.activeTextEditor.selections, args);
     args.query = findObject.find;
     if (!args.isRegex && findObject.mustBeRegex) args.isRegex = true;
   }
@@ -112,6 +133,7 @@ exports.useSearchPanel = async function (args) {
 		}
 	}
 
+  // do args.clipText and args.resultsFiles need to be removed?  Doesn't seem to affect anything.
 	vscode.commands.executeCommand('workbench.action.findInFiles',
 		args).then(() => {
 			if (args.triggerReplaceAll)
@@ -134,7 +156,7 @@ exports.useSearchPanel = async function (args) {
 //     clipText = string;
 //   });
   
-//   // TODO combine these like in transform.js
+//   //  combine these like in transform.js
 
 // 	const isfilesToInclude = findArray.find(arg => Object.keys(arg)[0] === 'filesToInclude');
 // 	if (isfilesToInclude) {

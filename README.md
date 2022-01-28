@@ -337,7 +337,6 @@ The first 11 of those variables should have the same resolved values as found at
 > Examples are given below using `lineIndex/Number` and `matchIndex/Number`.  
 
 <br/>
-<br/>
 
 * ### Case modifier transforms  
 
@@ -388,7 +387,6 @@ Example:
 > Note, the above case modifiers must be double-escaped in the settings or keybindings.  So `\U$1` should be `\\U$1` in the settings.  VS Code will show an error if you do not double-escape the modifiers (similar to other escaped regexp items like `\\w`).
 
 <br/>
-<br/>
 
 * ### Conditional replacements in `findInCurrentFile` commands or keybindings  
 
@@ -438,7 +436,6 @@ Examples:
 1. Groups within conditionals (which is not possible even in a vscode snippet), must be surrounded by backticks.  
 2. If you want to use the character `}` in a replacement within a conditional, it must be double-escaped `\\}`.  
 
-<br/>
 <br/>
 
 * ### Snippet-like transforms: replacements in `findInCurrentFile` commands or keybindings  
