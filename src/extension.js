@@ -19,7 +19,8 @@ let enableWarningDialog = false;
  * @param {vscode.ExtensionContext} context
  */
 async function activate(context) {
-
+  
+  
 	let firstRun = true;
 
   await _loadSettingsAsCommands(context, disposables, firstRun);
@@ -102,7 +103,7 @@ async function activate(context) {
 		searchCommands.useSearchPanel(args);
 	});
 
-	context.subscriptions.push(contextMenuCommandResults);
+	context.subscriptions.push(contextMenuCommandResults);  
 
 	// ---------------------------------------------------------------------------------------------------------------------
 

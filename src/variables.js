@@ -473,7 +473,6 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
  * @param {Number} matchIndex
  * @returns {string} - the resolved string
  */
-// exports.buildReplace = function (replaceValue, groups, caller, isRegex, selection, clipText, restrict, selectionStartIndex, matchIndex) {
 exports.buildReplace = function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
 
   let replaceValue;
@@ -544,12 +543,11 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     
     
     // -------------------  jsOp ------------------------------------------------------------------
-    // re = new RegExp("(?<jsOp>\\$\\$\\{(.*?)\\})", "g");
     re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\})", "g");
     
     resolved = resolved.replaceAll(re, function (match, p1, operation) {
       // checking for capture groups is not necessary, already done above
-      return Function('"use strict";return (' + operation + ')')();
+      return Function(`"use strict"; ${operation}`)();
     });
     // -------------------  jsOp ------------------------------------------------------------------
   }
