@@ -862,7 +862,7 @@ Examples of possible keybindings (in your `keybindings.json`):
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/ifLineNumberMatch?raw=true" width="50" height="150" alt="line Number match"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/parseCommands/images/ifLineNumberMatch.gif?raw=true" width="50" height="150" alt="line Number match"/>
 
 
 <br/>  
