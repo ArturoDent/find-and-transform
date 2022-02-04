@@ -1,9 +1,6 @@
 const vscode = require('vscode');
-// const path = require('path');
-
 const commands = require('./commands');
 const parseCommands = require('./parseCommands');
-// const findCommands = require('./transform');
 const searchCommands = require('./search');
 const providers = require('./completionProviders');
 const codeActions = require('./codeActions');
@@ -125,7 +122,6 @@ async function activate(context) {
       if (!args) args = { title: "Keybinding for generic command run" };
 			else if (!args.title) args.title = "Keybinding for generic command run";
 
-			// findCommands.findTransform(editor, edit, argsArray);
 			parseCommands.splitFindCommands(editor, edit, args);
 		}
 	});

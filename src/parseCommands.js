@@ -5,7 +5,7 @@ const utilities = require('./utilities');
 
 
 /**
- * From 'findInCurrentFile' settings or keybindings. If necessary, split and run each command into 
+ * From 'findInCurrentFile' settings or keybindings. If necessary, split and run each command in 
  * its separate steps (if find/replace are arrays of multiple values).
  * 
  * @param {vscode.TextEditor} editor
@@ -28,12 +28,9 @@ exports.splitFindCommands = async function (editor, edit, args) {
   if (most === 0) most = 1;
 
   for (let index = 0; index < most; index++) {   
-  // for (let index = 0; index <= most; index++) {
-    // for await (let arg of args) {
 
     const splitArgs = await _buildArgs(args, index);
 
-  // if (!findItem.length && !replaceItem.length && !args.restrictFind.startsWith("next"))
     if (!splitArgs.find && !splitArgs.replace && !args.restrictFind.startsWith("next"))
       await findCommands.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
 
@@ -94,7 +91,7 @@ async function _buildArgs(args, index)  {
         resultsFiles = pathArray.join(", ");
       }
       else {
-        // notifyMessage
+        // notifyMessage?
         resultsFiles = "";
       }
       // put the previous clipBoard text back on the clipboard

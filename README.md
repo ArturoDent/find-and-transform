@@ -1,6 +1,6 @@
 # find-and-transform
 
-[VS Code version 1.56 or greater required.]  
+> v1.1.0 **Breaking change**: Must use a `return` statement in a `$${<operation>}`, examples below.  This change enabled more powerful javascript statements to be used in a `$${<operation>}`.  
 
 *  &nbsp; Find and transform text in a single file, folder, workspace or custom groups.
 
@@ -8,11 +8,13 @@
 
 *  &nbsp; Do multiple find/replaces in the current file.  
 
-*  &nbsp; Do **math** on regex replacements, like `$${$1 + 10}`: add 10 to capture group 1.  
+*  &nbsp; Do **math** on regex replacements, like `$${return $1 + 10} ` : add 10 to capture group 1.  
 
-*  &nbsp; Do **string** operations on regex replacements, like `$${ '$1'.replace('o','e').toUpperCase() }`.
+*  &nbsp; Do **string** operations on regex replacements, like `$${ return '$1'.replace('ou','e').toUpperCase() }`.  
 
-*  &nbsp; Do a second search using only the files found in a previous search.     
+*  &nbsp; Do javascript operations like `$${ if ('${relativeFile}' === 'test2.txt') return '\\U${relativeFile}'; else return $1; }`.  
+
+*  &nbsp; Do a second search using only the files found in a previous search. See `${resultsFiles}`.      
 
 *  &nbsp; Any number of find/replace combinations can be named and saved in settings and triggered either by the Command Palette or a keybinding.
 
@@ -22,11 +24,11 @@
 
 *  &nbsp; A command can be created right in a keybinding, without using a setting at all.  
 
-*  &nbsp; Supports using path variables in the Search Panel `find/replace/filesToInclude/filesToExclude` or the Find in file Widget `find/replace` fields, including the current file only or current directory.    
+*  &nbsp; Supports using path variables in the Search Panel `find/replace/filesToInclude/filesToExclude` or the Find in file Widget `find/replace` fields, e.g., the current file or current directory.     
 
-*  &nbsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See &nbsp; [running commands on save](codeActions.md).
+*  &nbsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See &nbsp;[running commands on save](codeActions.md).
 
-*  &nbsp; After replacing some text, optionally move the cursor to a designated location with `cursorMoveSelect`.  
+*  &nbsp; After replacing some text, optionally move the cursor to a next designated location with `cursorMoveSelect`.  
 
 -------------
 
@@ -34,7 +36,7 @@
 
 -----------------
 
-Below you will find information on using the `findInCurrentFile` command - which performs a find within the current file, like using the Find Widget but with the ability to save these file/replaces as settings or keybindings and many more variables supported.  Some of the information here will be useful to using the `runInSearchPanel` as well - so you should read both.  See  [Search using the Panel](searchInPanel.md).  
+Below you will find information on using the `findInCurrentFile` command - which performs a find within the current file, like using the Find Widget but with the ability to save these file/replaces as settings or keybindings and many more variables and javascript operations supported.  Some of the information here will be useful to using the `runInSearchPanel` as well - so you should read both.  See  [Search using the Panel](searchInPanel.md).  
 
 ------------------
 
@@ -67,9 +69,18 @@ If the `enableWarningDialog` is set to true, errors will be presented in a notif
 
 The dialogs are modal for the keybindings, and non-modal for the settings.  The command can then be run or aborted.  
 
-------------------
+------------------  
+## Using newlines
 
-<br/>
+* Find: Use `\r?\n` with `isRegex` set to true is probably the safest across OS's.     
+* Replace: `\n` is probably sufficient, if not, try `\r\n`.  
+* In a javascript operation replacement, make sure it is included in ticks or quotes so the newline is interpreted as a string `$${ 'first line \n second line' }`.   
+
+* If you use newlines in a replace, the `cursorMoveSelect` option will not be able to properly calculate the new selection position.   
+
+<br/>  
+
+-----------------  
 
 ## What arguments can a &nbsp; `findInCurrentFile` &nbsp; setting or keybinding use:
 
@@ -98,10 +109,10 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
   "upcaseSelectedKeywords": {
   
-    "title": "Uppercase selected Keywords",   // used for Command Palette
+    "title": "Uppercase Selected Keywords",   // used for Command Palette
     
     "find": "(Hello) (World)",
-    "replace": "\\U$1--${2:-WORLD}",          // if no capture group 2, add "WORLD"
+    "replace": "\\U$1--${2:-WORLD}",          // conditional, if no capture group 2, add "WORLD"
     
     "isRegex": true,                          // default = false
     "matchCase": false,                       // default = false
@@ -123,7 +134,7 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 ## Running multiple finds and replaces with a single keybinding or setting  
 
-The `find` and `replace` fields can either be a string or an array of strings.  Examples:  
+The `find` and `replace` fields can either be a string of one find or an array of strings.  Examples:  
 
 ```jsonc
 {
@@ -190,7 +201,7 @@ The `find` and `replace` fields can either be a string or an array of strings.  
 ```
 
 
-You might want to run two or more commands in a sequence like this to accomplish some replacements that are difficult or impossible to do in one regexp but much simpler with two find/replaces in sequences.  Like:
+You might want to run two or more commands in a sequence like this to accomplish some replacements that are difficult  to do in one regexp but much simpler with two find/replaces in sequences.  Like:
 
 ```jsonc
 "find":    ["(${relativeFile})", "(${fileExtname})"],
@@ -214,7 +225,9 @@ On the first pass above, "someWord" will be replaced with "SOMEWORD".  On the se
 
 <br/>
 
-## Doing math on replacements    
+## Doing math on replacements   
+
+<br/> 
 
 Use the special syntax **`$${<some math op>}`** as a replace value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations , e.g., string operations (see below).  [This does not use the `eval()` function.]  Examples:   
 
@@ -225,15 +238,15 @@ Use the special syntax **`$${<some math op>}`** as a replace value.  Everything 
   "args": {
     "find": "(?<=<some preceding text>)(\\d+)(?=<some following text>)",  // postive lookbehind/ahead
 
-    "replace": "$${$1 + $1}",             // will double the digits found in capture group 1  
-    "replace": "$${ 2 * $1 }",            // will double the digits found in capture group 1  
-    "replace": "$${$1 + $1}",             // will double the digits found in capture group 1  
+    "replace": "$${return $1 + $1}",             // will double the digits found in capture group 1  
+    "replace": "$${return 2 * $1 }",            // will double the digits found in capture group 1  
+    "replace": "$${return $1 + $1}",             // will double the digits found in capture group 1  
 
-    "replace": "$${$1 + $2}",             // add capture group 1 to capture group 2  
+    "replace": "$${return $1 + $2}",             // add capture group 1 to capture group 2  
 
-    "replace": "$${ $1 * 2 + `,000` }",   // double group 1, append `,000` to it.  1 => 2,000  
+    "replace": "$${return $1 * 2 + `,000` }",   // double group 1, append `,000` to it.  1 => 2,000  
 
-    "replace": "$${ $1 * Math.PI }",     // multiply group 1 by Math.PI  
+    "replace": "$${return $1 * Math.PI }",     // multiply group 1 by Math.PI  
 
     "isRegex": true  
   }
@@ -244,15 +257,17 @@ Use the special syntax **`$${<some math op>}`** as a replace value.  Everything 
 
 <br/>  
 
-## Doing string operations on replacements  
+## Doing string operations on replacements 
+
+<br/> 
 
 You can also do string operations inside the special syntax `$${<operations>}` as well.  But you will need to ***"cast"*** the string in bacticks, single quotes or escaped double quotes like so:   
 
-*  **$${ \`$1\`.substring(3) }**  use backticks or  
+*  **$${ return \`$1\`.substring(3) }**  use backticks or  
 
-*  **$${ '$1'.substring(3) }**  or  use single quotes
+*  **$${ return '$1'.substring(3) }**  or  use single quotes
 
-* **$${ \\"$1\\".includes('tro') }**  escape the double quotes
+* **$${ return \\"$1\\".includes('tro') }**  escape the double quotes
 
 > Any term that you wish to be interpreted as a string must be enclosed as just mentioned.  So in the first example below to replace the match with the string `howdy` I used backticks.  This is only necessary within the operations syntax `$${<operations>}` otherwise it is interpreted as an unknown variable by javascript.  
 
@@ -264,23 +279,23 @@ You can also do string operations inside the special syntax `$${<operations>}` a
 
     "find": "(trouble) (brewing)",
 
-    "replace": "$${ `howdy` }",                 // replace trouble brewing => howdy  
+    "replace": "$${ return `howdy` }",                 // replace trouble brewing => howdy  
     "replace": "howdy",                         // same result as above   
 
-    "replace": "$${ `$1`.indexOf('b') * 3 }",   // trouble brewing => 12  
+    "replace": "$${ return `$1`.indexOf('b') * 3 }",   // trouble brewing => 12  
 
-    "replace": "$${ `$1`.toUpperCase() + ' C' + `$2`.substring(1).toUpperCase() }",
+    "replace": "$${ return `$1`.toUpperCase() + ' C' + `$2`.substring(1).toUpperCase() }",
     // trouble brewing => TROUBLE CREWING  
 
-    "replace": "$${ `$1`.replace('ou','e') }",  // trouble => treble  
+    "replace": "$${ return `$1`.replace('ou','e') }",  // trouble => treble  
 
-    "replace": "$${ '$1'.split('o')[1] }",      // trouble => uble  
+    "replace": "$${ return '$1'.split('o')[1] }",      // trouble => uble  
 
     "find": "(tr\\w+ble)",                      // .includes() returns either 'true' or 'false'  
-    "replace": "$${ '$1'.includes('tro') }",    // trouble will be replaced with true, treble => false  
+    "replace": "$${ return '$1'.includes('tro') }",    // trouble will be replaced with true, treble => false  
 
     "find": "(tr\\w+ble)",           // can have any number of $${...}'s in a replacment
-    "replace": "$${ '$1'.includes('tro') } $${ '$1'.includes('tre') }",
+    "replace": "$${ return '$1'.includes('tro') } $${ return '$1'.includes('tre') }",
                                     // trouble => true false, treble => false true
 
     "isRegex": true  
@@ -288,7 +303,53 @@ You can also do string operations inside the special syntax `$${<operations>}` a
 }
 ``` 
 
-> You can combine math or string operations within **`$${<operations>}`**.  
+> You can combine math or string operations within **`$${<operations>}`**. 
+
+----------------
+
+<br/> 
+
+## Doing other javascript operations on replacements 
+
+<br/> 
+
+> There **must be a `return` statement** inside the `$${...}` for whatever you want returned. 
+
+> Remember if you want a variable or capture group treated as a string, surround it with ticks or single quotes.   
+
+> \`\\\U$1\` works in a javascript operation, \\\U\`$1\` does not work.    
+
+```jsonc
+{
+  "key": "alt+n",
+  "command": "findInCurrentFile",
+  "args": {
+
+    "find": "(trouble) (brewing)",
+    
+    // replace the find match with the clipboard text length
+    "replace": "$${ return '${CLIPBOARD}'.length }",
+
+    "find": "(trouble) (times) (\\d+)",
+    // replace the find match with capture group 1 uppercased + capture group 2 * 10 
+    // trouble times 10 => TROUBLE times 100  
+    "replace": "$${ return `\\U$1 $2 ` + ($3*10) }",
+    
+    "find": "(\\w+) (\\d+) (\\d+) (\\d+)",
+    // dogs 1 3 7 => Total dogs: 11
+    "replace": "$${ return `Total $1: ` + ($2 + $3 + $4) }",
+
+    // compare the clipboard text length to the selection text length
+    "replace": "$${ if (`${CLIPBOARD}`.length < `${selectedText}`.length) return true; else return false }",
+
+    // the find match will be replaced by:
+    // if the clipboard matches the string, return capture group 2 + the path variable
+    "replace": "$${ return `${CLIPBOARD}`.match(/(first) (pattern) (second)/)[2] +  ` ${fileBasenameNoExtension}` }",
+  
+    "isRegex": true  
+  }
+}
+``` 
 
 <br/>  
 
@@ -320,7 +381,7 @@ ${pathSeparator}
 ${selectedText}            can be used in the find/replace/cursorMoveSelect fields  
 ${CLIPBOARD}
 
-${resultsFiles}            ** explained below
+${resultsFiles}            ** explained below **
 
 ${lineIndex}               line index starts at 0
 ${lineNumber}              line number start at 1
@@ -334,6 +395,8 @@ The first 11 of those variables should have the same resolved values as found at
 
 > ` ${resultsFiles}` is a specially created variable that will scope the next search to those files in the previous search's results. In this way you can run successive searches narrowing the scope each time to the previous search results files.  See &nbsp;  [Search using the Panel](searchInPanel.md). 
 
+> These path variables can also be used in a conditional like `${1:+${relativeFile}}`.  If capture group 1, insert the relativeFileName.     
+
 > Examples are given below using `lineIndex/Number` and `matchIndex/Number`.  
 
 <br/>
@@ -345,14 +408,14 @@ The first 11 of those variables should have the same resolved values as found at
  The find query and the replace transforms can include ***case modifiers*** like:  
 
 ```
-// can be used in the `replace` field:  
+Can be used in the `replace` field:  
 
 \\U$n   uppercase the entire following capture group as in `\\U$1`
 \\u$n   capitalize the first letter only of the following capture group: `\\u$2`
 \\L$n   lowercase the entire following capture group:  `\\L$2`
 \\l$n   lowercase the first letter only of the following capture group: `\\l$3`
 
-// can be used in either the `replace` or `find` fields:  
+Can be used in either the `replace` or `find` fields:  
 
 \\U${relativeFile} or any launch/task-like variable listed above
 \\u${any launch variable}
@@ -360,9 +423,7 @@ The first 11 of those variables should have the same resolved values as found at
 \\l${any launch variable}
 ``` 
 
-These case modifier transforms must 
-
-These work in **both** the `findInCurrentFile` and `runInSearchPanel` commands or keybindings.  
+These work in **both** the `findInCurrentFile` and `runInSearchPanel` commands or keybindings.   
 
 Example:
 
@@ -447,14 +508,13 @@ The following can be used in a `replace` field for a `findInCurrentFile` command
 ```
 ${1:/upcase}      if capture group 1, transform it to uppercase (same as `\\U$1`)  
 ${2:/downcase}    if capture group 2, transform it to uppercase (same as `\\L$1`)  
+${3:/capitalize}  if capture group 3, transform it to uppercase (same as `\\u$1`)  
 
 ${1:/pascalcase}  if capture group 1, transform it to pascalcase  
     (`first_second_third` => `FirstSecondThird` or `first second third` => `FirstSecondThird`)
 
 ${1:/camelcase}   if capture group 1, transform it to camelcase  
     (`first_second_third` => `firstSecondThird` or `first second third` => `firstSecondThird`)   
-
-${3:/capitalize}  if capture group 3, transform it to uppercase (same as `\\u$1`) 
 ```  
 
 ### Examples:
@@ -498,6 +558,7 @@ Explanation:
 "args": {
   "find": "(trouble)",                 // only a capture group 1
   // "find": "trouble",                // no capture groups!, same bad result
+  
   "replace": "\\U$2",                  // but using capture group 2!!, so replacing with nothing
   // "replace": "${2:/pascalcase}",    // same bad result, refers to capture group 2 that doesn't exist
   
@@ -774,6 +835,38 @@ Examples of possible keybindings (in your `keybindings.json`):
   }
 }
 ```  
+
+* Using `${lineNumber}` or `${lineIndex}` in the `find`:  
+
+```jsonc
+{                                         
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": { 
+
+    "find": "(${lineNumber})",          // find the matching line number on its line
+                                        // so find a 1 on line 1, find a 20 on line 20
+    
+    "replace": "$${ return `found ` + ($1*10) }",
+                                        // a 1 on line 1 => found 10
+                                        // a 20 on line 20 => found 200
+                                        
+                                        // demo below
+    "replace": "$${ if ($1 <= 5) return $1/2; else return $1*2; }",
+          // if a number is on its lineNumber, like a 5 on line number 5 = a find match
+          // if that match <= 4 return that lineNumber  / 2
+          // else return that lineNumber * 2
+          
+    "isRegex": true,
+  }
+}
+```
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/ifLineNumberMatch?raw=true" width="50" height="150" alt="line Number match"/>
+
+
+<br/>  
+
 
 ------------
 
@@ -1159,6 +1252,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 
 * 1.0.0 Added ability to do math and string operations on `findInCurrentFile` replacements.  
 &emsp;&emsp;Can do multiple finds and replaces in a single keybinding or setting.  
+
+* 1.1.0 Work on `$${<operation>}`, adding `return`.  **Breaking change**.  
 
 <br/> 
 

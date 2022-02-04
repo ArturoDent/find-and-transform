@@ -42,102 +42,17 @@ exports.resolveLineVariable = function (variableToResolve, index) {
 
 
 /**
- * Resolve the launch/task-like path variables.
- * 
- * @param {String} variableToResolve 
- * @param {String} caller  - for a find/replace/filesToInclude value?
- * @param {Boolean} isRegex 
- * @returns 
- */
-// exports.resolveClipboardVariable = async function (variableToResolve, caller, isRegex) {
-
-//   if (typeof variableToResolve !== 'string') return variableToResolve;
-//   let clipText = "";
-//   const re = /((\\[UuLl])?(\${\s*CLIPBOARD\s*}))/g;
-
-//   if (variableToResolve.search(re) !== -1) {          
-//     await vscode.env.clipboard.readText().then(string => {
-//       clipText = string;
-//     });
-//   }
-//   else return variableToResolve;
-  
-//   // let re = /((\\[UuLl])?(\${\s*CLIPBOARD\s*}))/g;
-//   const matches = [...variableToResolve.matchAll(re)];
-
-//   for (const match of matches) {
-
-//     let resolved = "";
-
-//     if (match[2]) resolved = _applyCaseModifier(match[2], clipText);
-//     else resolved = clipText;
-
-//     // pattern is a string, so only first match is replaced
-//     variableToResolve = variableToResolve.replace(match[1], resolved);
-//   }
-//   if (!isRegex && caller === "find") return variableToResolve.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-//   else if (caller === "filesToInclude" && variableToResolve === ".") return variableToResolve = "./";
-//   else return variableToResolve;
-// }
-
-/**
- * Get the relative paths of the current search results 
- * for the next `runInSearchPanel` call  
- * 
- * @returns array of paths or undefined  
- */
-// async function _getSearchResultsFiles() {
-
-// 	await vscode.commands.executeCommand('search.action.copyAll');
-// 	let results = await vscode.env.clipboard.readText();
-
-async function _getSearchResultsFiles() {
-
-  await vscode.commands.executeCommand('search.action.copyAll');
-  
-  await vscode.env.clipboard.readText()
-    .then(results => {
-      if (results) {
-        results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
-        let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
-
-        let pathArray = resultsArray.filter(result => result !== "");
-        pathArray = pathArray.map(path => utilities.getRelativeFilePath(path));
-
-        return pathArray.join(", ");
-      }
-      else {
-        // notifyMessage
-        return "";
-      }
-    });
-
-	// handle no results
-	// if (results)  {
-	// 	results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
-	// 	let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
-
-	// 	let pathArray = resultsArray.filter(result => result !== "");
-	// 	pathArray = pathArray.map(path => utilities.getRelativeFilePath(path))
-
-	// 	return pathArray.join(", ");
-	// }
-	// else {
-	// 	// notifyMessage
-	// 	return undefined;
-	// }
-} 
-
-/**
  * If the "filesToInclude/find/replace" entry uses a path variable(s) return the resolved value  
  * 
  * @param {String} variableToResolve - the "filesToInclude/find/replace" value 
- * @param {Object} args -  
+ * @param {Object} args -  keybinding/settings args
  * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude 
  * @param {vscode.Selection} selection - current selection
  * @param {Object} match - the current match
- * @param {Number} selectionStartIndex -
- * @param {Number} matchIndex - 
+ * @param {Number} selectionStartIndex - in the start index of this selection
+ * @param {Number} matchIndex - which match is it
+ * 
+ * @returns {String} - the resolved path variable
  */
  function _resolvePathVariables (variableToResolve, args, caller, selection, match, selectionStartIndex, matchIndex) {
 
@@ -266,7 +181,6 @@ async function _getSearchResultsFiles() {
       break;
 
     case "${resultsFiles}": case "${ resultsFiles }":
-      // resolved = String(_getSearchResultsFiles());
       resolved = args.resultsFiles;
       break;
      
@@ -284,145 +198,11 @@ async function _getSearchResultsFiles() {
 
 
 /**
- * If the "filesToInclude/find/replace" value uses a variable(s) return the resolved value  
- * 
- * @param {String} variableToResolve - the "filesToInclude/find/replace" value  
- * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude 
- * @param {Boolean} isRegex
- * @param {vscode.Selection} selection - current selection
- * @param {String} clipText - the clipBoard text
- * @param {Object} match - the current match
- */
-// exports.resolvePathVariables2 = function (variableToResolve, caller, isRegex, selection, clipText, match, restrict, selectionStartIndex) {
-
-//   selectionStartIndex = selectionStartIndex ?? 0;
-// 	const filePath = vscode.window.activeTextEditor.document.uri.path;
-
-// 	let relativePath;
-// 	if ((caller === "filesToInclude" || caller === "filesToExclude") && vscode.workspace.workspaceFolders.length > 1) {
-// 		relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, true);
-// 		relativePath = `./${ relativePath }`;
-// 	}
-// 	else relativePath = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, false);
-
-// 	// if no filePath message to open an editor
-
-//   let resolved = variableToResolve;
-
-//   switch (variableToResolve) {
-
-// 			case "${file}":	case "${ file }":
-// 				resolved = filePath;
-// 				if (os.type() === "Windows_NT") resolved = filePath.substring(4);  // for Windows
-// 			break;
-
-// 			case "${relativeFile}":	case "${ relativeFile }":
-// 				resolved = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, false);
-// 			break;
-
-// 			case "${fileBasename}":	case "${ fileBasename }":
-// 				resolved = path.basename(relativePath);
-// 			break;
-
-// 			case "${fileBasenameNoExtension}": case "${ fileBasenameNoExtension }":
-// 				resolved = path.basename(relativePath, path.extname(relativePath));
-// 			break;
-
-// 			case "${fileExtname}": case "${ fileExtname }":  // includes the `.` unfortunately
-// 				resolved = path.extname(relativePath);
-// 			break;
-
-// 			case "${fileDirname}": case "${ fileDirname }":
-// 				resolved = path.dirname(filePath);
-// 			break;
-
-// 			case "${fileWorkspaceFolder}": case "${ fileWorkspaceFolder }":
-// 				resolved = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.path;
-// 			break;
-
-// 			case "${workspaceFolder}": case "${ workspaceFolder }":
-// 				resolved = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.path;
-// 			break;
-
-// 			case "${relativeFileDirname}": case "${ relativeFileDirname }":
-// 				resolved = path.dirname(vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, false));
-// 				// https://code.visualstudio.com/docs/editor/codebasics#_advanced-search-options :  
-// 				// '.' or './' does nothing in the "files to exclude" input for some reason
-// 				if (caller === "filesToExclude" && resolved === ".") resolved = "**";
-// 			break;
-
-// 			case "${workspaceFolderBasename}": case "${ workspaceFolderBasename }":
-// 				resolved = path.basename(vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.path);
-//       break;
-
-// 			case "${selectedText}": case "${ selectedText }":
-//         if (selection.isEmpty) {
-//           const wordRange = vscode.window.activeTextEditor.document.getWordRangeAtPosition(selection.start);
-//           resolved = vscode.window.activeTextEditor.document.getText(wordRange);
-//         }
-// 				else resolved = vscode.window.activeTextEditor.document.getText(selection);
-//       break;
-
-// 			case "${pathSeparator}": case "${ pathSeparator }":
-// 				resolved = path.sep;
-//       break;
-
-//       case "${lineIndex}": case "${ lineIndex }":    // 0-based
-
-//         if (caller === "cursorMoveSelect" && restrict !== "document") resolved = String(match);
-//         else if (caller === "cursorMoveSelect" && restrict === "document") resolved = resolved;
-
-//         else if (caller !== "ignoreLineNumbers") {
-//           if (restrict === "selections") {
-//             const line = vscode.window.activeTextEditor.document.positionAt(match.index + selectionStartIndex).line;
-//             resolved = String(line);
-//           }
-//           else if (restrict === "next") resolved = String(vscode.window.activeTextEditor.document.positionAt(selectionStartIndex).line); //  works for wholeDocument
-//           else if (restrict === "document") resolved = String(match.line); //  works for wholeDocument
-//           else resolved = String(selection.active.line); // line/once find/replace
-//         }
-//       break;   // "ignoreLineNumbers" will pass through unresolved
-
-// 			case "${lineNumber}": case "${ lineNumber }":   // 1-based
-				
-//         if (caller === "cursorMoveSelect" && restrict !== "document") resolved = String(match + 1);
-//         else if (caller === "cursorMoveSelect" && restrict === "document") resolved = resolved;
-
-//         else if (caller !== "ignoreLineNumbers") {
-//           if (restrict === "selections") {
-//             const line = vscode.window.activeTextEditor.document.positionAt(match.index + selectionStartIndex).line;
-//             resolved = String(line + 1);
-//           }
-//           else if (restrict === "next") resolved = String(vscode.window.activeTextEditor.document.positionAt(selectionStartIndex).line + 1); //  works for wholeDocument
-//           else if (restrict === "document") resolved = String(match.line + 1); //  works for wholeDocument
-//           else resolved = String(selection.active.line + 1); // line/once find/replace
-//         }
-//       break;  // "ignoreLineNumbers" will pass through unresolved
-
-//       case "${CLIPBOARD}": case "${ CLIPBOARD }":
-//         resolved = clipText;
-//       break;
-
-// 			case "${resultsFiles}":	case "${ resultsFiles }":
-// 				resolved = this.getSearchResultsFiles();
-//       break;
-
-// 			default:
-// 			break;
-//     }
-
-	// escape .*{}[]?^$ if using in a find 
-//   if (!isRegex && caller === "find") return resolved.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-//   else if (caller === "filesToInclude" && resolved === ".") return resolved = "./";
-//   else return resolved;
-// };
-
-/**
  * Build the replaceString by updating the setting 'replaceValue' to
  * account for case modifiers, capture groups and conditionals
  *
  * @param {String} replaceValue
- * @param {Object} args
+ * @param {Object} args - keybinding/setting args
  * @param {String} caller - find/replace/cursorMoveSelect
  * @param {vscode.Selection} selection - the current selection
  * 
@@ -466,11 +246,11 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
  * Build the replaceString by updating the setting 'replaceValue' to
  * account for case modifiers, capture groups and conditionals
  *
- * @param {Object} args
+ * @param {Object} args - keybinding/settings args
  * @param {String} caller - find/replace/cursorMoveSelect
  * @param {Array} groups - may be a single match
  * @param {vscode.Selection} selection - the current selection
- * @param {Number} matchIndex
+ * @param {Number} matchIndex - which match is it
  * @returns {string} - the resolved string
  */
 exports.buildReplace = function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
@@ -503,7 +283,6 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
   // https://regex101.com/r/zwuKpM/1 for full regex
   // (?<pathCaseModifier>\\\\[UuLl])?(?<path>\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineIndex\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})|(?<caseModifier>\\\\[UuLl])(?<capGroup>\$\{?\d\d?\}?)|(?<caseTransform>\$\{(\d\d?):\/((up|down|pascal|camel)case|capitalize)\})|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})|(?<capGroupOnly>\$\{?\d\d?\}?)|(?<jsOp>\$\$\{(.*)\})
 
-  
   // if (caller !== "find" && !args.isRegex) {
   if (caller !== "find") {
   
@@ -525,8 +304,8 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     re = new RegExp("(?<conditional>\\$\\{(\\d\\d?):([-+?]?)(.*?)\\})", "g");
     
     // // if a '}' in a replacement? => '\\}' must be escaped
-    // // ${1:+${2}}  ?  => ${1:+`$2`} note the backticks
-
+    // // ${1:+${2}}  ?  => ${1:+`$2`} or ${1:+`$2`} note the backticks or ${1:+$1 pardner}
+    //  checks for capture groups inside _applyConditionalTransform
     resolved = resolved.replaceAll(re, (match, p1, p2, p3, p4, offset, string, namedGroups) =>
       _applyConditionalTransform(match, p1, p2, p3, p4, offset, string, namedGroups, groups));
     // --------------------  conditional -----------------------------------------------------------
@@ -555,166 +334,15 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
   return resolved;
 };
 
-/**
- * Build the replaceString by updating the setting 'replaceValue' to
- * account for case modifiers, capture groups and conditionals
- *
- * @param {String} replaceValue
- * @param {Array|Number} groups - may be a single match
- * @param {String} caller - find/replace/cursorMoveSelect
- * @param {Boolean} isRegex
- * @param {vscode.Selection} selection - the current selection
- * @param {String} clipText - the curent clipboard text
- * @param {String} restrict - restrictFind: document/once/line/selections
- * @returns {String} - the resolved string
- */
-// exports.buildReplace_old = function (replaceValue, groups, caller, isRegex, selection, clipText, restrict, selectionStartIndex, index) {
-
-//   // groups.capGroupOnly is for '$n' with no case modifier
-
-//   if (replaceValue === "") return replaceValue;
-
-//   let identifiers;
-//   let re;
-
-//   if (replaceValue !== null) {
-
-//     let vars = _getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-//     vars = `(?<pathCaseModifier>\\\\[UuLl])?(?<path>${vars})`;
-
-//     if (caller !== "find" && isRegex) {
-//       const re1 = "(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d\\d?\\}?)";
-//       const re2 = "|(?<caseTransform>\\$\\{(\\d\\d?):\\/((up|down|pascal|camel)case|capitalize)\\})";
-//       const re3 = "|(?<conditional>\\$\\{\\d\\d?:[-+?]?(.*?)(?<!\\\\)\\})";
-//       // const re4 = "|(?<capGroupOnly>\\$\\{?\\d\\d?(?!:)\\}?)";
-//       const re4 = "|(?<capGroupOnly>\\$\\{?\\d\\d?\\}?)";
-//       // const re5 = "|(?<mathOp>\\$\\$\\{(.*?)\\})";
-//       const re5 = "|(?<jsOp>\\$\\$\\{(.*)\\})";
-//       re = new RegExp(`${ vars }|${ re1 }${ re2 }${ re3 }${ re4 }${ re5 }`, "g");
-//     }
-
-//     // (?<pathCaseModifier>\\\\[UuLl])?(?<path>\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineIndex\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})|(?<caseModifier>\\\\[UuLl])(?<capGroup>\$\{?\d\d?\}?)|(?<caseTransform>\$\{(\d\d?):\/((up|down|pascal|camel)case|capitalize)\})|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})|(?<capGroupOnly>\$\{?\d\d?\}?)|(?<jsOp>\$\$\{(.*)\})
- 
-//     // else if (caller !== "find" && !isRegex) {
-//     //   const re1 = "(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d\\d?\\}?)";
-//     //   re = new RegExp(`${ vars }|${ re1 }`, "g");
-//     // }
-//     else re = new RegExp(`${ vars }`, "g");
-//     identifiers = [...replaceValue.matchAll(re)];
-//   }
-
-//   if (!identifiers.length) return replaceValue;
-
-//   for (const identifier of identifiers) {
-
-//     let resolved = "";
-
-//     if (identifier.groups.path) {
-//       resolved = this.resolvePathVariables(identifier.groups.path, caller, isRegex, selection, clipText, groups, restrict, selectionStartIndex);
-//       if (identifier.groups.pathCaseModifier) resolved = _applyCaseModifier(identifier.groups.pathCaseModifier, resolved);
-//     }
-
-//     else if (identifier.groups.caseModifier) {   // case modifiers identifier.groups.caseModifier \\U, \\L etc.
-
-//       let thisCapGroup;
-//       if (identifier[4]) {
-//         thisCapGroup = identifier[4].replace(/[^\d]/g, "");
-
-//         if (groups && groups[thisCapGroup]) {
-//           // thisCapGroup = identifier[2].substring(1);			 // "1" or "2", etc.
-//           // thisCapGroup = identifier[2].replace(/[^\d]/g, "");
-//           resolved = _applyCaseModifier(identifier.groups.caseModifier, groups[thisCapGroup]);
-//         }
-//         else resolved = "";
-//       }
-//     }
-
-//     else if (identifier.groups.caseTransform) {
-
-//       if (groups && groups[identifier[6]] && identifier[7])
-//         resolved = _applyCaseTransform(identifier[7], groups[identifier[6]]);
-//       else resolved = "";
-//     }
-
-//     else if (identifier.groups.conditional) {selectionStartIndex
-
-//       // if a '}' in a replacement? => '\\}' must be escaped
-//       // ${1:+${2}}  ?  => ${1:+`$2`} note the backticks
-//       // easy to ${1:capitalize} when mean ${1:/capitalize}  
-
-//       const conditionalRE = /\$\{(?<capGroup>\d\d?):(?<ifElse>[-+?]?)(?<replacement>(.*?)(?<!\\))\}/;
-//       const matches = identifier.groups.conditional.match(conditionalRE);
-//       const thisCapGroup = matches.groups.capGroup;
-//       const replacement = matches.groups.replacement.replace(/\\/g, "");
-
-//       resolved = _applyConditionalTransform(matches.groups.ifElse, replacement, groups, thisCapGroup);
-//     }
-
-//     else if (identifier.groups.capGroupOnly) {   // so no case modifier, only an unmodified capture group: "$n" or "${n}""
-//       const thisCapGroup = identifier.groups.capGroupOnly.replace(/[^\d]/g, "");
-//       if (groups && groups[thisCapGroup]) resolved = groups[thisCapGroup];
-//     }
-
-//         // enable //U$1 here?
-//     else if (identifier.groups.jsOp) {
-//       // resolved = _checkForCaptureGroupsInJSOpReplacement(identifier.groups.jsOp, groups);
-//       const operation = identifier.groups.jsOp.substring(3, identifier.groups.jsOp.length - 1);
-//       // resolved = this.buildReplace(operation, groups, caller, isRegex, selection, clipText, restrict, selectionStartIndex, index);
-
-//       // if (index !== null) resolved = this.resolveMatchVariable(resolved, index);
-//       // if (selectionStartIndex !== null) resolved = this.resolveLineVariable(resolved, selectionStartIndex);
-
-//       resolved = Function('"use strict";return (' + resolved + ')')();
-//     }
-
-//     // end of identifiers loop
-//     replaceValue = replaceValue.replace(identifier[0], resolved);
-//   }
-//   return replaceValue;
-// };
-
-
-/**
- * Apply case modifier, like '\\U' to text.
- * @param   {String} modifier 
- * @param   {String} textToModify
- * @returns {String} - modified text
- */
-// function _applyCaseModifier(modifier, textToModify) {
-
-//   let resolved = textToModify;
-
-//   switch (modifier) {
-//     case "\\U":
-//       resolved = textToModify.toLocaleUpperCase();
-//       break;
-
-//     case "\\u":
-//       resolved = textToModify[0].toLocaleUpperCase() + textToModify.substring(1);
-//       break;
-
-//     case "\\L":
-//       resolved = textToModify.toLocaleLowerCase();
-//       break;
-
-//     case "\\l":
-//       resolved = textToModify[0].toLocaleLowerCase() + textToModify.substring(1);
-//       break;
-
-//     default:
-//       break;
-//   }
-//   return resolved;
-// }
 
 /**
  * Apply case modifier, like '\\U' to capture groups $1, etc..
  * 
  * @param {String} match
- * @param {String} p1
- * @param {String} p2
- * @param {Number} offset
- * @param {String} string
+ * @param {String} p1 - capture group 1
+ * @param {String} p2 - capture group 2
+ * @param {Number} offset - offset index of this match
+ * @param {String} string - the entire matched string
  * @param {Object} namedGroups
  * @param {Object} groups
  * @param {String} resolvedPathVariable
@@ -726,7 +354,6 @@ function _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, 
   let resolved = resolvedPathVariable;
   
   if (namedGroups?.path && namedGroups?.path.search(/\$\{\s*(line|match)(Index|Number)\s*\}/) !== -1) {
-    // return namedGroups.path;
     return resolvedPathVariable;
   }
   
@@ -738,7 +365,6 @@ function _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, 
     resolved = resolvedPathVariable;
   }
   
-  // switch (namedGroups.caseModifier) {
   switch (namedGroups?.caseModifier || namedGroups?.pathCaseModifier) {
   
     case "\\U":
@@ -768,17 +394,16 @@ function _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, 
  * Apply case transform, like '${1:/upcase}' to text.
  * 
  * @param   {String} match 
- * @param   {String} p1
- * @param   {String} p2
- * @param   {String} p3
- * @param   {String} p4
- * @param   {Number} offset
- * @param   {String} string
+ * @param   {String} p1 - capture group 1
+ * @param   {String} p2 - capture group 2
+ * @param   {String} p3 - capture group 3
+ * @param   {String} p4 - capture group 4
+ * @param   {Number} offset - offset index of this match
+ * @param   {String} string - entire matched string
  * @param   {Object} namedGroups
  * @param   {Object} groups
  * @returns {String} - modified text
  */
-// function _applyCaseTransform(transform, textToModify) {
 function _applyCaseTransform(match, p1, p2, p3, p4, offset, string, namedGroups, groups) {
   
   let resolved = groups[p2];
@@ -813,12 +438,12 @@ function _applyCaseTransform(match, p1, p2, p3, p4, offset, string, namedGroups,
  * Apply conditional transform, like '${1:+ add text }' to text.
  * 
  * @param   {String} match 
- * @param   {String} p1
- * @param   {String} p2
- * @param   {String} p3
- * @param   {String} p4
- * @param   {Number} offset
- * @param   {String} string
+ * @param   {String} p1 - capture group 1
+ * @param   {String} p2 - capture group 2
+ * @param   {String} p3 - capture group 3
+ * @param   {String} p4 - capture group 4
+ * @param   {Number} offset - offset index of this match
+ * @param   {String} string - entire matched string
  * @param   {Object} namedGroups
  * @param   {Object} groups
  * @returns {String} - modified text
@@ -878,33 +503,6 @@ function _checkForCaptureGroupsInConditionalReplacement(replacement, groups) {
   }
   return replacement;
 }
-
-/**
- * Are there capture groups, like $1 or ${1} in this math ops replacement text?
- * 
- * @param {String} replacement 
- * @param {Array} groups 
- * @returns {String} - resolve the capture group
- */
-//  function _checkForCaptureGroupsInJSOpReplacement(replacement, groups) {
-
-//   // const jsOp = replacement.match(/\$\$\{(?<jsOp>.*)\}/);
-//   // let   operation = jsOp?.groups?.jsOp;
-   
-//    let operation = replacement;
-
-//   const re = /(?<captureGroups>\$\{?(\d\d?)\}?)/g;
-//   const capGroups = [...operation?.matchAll(re)];
-
-//   for (let i = 0; i < capGroups.length; i++) {
-//     if (capGroups[i].groups.captureGroups) {
-//       operation = operation.replace(capGroups[i][0], groups[capGroups[i][2]] ?? "");
-//     }
-//    }
-   
-//   return operation;
-//   // return Function('"use strict";return (' + operation + ')')();
-// }
 
 
 /**

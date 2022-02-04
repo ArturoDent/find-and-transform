@@ -8,7 +8,7 @@ const searchCommands = require('./search');
 /**
  * Get the relative path to the workspace folder  
  * @param {String} filePath   
- * @returns {String} relativePath  
+ * @returns {String} relativePath of file 
  */
 exports.getRelativeFilePath = function (filePath) {
 
@@ -30,7 +30,7 @@ exports.getRelativeFilePath = function (filePath) {
 /**
  * Get the relative path to the workspace folder  
  * @param {String} filePath   
- * @returns {String} relativePath  
+ * @returns {String} relativePath of folder
  */
 exports.getRelativeFolderPath = function (filePath) {
 
@@ -65,7 +65,7 @@ exports.getSearchResultsFiles = async function () {
 		return pathArray.join(", ");
 	}
 	else {
-		// notifyMessage
+		// notifyMessage?
 		return undefined;
 	}
 } 
@@ -76,7 +76,7 @@ exports.getSearchResultsFiles = async function () {
  * first_second_third => FirstSecondThird  
  * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/snippetParser.ts}  
  * 
- * @param {String} value   
+ * @param {String} value - string to transform to PascalCase  
  * @returns {String} transformed value  
  */
 exports.toPascalCase = function(value) {
@@ -98,7 +98,7 @@ exports.toPascalCase = function(value) {
  * first_second_third => firstSecondThird  
  * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/snippetParser.ts}  
  * 
- * @param {String} value  
+ * @param {String} value - string to transform to camelCase
  * @returns {String} transformed value  
  */
 exports.toCamelCase = function (value) {
@@ -132,8 +132,6 @@ exports.checkArgs = async function (args, fromWhere) {
 	let goodValues;
 	let badKeys = [];
 	let badValues = [];
-	// let badValueKey;
-
 
 	if (fromWhere === "findBinding" || fromWhere === "findSetting") {
 		goodKeys = findCommands.getKeys();  // an array
@@ -145,34 +143,32 @@ exports.checkArgs = async function (args, fromWhere) {
 	}
 	badKeys = Object.keys(args).filter(arg => !goodKeys.includes(arg));
 	
-	// if (!badKey) {
-		for (const key of goodKeys) {
-			if (args[key]) {  // and not the empty string "" TODO
-				if (typeof goodValues[key] === "string") {
-					if (typeof args[key] !== "string") badValues.push({ [key]: args[key] });
-				}
-				else {
-					let badValue = !goodValues[key].includes(args[key]);
-					if (badValue) {
-						// badValues[key] = args[key];
-						badValues.push({ [key] : args[key] });
-					}
-					// if (badValue && typeof goodValues[key][0] === "boolean") console.log(`"${ args[key] }" is not an accepted value of "${ key }".  The value must be a boolean true or false (not a string).`);
-					// else if (badValue && typeof goodValues[key][0] === "string") console.log(`"${ args[key] }" is not an accepted value of "${ key }". Accepted values are "${ goodValues[key].join('", "') }".`);
-				}
-			}
-		}
-	// }
+  for (const key of goodKeys) {
+    if (args[key]) {  // and not the empty string "" TODO
+      if (typeof goodValues[key] === "string") {
+        if (typeof args[key] !== "string") badValues.push({ [key]: args[key] });
+      }
+      else {
+        let badValue = !goodValues[key].includes(args[key]);
+        if (badValue) {
+          // badValues[key] = args[key];
+          badValues.push({ [key] : args[key] });
+        }
+        // if (badValue && typeof goodValues[key][0] === "boolean") console.log(`"${ args[key] }" is not an accepted value of "${ key }".  The value must be a boolean true or false (not a string).`);
+        // else if (badValue && typeof goodValues[key][0] === "string") console.log(`"${ args[key] }" is not an accepted value of "${ key }". Accepted values are "${ goodValues[key].join('", "') }".`);
+      }
+    }
+  }
 	if (badKeys.length || badValues.length) return { fromWhere: fromWhere, badKeys: badKeys, badValues: badValues}
 	return {};
 };
 
 /**
  * 
- * @param {Object} badObject badKeys and badValues
- * @param {Boolean} modal show a modal dialog
- * @param {String} name setting name, if any
- * @returns {Promise<Boolean>} ignore
+ * @param {Object} badObject - badKeys and badValues
+ * @param {Boolean} modal - show a modal dialog
+ * @param {String} name - setting name, if any
+ * @returns {Promise<Boolean>} - ignore
  */
 exports.showBadKeyValueMessage = async function (badObject, modal, name) {
 	
@@ -192,8 +188,6 @@ exports.showBadKeyValueMessage = async function (badObject, modal, name) {
 		searchSetting: ['Run As Is', 'Stop']
   }
   
-  
-
 	if (badObject.badKeys.length === 1) message = `${ origin[badObject.fromWhere] } this key does not exist: "${ badObject.badKeys[0] }".`;
 	else if (badObject.badKeys.length > 1) message = `${ origin[badObject.fromWhere] } these keys do not exist: "${ badObject.badKeys.join('", "') }".`;
 

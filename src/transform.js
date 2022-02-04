@@ -3,7 +3,8 @@ const variables = require('./variables');
 
 
 /**
- * Add any empty/words at cursor position to the selections
+ * Add any empty/words at cursor position to the selections.
+ * Modifies existing selections
  * @param {vscode.window.activeTextEditor} editor
  * @param {String} regexOptions
  */
@@ -49,7 +50,7 @@ exports.addEmptySelectionMatches = function (editor, regexOptions) {
  * Also covers no find/no replace.
  *
  * @param {vscode.TextEditor} editor
- * @param {Object} args
+ * @param {Object} args - keybinding/settings args
  */
 exports.findAndSelect = function (editor, args) {
 
@@ -190,7 +191,7 @@ exports.findAndSelect = function (editor, args) {
  *
  * @param {vscode.window.activeTextEditor} editor
  * @param {vscode.TextEditorEdit} edit
- * @param {Object} args
+ * @param {Object} args - keybinding/settings args
  */
 exports.replaceInLine = function (editor, edit, args) {
 
@@ -361,7 +362,7 @@ exports.replaceInLine = function (editor, edit, args) {
  *
  * @param {vscode.window.activeTextEditor} editor
  * @param {vscode.TextEditorEdit} edit
- * @param {Object} args
+ * @param {Object} args - keybinding/settings args
  */
 exports.replaceNextInWholeDocument = function (editor, edit, args) {
 
@@ -518,7 +519,7 @@ function buildLineNumberMatches(find, range) {
  *
  * @param {vscode.window.activeTextEditor} editor
  * @param {vscode.TextEditorEdit} edit
- * @param {Object} args
+ * @param {Object} args - keybinding/settings args
  */
 exports.replaceInWholeDocument = function (editor, edit, args) {
 
@@ -616,7 +617,7 @@ exports.replaceInWholeDocument = function (editor, edit, args) {
  *
  * @param {vscode.window.activeTextEditor} editor
  * @param {vscode.TextEditorEdit} edit
- * @param {Object} args
+ * @param {Object} args - keybinding/settings args
  */
 exports.replaceInSelections = function (editor, edit, args) {
 

@@ -1,10 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-
 const parseCommands = require('./parseCommands');
-
-// const findCommands = require('./transform');
 const searchCommands = require('./search');
 const utilities = require('./utilities');
 
@@ -82,17 +79,14 @@ async function _makePackageCommandsFromFindSettings(settings, enableWarningDialo
 
 	for (const setting of settings) {
 		
-		// check here for bad args TODO with setting[1]
 		if (enableWarningDialog) {
 			const argsBadObject = await utilities.checkArgs(setting[1], "findSetting");
-		 	// boolean modal or not
 			if (argsBadObject.length) await utilities.showBadKeyValueMessage(argsBadObject, false, setting[0]);
 		}
 
 		let newCommand = {};
 		newCommand.command = `findInCurrentFile.${ setting[0] }`;
 
-		// warn here if there is no title?  vscode does it automatically
 		if (setting[1].title) newCommand.title = setting[1].title;
 		else newCommand.title = setting[0];
 
@@ -133,7 +127,6 @@ async function _makePackageCommandsFromSearchSettings(settings, enableWarningDia
 			let newCommand = {};
 			newCommand.command = `runInSearchPanel.${ setting[0] }`;
 
-			// warn here if there is no title?  vscode does it automatically
 			if (setting[1].title) newCommand.title = setting[1].title;
 			else newCommand.title = setting[0];
 
@@ -213,7 +206,7 @@ function _makeSettingsEventsFromSettingsCommands (settingsCommands) {
  */
 function _commandArraysAreEquivalent(settings, packages) {
 
-	// subtract 3 for `find-and-transform.searchInFile` and `find-and-transform.searchInFolder` commands
+	// subtract 3 for searchInFile/searchInFolder/searchInResults commands
   if (settings.length !== (packages.length-3)) return false;
 
   return settings.every(setting => packages.some(pcommand => {
@@ -299,8 +292,6 @@ exports.registerSearchCommands = function (searchArray, context, disposables, en
 
 			if (continueRun) {
 				let argsArray = [];
-
-				// args in setting may be in any order
 				if (temp) argsArray = searchCommands.getObjectFromArgs(temp);
 				searchCommands.useSearchPanel(argsArray);
 			}
