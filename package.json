@@ -2,7 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "1.0.0",
+ "version": "1.1.0",
  "engines": {
   "vscode": "^1.56.0"
  },
@@ -30,9 +30,7 @@
   "path variable"
  ],
  "activationEvents": [
-  "onStartupFinished",
-  "onCommand:findInCurrentFile.addClassToElement",
-  "onCommand:runInSearchPanel.removeDigits"
+  "onStartupFinished"
  ],
  "contributes": {
   "menus": {
@@ -98,16 +96,6 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.addClassToElement",
-    "title": "Add Class to Html Element",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "runInSearchPanel.removeDigits",
-    "title": "Remove digits from Arturo",
     "category": "Find-Transform"
    }
   ],

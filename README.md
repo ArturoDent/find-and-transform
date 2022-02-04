@@ -865,9 +865,6 @@ Examples of possible keybindings (in your `keybindings.json`):
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/ifLineNumberMatch.gif?raw=true" width="150" height="250" alt="line Number match"/>
 
 
-<br/>  
-
-
 ------------
 
 When you **save** a change to the settings, you will get the message notification below.  This extension will detect a change in its settings and create corresponding commands.  The commands will not appear in the Command  Palette **without saving the new setting** and reloading vscode.  
