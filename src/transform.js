@@ -3,12 +3,11 @@ const variables = require('./variables');
 
 
 /**
- * Add any empty/words at cursor position to the selections.
- * Modifies existing selections
+ * Add any empty/words at cursor position to the editor.selections.
+ * Modifies existing selections.
  * @param {vscode.window.activeTextEditor} editor
- * @param {String} regexOptions
  */
-exports.addEmptySelectionMatches = function (editor, regexOptions) {
+exports.addEmptySelectionMatches = function (editor) {
 
 	editor.selections.forEach(selection => {
 
@@ -18,23 +17,9 @@ exports.addEmptySelectionMatches = function (editor, regexOptions) {
 		if (selection.isEmpty) {
 
 			const wordRange = editor.document.getWordRangeAtPosition(selection.start);
-			let word;
-			if (wordRange) word = editor.document.getText(wordRange);
-				// can word include regex characters, if the selection is empty?
-			else return;
+			if (!wordRange) return;
 
-			// get all the matches in the document
-			const fullText = editor.document.getText();
-			const matches = [...fullText.matchAll(new RegExp(word, regexOptions))];
-
-			matches.forEach((match, index) => {
-				const startPos = editor.document.positionAt(match.index);
-				const endPos = editor.document.positionAt(match.index + match[0].length);
-
-				// don't add match of empty selection if it is already contained in another selection
-				const found = editor.selections.find(selection => selection.contains(new vscode.Range(startPos, endPos)));
-				if (!found) emptySelections[index] = new vscode.Selection(startPos, endPos);
-			});
+			emptySelections.push(new vscode.Selection(wordRange.start, wordRange.end));
 
 			// filter out the original empty selection
 			editor.selections = editor.selections.filter(oldSelection => oldSelection !== selection);
@@ -66,8 +51,9 @@ exports.findAndSelect = function (editor, args) {
     // "ignoreLineNumbers" so lineNumber/Index are passed through unresolved
     let resolvedFind = variables.buildReplace(args, "ignoreLineNumbers", null, editor.selection, null, null);
     resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
-
-    if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+    if (!resolvedFind) return;
+    
+    if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
       // lineCount is 1-based, so need to subtract 1 from it
       const lastLineRange = document.lineAt(document.lineCount - 1).range;
       docRange = new vscode.Range(0, 0, document.lineCount - 1, lastLineRange.end.character);
@@ -75,12 +61,12 @@ exports.findAndSelect = function (editor, args) {
     }
 
     // else get all the matches in the document, resolvedFind !== lineNumber/lineIndex
-    else {
+    else if (resolvedFind.length) {
       fullText = editor.document.getText();
       matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
     }
 
-		matches.forEach((match, index) => {
+		matches?.forEach((match, index) => {
 			const startPos = editor.document.positionAt(match.index);
 			const endPos = editor.document.positionAt(match.index + match[0].length);
 			foundSelections[index] = new vscode.Selection(startPos, endPos);
@@ -100,26 +86,29 @@ exports.findAndSelect = function (editor, args) {
       // TODO selection arg = "" ?
       let resolvedFind = variables.buildReplace(args, "ignoreLineNumbers", null, selection, null, null);
       resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+      if (!resolvedFind) return;
 
       let searchText;
 
       if (args.restrictFind === "selections") {
           
         if (selection.isEmpty) {
+          // pointSelections here TODO
           selectedRange = editor.document.getWordRangeAtPosition(selection.start);
         }
         else selectedRange = new vscode.Range(selection.start, selection.end);
-
+        if (!selectedRange) return;
+        
         if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1)
           matches = buildLineNumberMatches(resolvedFind, selectedRange);
 
-        else {
+        else if (resolvedFind?.length) {
           searchText = editor.document.getText(selectedRange);
           matches = [...searchText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
         }
 
-        matches.forEach((match) => {
-          const selectionStartIndex = editor.document.offsetAt(selection.start);
+        matches?.forEach((match) => {
+          const selectionStartIndex = editor.document.offsetAt(selectedRange.start);
           const startPos = editor.document.positionAt(selectionStartIndex + match.index);
           const endPos = editor.document.positionAt(selectionStartIndex + match.index + match[0].length);
           foundSelections.push(new vscode.Selection(startPos, endPos));
@@ -136,23 +125,23 @@ exports.findAndSelect = function (editor, args) {
           let selectedLineRange = document.lineAt(selection.active.line).range;
           matches = buildLineNumberMatches(resolvedFind, selectedLineRange);
         }
-        else {
+        else if (resolvedFind?.length) {
           searchText = editor.document.lineAt(selection.active.line).text;
           matches = [...searchText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
           lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
         }
 
-        for (const match of matches) {
+        matches?.forEach((match) => {
           const startPos = editor.document.positionAt(lineIndex + match.index);
           const endPos = editor.document.positionAt(lineIndex + match.index + match[0].length);
           foundSelections.push(new vscode.Selection(startPos, endPos));
-        }
+        });
       }
         
       else if (args.restrictFind === "once") {
 
         let lineIndex = 0;
-        let subStringIndex = 0;
+        let subStringIndex;
 
         if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
           let lineRange = document.lineAt(selection.active.line).range;
@@ -164,18 +153,25 @@ exports.findAndSelect = function (editor, args) {
           matches = buildLineNumberMatches(resolvedFind, subLineRange);
         }
 
-        else {
+        else  if (resolvedFind?.length) {
           const fullLine = editor.document.lineAt(selection.active.line).text;
-          // to not include the word under cursor TODO
+          // to not include the word under cursor TODO?
           // searchText = fullLine.substring(selection.active.character);
-          searchText = fullLine.substring(editor.document.getWordRangeAtPosition(selection.active).start.character);
+          const wordRangeAtCursor = editor.document.getWordRangeAtPosition(selection.active);
+          if (wordRangeAtCursor) searchText = fullLine.substring(wordRangeAtCursor?.start?.character);
+          else searchText = fullLine.substring(selection?.start?.character);
+          
+          if (!searchText) return;
           
           matches = [...searchText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
           lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
-          subStringIndex = editor.document.getWordRangeAtPosition(selection.active).start.character;
+          // this starts at the beginning of the current word
+          subStringIndex = editor.document.getWordRangeAtPosition(selection.active)?.start?.character;
+          // if no curent word = empty line or at spaces between words or at end of a line with a space
+          if (subStringIndex === undefined) subStringIndex = selection.active?.character;
         }
 
-        if (matches.length) {  // just do once
+        if (matches?.length) {  // just do once
           const startPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index);
           const endPos = editor.document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
           foundSelections.push(new vscode.Selection(startPos, endPos));
@@ -202,22 +198,33 @@ exports.replaceInLine = function (editor, edit, args) {
 
 		// get all the matches on the line
     let lineIndex;
-    let matches;
+    // let matches = [];
     let lines = [];
     let index = 0;
 
     editor.edit(function (edit) {
 
       editor.selections.forEach(selection => {
+        
+        let matches = [];
 
         let resolvedFind = variables.buildReplace(args, "find", null, selection, null, index);
         resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+        if (!resolvedFind && !args.replace) return;
 
         const re = new RegExp(resolvedFind, args.regexOptions);
         currentLine = editor.document.getText(editor.document.lineAt(selection.active.line).rangeIncludingLineBreak);
-        matches = [...currentLine.matchAll(re)];
+        currentLine = currentLine.replace(/\r?\n/g, ''); // probably handled below
+        
+        if (resolvedFind)
+          matches = [...currentLine.matchAll(re)];
+        else {
+            const match = { index: selection.active.character };
+            match[0] = "";
+            matches.push(match);
+        }
 		        
-        for (const match of matches) {
+        matches?.forEach((match) => {
 
           lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
 
@@ -228,7 +235,8 @@ exports.replaceInLine = function (editor, edit, args) {
           const matchRange = new vscode.Range(startPos, endPos);
           edit.replace(matchRange, resolvedReplace);
           lines[index++] = startPos.line;
-        }
+          // should these select?
+        });
       })
     }).then(success => {
       if (!success) {
@@ -284,14 +292,16 @@ exports.replaceInLine = function (editor, edit, args) {
 
         let resolvedFind = variables.buildReplace(args, "find", null, selection, null, index);
         resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+        if (!resolvedFind && !args.replace) return;  // correct here or already handled in findAndSelect?
 
         const re = new RegExp(resolvedFind, args.regexOptions);
         // get first match on line from cursor forward
         fullLine = editor.document.getText(editor.document.lineAt(selection.active.line).rangeIncludingLineBreak);
         // currentLine = fullLine.substring(selection.active.character);
         const currentWordRange = editor.document.getWordRangeAtPosition(selection.active);
-        subStringIndex = currentWordRange.start.character;        
+        if (resolvedFind && !currentWordRange) return;
         
+        subStringIndex = currentWordRange.start.character;        
         // currentLine = fullLine.substring(selection.active.character);
         currentLine = fullLine.substring(subStringIndex);        
         
@@ -312,6 +322,7 @@ exports.replaceInLine = function (editor, edit, args) {
           edit.replace(matchRange, resolvedReplace);
           lines[index] = startPos.line;
           subStringIndices[index++] = subStringIndex + matches[0].index; // so cursorMoveSelect is only after a once match
+          // should these select? else get weird effect where vscode tries to maintain the selection size if a wordAtCursor
         }
       });
     }).then(success => {
@@ -381,6 +392,7 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
   
   let resolvedFind = variables.buildReplace(args, "ignoreLineNumbers", null, editor.selection, cursorIndex, null);
   resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+  if (!resolvedFind) return;
 
   if (args.isRegex) {
     if (resolvedFind === "^") resolvedFind = "^(?!\n)";
@@ -401,7 +413,7 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
     matches = [...restOfDocument.matchAll(re)];
   }
 
-  if (matches.length) {
+  if (matches?.length) {
     match = matches[0];
     if (resolvedFind === "^(?!\n)") {
       if (matches.length > 1) match = matches[1];
@@ -526,11 +538,15 @@ exports.replaceInWholeDocument = function (editor, edit, args) {
   const document = editor.document;
   let docRange;
   let fullText;
-  let matches;
+  let matches = [];
+  let resolvedFind = "";
   let resolvedReplace;
 
-  let resolvedFind = variables.buildReplace(args, "ignoreLineNumbers", null, editor.selection, null, null);
-  resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+  if (args.find) {
+    resolvedFind = variables.buildReplace(args, "ignoreLineNumbers", null, editor.selection, null, null);
+    resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+  }
+  if (!resolvedFind) return;
 
   if (args.isRegex) {
     if (resolvedFind === "^") resolvedFind = "^(?!\n)";
@@ -545,10 +561,16 @@ exports.replaceInWholeDocument = function (editor, edit, args) {
   }
 
   // get all the matches in the document, resolvedFind !== lineNumber/lineIndex
-  else {
-    fullText = document.getText();
-    matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
-  }
+  // else if (resolvedFind.length) {
+  fullText = document.getText();
+  matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
+  // }
+  
+  args?.pointReplaces?.forEach(point => {
+    const match = {index : document.offsetAt(point.active)};
+    match[0] = "";
+    matches.push(match);
+  });
   
 	editor.edit( (editBuilder) => {
 
@@ -634,13 +656,16 @@ exports.replaceInSelections = function (editor, edit, args) {
 
     editor.selections.forEach(selection => {
 
+      // empty selections, pointReplacements TODO
+      // could filter out empty selections first
       const selectedRange = new vscode.Range(selection.start, selection.end);
       let selectionStartIndex = document.offsetAt(selection.start);
 
       resolvedFind = variables.buildReplace(args,  "ignoreLineNumbers", null, selection, null, index);
       resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
-
-      if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+      if (!resolvedFind && !args.replace) return;
+  
+      if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
         matches = buildLineNumberMatches(resolvedFind, selectedRange);
         selectionStartIndex = 0;
       }

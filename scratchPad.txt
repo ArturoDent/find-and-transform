@@ -132,7 +132,9 @@ FolderXX                                                ${relativeFileDirname}
 /c:/Users/Mark/testWorkspace  /c:/Users/Mark/AA/BB      ${workspaceFolder}
 testWorkspace BB                                        ${workspaceFolderBasename}
 
-const/16 v2, 0x2000
-invoke-virtual {v1, v2}, Landroid/view/Window;->addFlags(I)V
+@Column({ nullable: true })
+  CharterId: number
 
-howd3  howdy
+  @ManyToOne(() => Charter, (charter) => charter.Flights, { eager: true })
+  @JoinColumn({ name: 'CharterId' })
+  Charter: Charter

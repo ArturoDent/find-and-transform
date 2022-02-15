@@ -5,6 +5,7 @@ const os = require('os');
 const findCommands = require('./transform');
 const searchCommands = require('./search');
 
+
 /**
  * Get the relative path to the workspace folder  
  * @param {String} filePath   
@@ -207,4 +208,4 @@ exports.showBadKeyValueMessage = async function (badObject, modal, name) {
 		});
 	
 	return ignore;
-}
+};

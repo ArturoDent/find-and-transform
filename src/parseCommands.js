@@ -21,6 +21,7 @@ exports.splitFindCommands = async function (editor, edit, args) {
   else if (typeof args.find == "string") numFindArgs = 1;
    // even if no 'find' one will be created from "wordAtCursor"
 
+  // and not startsWith $${ and endsWith }
   if (Array.isArray(args.replace)) numReplaceArgs = args.replace.length;
   else if (typeof args.replace == "string") numReplaceArgs = 1;
 
@@ -31,12 +32,12 @@ exports.splitFindCommands = async function (editor, edit, args) {
 
     const splitArgs = await _buildArgs(args, index);
 
-    if (!splitArgs.find && !splitArgs.replace && !args.restrictFind.startsWith("next"))
+    if (!splitArgs.find && !splitArgs.replace && !splitArgs.restrictFind?.startsWith("next"))
       await findCommands.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
 
     // add all "empty selections" to editor.selections_replaceInSelections
-    else if (args.restrictFind === "selections" && args.replace !== undefined) {
-      await findCommands.addEmptySelectionMatches(editor, splitArgs.regexOptions);
+    else if (args.restrictFind === "selections" && splitArgs.replace !== undefined) {
+      await findCommands.addEmptySelectionMatches(editor);
       await findCommands.replaceInSelections(editor, edit, splitArgs);
     }
 
@@ -45,7 +46,7 @@ exports.splitFindCommands = async function (editor, edit, args) {
     }
 
     // find/noFind and replace/noReplace, restrictFind = nextSelect/nextMoveCursor/nextDontMoveCursor
-    else if (splitArgs.restrictFind === "nextMoveCursor" || splitArgs.restrictFind === "nextSelect" || splitArgs.restrictFind === "nextDontMoveCursor") {
+    else if (splitArgs.restrictFind?.startsWith("next")) {
       await findCommands.replaceNextInWholeDocument(editor, edit, splitArgs);
     }
 
@@ -113,7 +114,8 @@ async function _buildArgs(args, index)  {
     const findObject = variables.makeFind(editor.selections, args);
     findValue = findObject.find;
     defaultArgs.isRegex = defaultArgs.isRegex || findObject.mustBeRegex;
-		madeFind = true;
+    madeFind = true;
+    defaultArgs.pointReplaces = findObject.emptyPointSelections;
 	}
 
 	let replaceValue = undefined;
@@ -126,11 +128,11 @@ async function _buildArgs(args, index)  {
   else if (Array.isArray(args.replace)) replaceValue = args.replace[args.replace.length - 1];
     
   // TODO necessary?
-	else if (!args.find) {  // no find and no replace
-		replaceValue = "$1";
-		defaultArgs.isRegex = true;
-		findValue = `(${findValue})`;
-	}
+	// else if (!args.find) {  // no find and no replace
+		// replaceValue = "$1";
+		// defaultArgs.isRegex = true;
+		// findValue = `(${findValue})`;
+	// }
 
 	let regexOptions = "gmi";
 	if (defaultArgs.matchCase) regexOptions = "gm";

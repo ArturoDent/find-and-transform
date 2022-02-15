@@ -278,11 +278,13 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     return _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, variableToResolve);
   });
   // --------------------  path variables -----------------------------------------------------------
-  
 
   // https://regex101.com/r/zwuKpM/1 for full regex
   // (?<pathCaseModifier>\\\\[UuLl])?(?<path>\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineIndex\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})|(?<caseModifier>\\\\[UuLl])(?<capGroup>\$\{?\d\d?\}?)|(?<caseTransform>\$\{(\d\d?):\/((up|down|pascal|camel)case|capitalize)\})|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})|(?<capGroupOnly>\$\{?\d\d?\}?)|(?<jsOp>\$\$\{(.*)\})
 
+  // (?<=\.replaceAll\(|replace\()\s*\/([^\/]+)\/[gmi]\s*,\s*["'`]([^"'`]*)["'`]\s*\)
+  // https://regex101.com/r/dTTHi7/1
+  
   // if (caller !== "find" && !args.isRegex) {
   if (caller !== "find") {
   
@@ -322,7 +324,8 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     
     
     // -------------------  jsOp ------------------------------------------------------------------
-    re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\})", "g");
+    // can only have one $${...} in a replace
+    re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\})$", "gm");
     
     resolved = resolved.replaceAll(re, function (match, p1, operation) {
       // checking for capture groups is not necessary, already done above
@@ -534,6 +537,8 @@ exports.makeFind = function (selections, args) {
   let textSet = new Set();
   let find = "";
   let mustBeRegex = false;
+  // emptyPointSelections: when an empty selection has no word at cursor
+  let emptyPointSelections = new Set();
 
   // only use the first selection for these options: nextSelect/nextMoveCursor/nextDontMoveCursor
   if (args?.restrictFind?.substring(0, 4) === "next") {
@@ -545,12 +550,13 @@ exports.makeFind = function (selections, args) {
     if (selection.isEmpty) {
       const wordRange = document.getWordRangeAtPosition(selection.start);  // undefined if no word at cursor
       if (wordRange) selectedText = document.getText(wordRange);
+      else emptyPointSelections.add(selection);
     }
     else {
       const selectedRange = new vscode.Range(selection.start, selection.end);
       selectedText = document.getText(selectedRange);
     }
-    textSet.add(selectedText);
+    if ( selectedText.length ) textSet.add(selectedText);
   });
 
   for (let item of textSet) find += `${ item }|`; // Sets are unique, so this de-duplicates any selected text
@@ -558,7 +564,7 @@ exports.makeFind = function (selections, args) {
 
   // if .size of the set is greater than 1 then isRegex must be true
   if (textSet.size > 1) mustBeRegex = true;
-  if (args.isRegex) find = `(${ find })`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
+  if (args.isRegex && find.length) find = `\\b(${ find })\\b`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
 
-  return { find, mustBeRegex };
+  return { find, mustBeRegex, emptyPointSelections };
 }
