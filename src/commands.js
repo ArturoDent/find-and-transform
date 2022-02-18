@@ -244,14 +244,17 @@ function _activationEventArraysAreEquivalent(settings, packages) {
  * @param {vscode.ExtensionContext} context
  * @param {Array<vscode.Disposable>} disposables
  */
-exports.registerFindCommands = function (findArray, context, disposables, enableWarningDialog) {
+exports.registerFindCommands = async function (findArray, context, disposables, enableWarningDialog) {
 
 	let disposable;
 	let continueRun = true;
 
 	for (const elem in findArray) {
 
-		disposable = vscode.commands.registerTextEditorCommand(`findInCurrentFile.${ findArray[elem][0] }`, async (editor, edit) => {
+    if (Array.isArray(findArray[elem][1].replace) && findArray[elem][1].replace.find(el => el === "$${"))
+      findArray[elem][1].replace = await parseCommands.buildJSOperationsFromArgs(findArray[elem][1].replace);
+
+    disposable = vscode.commands.registerTextEditorCommand(`findInCurrentFile.${ findArray[elem][0] }`, async (editor, edit) => {
 			// could check for bad args here - on use of settings commands
 			if (enableWarningDialog) {
 				const argsBadObject = await utilities.checkArgs(findArray[elem][1], "findSetting");
@@ -273,7 +276,7 @@ exports.registerFindCommands = function (findArray, context, disposables, enable
  * @param {vscode.ExtensionContext} context
  * @param {Array<vscode.Disposable>} disposables
  */
-exports.registerSearchCommands = function (searchArray, context, disposables, enableWarningDialog) {
+exports.registerSearchCommands = async function (searchArray, context, disposables, enableWarningDialog) {
 
 	let disposable;
 	let continueRun = true;

@@ -1,18 +1,22 @@
 # find-and-transform
 
-> v1.1.0 **Breaking change**: Must use a `return` statement in a `$${<operation>}`, examples below.  This change enabled more powerful javascript statements to be used in a `$${<operation>}`.  
+> v1.1.0 **Breaking change**: Must use a `return` statement in a ` $${<operation>}$$ `, examples below.  This change enabled more powerful javascript statements to be used in a ` $${<operation>}$$ `.  
+
+> v1.2.0 **Breaking change**: Added the `$$` to the end of the javascript operation syntax to aid parsing.  
+
+*  &nbsp; New in v1.2.0: Insert a resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.   
 
 *  &nbsp; Find and transform text in a single file, folder, workspace or custom groups.
 
 *  &nbsp; Search across files with pre-defined options.  
 
-*  &nbsp; Do multiple find/replaces in the current file.  
+*  &nbsp; Do a series of find and replaces in the current file.  
 
-*  &nbsp; Do **math** on regex replacements, like `$${return $1 + 10} ` : add 10 to capture group 1.  
+*  &nbsp; Do **math** on regex replacements, like ` $${return $1 + 10}$$ ` : add 10 to capture group 1.  
 
-*  &nbsp; Do **string** operations on regex replacements, like `$${ return '$1'.replace('ou','e').toUpperCase() }`.  
+*  &nbsp; Do **string** operations on regex replacements, like ` $${ return '$1'.replace('ou','e').toUpperCase() }$$ `.  
 
-*  &nbsp; Do javascript operations like `$${ if ('${relativeFile}' === 'test2.txt') return '\\U${relativeFile}'; else return $1; }`.  
+*  &nbsp; Do javascript operations like ` $${ if ('${relativeFile}' === 'test2.txt') return '\\U${relativeFile}'; else return $1; }$$ `.  
 
 *  &nbsp; Do a second search using only the files found in a previous search. See `${resultsFiles}`.      
 
@@ -42,7 +46,7 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 ## Contributed Setting
 
-this extension contributes one setting relevant to the `findInCurrentFile` settings and keybindings:  
+This extension contributes one setting relevant to the `findInCurrentFile` settings and keybindings:  
 
 * `"find-and-transform.enableWarningDialog"` **default = true**
 
@@ -70,11 +74,11 @@ If the `enableWarningDialog` is set to true, errors will be presented in a notif
 The dialogs are modal for the keybindings, and non-modal for the settings.  The command can then be run or aborted.  
 
 ------------------  
-## Using newlines
+## Using newlines  
 
-* Find: Use `\r?\n` with `isRegex` set to true is probably the safest across OS's.     
+* Find: Use `\r?\n` with `isRegex` set to true is probably the safest across operating systems.     
 * Replace: `\n` is probably sufficient, if not, try `\r\n`.  
-* In a javascript operation replacement, make sure it is included in ticks or quotes so the newline is interpreted as a string `$${ 'first line \n second line' }`.   
+* In a javascript operation replacement, make sure it is included in ticks or quotes so the newline is interpreted as a string ` $${ 'first line \n second line' }$$ `.   
 
 * If you use newlines in a replace, the `cursorMoveSelect` option will not be able to properly calculate the new selection position.   
 
@@ -85,9 +89,9 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 ## What arguments can a &nbsp; `findInCurrentFile` &nbsp; setting or keybinding use:
 
 ```jsonc
-{
+{                                     // in keybindings.json 
   "key": "alt+r",
-  "command": "findInCurrentFile",      // in keybindings.json  
+  "command": "findInCurrentFile",  
   
   "args": {
   
@@ -130,6 +134,27 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 -----------
 
+## How to insert a value at the cursor
+
+If you do not want to find something and replace it but just want to insert some value at the cursor use a keybinding or setting liek the following:
+
+```jsonc
+{
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+                                                           // no find key
+    "replace": "\\U${relativeFileDirname}",         
+    "replace": "Chapter ${matchNumber}",                          // Chapter 1, Chapter 2, etc.
+    "replace": "Chapter $${ return ${matchNumber} * 10 }$$",      // Chapter 10, Chapter 20, etc.
+  }
+}
+```  
+
+It is important that the cursor or cursors **NOT** be at a word (discussed below) because if they were this extension would automatically compute a find value from those "nearest words to the cursor".  Put the cursor on a blank line or separated by spaces from the nearest word and the replace value will be inserted there.  Similar to a snippet insertion.  
+
+-----
+
 <br/>
 
 ## Running multiple finds and replaces with a single keybinding or setting  
@@ -148,10 +173,7 @@ The `find` and `replace` fields can either be a string of one find or an array o
 
     "replace": "\\U$1",                       // replace "trouble" with "TROUBLE"
 
-
-
     "find": ["(trouble)", "(more trouble)"],  // as many comma-separated strings as you want
-                                              // run multiple findInCurrentFile commands
 
     "replace": ["\\U$1", "\\u$1"],            //  replace "trouble" with "TROUBLE" and
                                               //  replace "more trouble" with "More trouble" 
@@ -229,7 +251,7 @@ On the first pass above, "someWord" will be replaced with "SOMEWORD".  On the se
 
 <br/> 
 
-Use the special syntax **`$${<some math op>}`** as a replace value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations , e.g., string operations (see below).  [This does not use the `eval()` function.]  Examples:   
+Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations, e.g., string operations (see below).  [This does not use the `eval()` function.]  Examples:   
 
 ```jsonc
 {
@@ -238,15 +260,24 @@ Use the special syntax **`$${<some math op>}`** as a replace value.  Everything 
   "args": {
     "find": "(?<=<some preceding text>)(\\d+)(?=<some following text>)",  // postive lookbehind/ahead
 
-    "replace": "$${return $1 + $1}",             // will double the digits found in capture group 1  
-    "replace": "$${return 2 * $1 }",            // will double the digits found in capture group 1  
-    "replace": "$${return $1 + $1}",             // will double the digits found in capture group 1  
+    "replace": "$${return $1 + $1}$$",             // will double the digits found in capture group 1  
+    "replace": "$${return 2 * $1 }$$",             // will double the digits found in capture group 1  
 
-    "replace": "$${return $1 + $2}",             // add capture group 1 to capture group 2  
+    "replace": "$${return $1 + $2}$$",             // add capture group 1 to capture group 2  
 
-    "replace": "$${return $1 * 2 + `,000` }",   // double group 1, append `,000` to it.  1 => 2,000  
+    "replace": "$${return $1 * 2 + `,000` }$$",    // double group 1, append `,000` to it.  1 => 2,000  
 
-    "replace": "$${return $1 * Math.PI }",     // multiply group 1 by Math.PI  
+    "replace": "$${return $1 * Math.PI }$$",       // multiply group 1 by Math.PI 
+    
+    "replace": "$${const date = new Date(Date.UTC(2020, 11, 20, 3, 23, 16, 738)); return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(date)}",
+                                                   // insert: Saturday, 19 December 2020 at 20:23:16 GMT-7
+                                                   
+    "replace": [                                   // same as the above
+      "$${",                                       // opening "wrapper" on its own line
+      "const date = new Date(Date.UTC(2020, 11, 20, 3, 23, 16, 738));",
+      "return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(date)",
+      "}$$"                                        // closing "wrapper" on its own line
+    ],     
 
     "isRegex": true  
   }
@@ -261,15 +292,17 @@ Use the special syntax **`$${<some math op>}`** as a replace value.  Everything 
 
 <br/> 
 
-You can also do string operations inside the special syntax `$${<operations>}` as well.  But you will need to ***"cast"*** the string in bacticks, single quotes or escaped double quotes like so:   
+You can also do string operations inside the special syntax ` $${<operations>}$$ ` as well.  But you will need to ***"cast"*** the string in bacticks, single quotes or escaped double quotes like so:   
 
-*  **$${ return \`$1\`.substring(3) }**  use backticks or  
+```
+$${ return \`$1\`.substring(3) }$$  use backticks or  
 
-*  **$${ return '$1'.substring(3) }**  or  use single quotes
+$${ return '$1'.substring(3) }$$  or  use single quotes
 
-* **$${ return \\"$1\\".includes('tro') }**  escape the double quotes
+$${ return \\"$1\\".includes('tro') }$$  escape the double quotes
+```  
 
-> Any term that you wish to be interpreted as a string must be enclosed as just mentioned.  So in the first example below to replace the match with the string `howdy` I used backticks.  This is only necessary within the operations syntax `$${<operations>}` otherwise it is interpreted as an unknown variable by javascript.  
+> Any term that you wish to be interpreted as a string must be enclosed in ticks or quotes.  So in the first example below to replace the match with the string `howdy` I used backticks.  This is only necessary within the operations syntax `$${<operations>}$$` otherwise it is interpreted as an unknown variable by javascript.  
 
 ```jsonc
 {
@@ -279,31 +312,31 @@ You can also do string operations inside the special syntax `$${<operations>}` a
 
     "find": "(trouble) (brewing)",
 
-    "replace": "$${ return `howdy` }",                 // replace trouble brewing => howdy  
-    "replace": "howdy",                         // same result as above   
+    "replace": "$${ return `howdy` }$$",                 // replace trouble brewing => howdy  
+    "replace": "howdy",                                  // same result as above   
 
-    "replace": "$${ return `$1`.indexOf('b') * 3 }",   // trouble brewing => 12  
+    "replace": "$${ return `$1`.indexOf('b') * 3 }$$",   // trouble brewing => 12  
 
-    "replace": "$${ return `$1`.toUpperCase() + ' C' + `$2`.substring(1).toUpperCase() }",
+    "replace": "$${ return `$1`.toUpperCase() + ' C' + `$2`.substring(1).toUpperCase() }$$",
     // trouble brewing => TROUBLE CREWING  
 
-    "replace": "$${ return `$1`.replace('ou','e') }",  // trouble => treble  
+    "replace": "$${ return `$1`.replace('ou','e') }$$",  // trouble => treble  
 
-    "replace": "$${ return '$1'.split('o')[1] }",      // trouble => uble  
+    "replace": "$${ return '$1'.split('o')[1] }$$",      // trouble => uble  
 
-    "find": "(tr\\w+ble)",                      // .includes() returns either 'true' or 'false'  
-    "replace": "$${ return '$1'.includes('tro') }",    // trouble will be replaced with true, treble => false  
+    "find": "(tr\\w+ble)",                               // .includes() returns either 'true' or 'false'  
+    "replace": "$${ return '$1'.includes('tro') }$$",    // trouble will be replaced with true, treble => false  
 
-    "find": "(tr\\w+ble)",           // can have any number of $${...}'s in a replacment
-    "replace": "$${ return '$1'.includes('tro') } $${ return '$1'.includes('tre') }",
-                                    // trouble => true false, treble => false true
+    "find": "(tr\\w+ble)",                               // can have any number of $${...}$$'s in a replacment
+    "replace": "$${ return '$1'.includes('tro') }$$--$${ return '$1'.includes('tre') }$$",
+                                                         // trouble => true--false, treble => false--true
 
     "isRegex": true  
   }
 }
 ``` 
 
-> You can combine math or string operations within **`$${<operations>}`**. 
+> You can combine math or string operations within **` $${<operations>}$$ `**. 
 
 ----------------
 
@@ -313,7 +346,7 @@ You can also do string operations inside the special syntax `$${<operations>}` a
 
 <br/> 
 
-> There **must be a `return` statement** inside the `$${...}` for whatever you want returned. 
+> There **must be one or more `return` statements** inside the ` $${...}$$ ` for whatever you want returned. 
 
 > Remember if you want a variable or capture group treated as a string, surround it with ticks or single quotes.   
 
@@ -328,23 +361,23 @@ You can also do string operations inside the special syntax `$${<operations>}` a
     "find": "(trouble) (brewing)",
     
     // replace the find match with the clipboard text length
-    "replace": "$${ return '${CLIPBOARD}'.length }",
+    "replace": "$${ return '${CLIPBOARD}'.length }$$",
 
     "find": "(trouble) (times) (\\d+)",
     // replace the find match with capture group 1 uppercased + capture group 2 * 10 
     // trouble times 10 => TROUBLE times 100  
-    "replace": "$${ return `\\U$1 $2 ` + ($3*10) }",
+    "replace": "$${ return `\\U$1 $2 ` + ($3*10) }$$",
     
     "find": "(\\w+) (\\d+) (\\d+) (\\d+)",
     // dogs 1 3 7 => Total dogs: 11
-    "replace": "$${ return `Total $1: ` + ($2 + $3 + $4) }",
+    "replace": "$${ return `Total $1: ` + ($2 + $3 + $4) }$$",
 
     // compare the clipboard text length to the selection text length
-    "replace": "$${ if (`${CLIPBOARD}`.length < `${selectedText}`.length) return true; else return false }",
+    "replace": "$${ if (`${CLIPBOARD}`.length < `${selectedText}`.length) return true; else return false }$$",
 
     // the find match will be replaced by:
     // if the clipboard matches the string, return capture group 2 + the path variable
-    "replace": "$${ return `${CLIPBOARD}`.match(/(first) (pattern) (second)/)[2] +  ` ${fileBasenameNoExtension}` }",
+    "replace": "$${ return `${CLIPBOARD}`.match(/(first) (pattern) (second)/)[2] +  ` ${fileBasenameNoExtension}` }$$",
   
     "isRegex": true  
   }
@@ -352,6 +385,55 @@ You can also do string operations inside the special syntax `$${<operations>}` a
 ``` 
 
 <br/>  
+
+```jsonc
+"replace": [
+  "$${",                                                  // opening wrapper on its own line
+  "if (`${fileBasenameNoExtension}`.includes('-')) {",
+                                                          // must use let or const for variables
+  "  let groovy = `${fileBasenameNoExtension}`.replace(/-/g, \" \");",
+  "  return groovy[0].toUpperCase() + groovy.substring(1).toLowerCase();",
+  "}",
+                                              // blank lines have no effect, indentation is irrelevant
+  "else {",
+  "  let groovy = `${fileBasename}`.split('.');",
+  "  groovy = groovy.map(word => word[0].toUpperCase() + word.substring(1).toLowerCase());",
+  "  return groovy.join(' ');",
+  "}",  
+  "}$$",                                                 // closing wrapper on its own line
+  
+  "$${return 'second replacement'}$$",
+  
+  "\\U$1"                       
+  ```  
+  
+  All the code between each set of opening and closing wrappers will be treated as a single javascript replacement.  You can also put it all on one line if you want, like the `"$${return 'second task'}$$"` above.  The above `replace` will be treated as:
+  
+  ```jsonc
+  "replace": ["a long first replacement", "a second replacement", "\\U$1"]
+  ```
+
+As long as you properly wrap your blocks of code, you can intermix single replacements or other code blocks.  You can have as many as you need.  See the discussion above about running multiple finds and replaces in a series.
+
+A `settings.json` example:  
+
+```jsonc
+"findInCurrentFile": {                       // in settings.json
+  "addClassToElement": {
+    "title": "Add Class to Html Element",
+    "find": ">",
+    "replace": [
+      "$${",
+      "return ' class=\"\\U${fileBasenameNoExtension}\">'",
+      "}$$"
+    ],
+    "isRegex": true,                        // not actually necessary here
+    "restrictFind": "selections"            // replace only for those `>` in a selection
+  }
+}
+```   
+
+Explanation: Find `>` and add `class="uppercased filename">` to it.  
 
 ------------------  
 
@@ -387,11 +469,11 @@ ${lineIndex}               line index starts at 0
 ${lineNumber}              line number start at 1
 
 ${matchIndex}              0-based, replace with the find match index - first match, second, etc.   
-${matchNumber}             1-based, replace with the find match index
+${matchNumber}             1-based, replace with the find match number
 
 ```
 
-The first 11 of those variables should have the same resolved values as found at &nbsp; [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
+These variables should have the same resolved values as found at &nbsp; [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
 
 > ` ${resultsFiles}` is a specially created variable that will scope the next search to those files in the previous search's results. In this way you can run successive searches narrowing the scope each time to the previous search results files.  See &nbsp;  [Search using the Panel](searchInPanel.md). 
 
@@ -432,12 +514,12 @@ Example:
   "key": "alt+r",
   "command": "findInCurrentFile",
   "args": {
-                                     // find the lowercased version of the relativeFileName
-    "find": "(\\L${relativeFile})",  // note the outer capture group
+                                          // find the lowercased version of the relativeFileName
+    "find": "(\\L${relativeFile})",       // note the outer capture group
 
-    "replace": "\\U$1", // replace with the uppercased version of capture group 1
+    "replace": "\\U$1",                   // replace with the uppercased version of capture group 1
 
-    "matchCase": true,  // this must be set or the find case will be ignored!
+    "matchCase": true,                    // this must be set or the find case will be ignored!
     "isRegex": true
   }
 }
@@ -453,7 +535,7 @@ Example:
 
 <br/>
 
-Vscode **snippets** although you to make conditional replacements, see [vscode's snippet grammar documentation](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_grammar).  But you cannot use those in the find/replace widget however.  This extension allows you to use those conditionals in a `findInCurrentFile` command or keybinding.  Types of conditionals and their meaning:
+Vscode **snippets** allow you to make conditional replacements, see [vscode's snippet grammar documentation](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_grammar).  However you cannot use those in the find/replace widget.  This extension allows you to use those conditionals in a `findInCurrentFile` command or keybinding.  Types of conditionals and their meaning:
 
 ```
 ${1:+add this text}  If found a capture group 1, add the text. `+` means `if`  
@@ -596,7 +678,7 @@ Example keybinding:
 
 1. `"restrictFind": "nextDontMoveCursor"` make the next replacement but leave the cursor at the original position.  
 2. `"restrictFind": "nextCursor"` make the next replacement and move the cursor to that next replaced match. Does not select.
-3. `"restrictFind": "nextSelect"` make the next replacement and select that next replaced match. 
+3. `"restrictFind": "nextSelect"` make the next replacement and select it. 
 
 >  When using the **above** `restrictFind` options the `cursorMoveSelect` option will be ignored. 
 
@@ -609,7 +691,7 @@ You can use the `cursorMoveSelect` option with the below `restrictFind` options.
 6. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
 7. `"restrictFind": "selections"` make all replacements in the selections only. 
 
-The `cursorMoveSelect` option takes any text as its value.  That text, which can be part of the replacement text or any text, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp.  `matchCase` and `matchWholeWord` settings will be honored for both the `cursorMoveSelect` and `find` text.  
+The `cursorMoveSelect` option takes any text as its value.  That text, which can a result of a prior replacement, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp.  `matchCase` and `matchWholeWord` settings will be honored for both the `cursorMoveSelect` and `find` text.  
 
 If, for example you use these args:
 
@@ -819,7 +901,7 @@ Examples of possible keybindings (in your `keybindings.json`):
   "command": "findInCurrentFile",       // note no second part of a command name
   "args": {                             // must set the "args" here since no associated settings command
 
-    "find": "^(this)",                   // note the ^ = beginning of selection because restrictFind = selections
+    "find": "^(this)",                  // note the ^ = beginning of selection because restrictFind = selections
                                         // or ^ = beginning of line within a selection 
 
     // "find": "^(${CLIPBOARD})",       // same result as above if 'this' on the clipboard
@@ -847,12 +929,12 @@ Examples of possible keybindings (in your `keybindings.json`):
     "find": "(${lineNumber})",          // find the matching line number on its line
                                         // so find a 1 on line 1, find a 20 on line 20
     
-    "replace": "$${ return `found ` + ($1*10) }",
+    "replace": "$${ return `found ` + ($1*10) }$$",
                                         // a 1 on line 1 => found 10
                                         // a 20 on line 20 => found 200
                                         
                                         // demo below
-    "replace": "$${ if ($1 <= 5) return $1/2; else return $1*2; }",
+    "replace": "$${ if ($1 <= 5) return $1/2; else return $1*2; }$$",
           // if a number is on its lineNumber, like a 5 on line number 5 = a find match
           // if that match <= 4 return that lineNumber  / 2
           // else return that lineNumber * 2
@@ -867,7 +949,7 @@ Examples of possible keybindings (in your `keybindings.json`):
 
 ------------
 
-When you **save** a change to the settings, you will get the message notification below.  This extension will detect a change in its settings and create corresponding commands.  The commands will not appear in the Command  Palette **without saving the new setting** and reloading vscode.  
+When you save a change to the **settings**, you will get the message notification below.  This extension will detect a change in its settings and create corresponding commands.  The commands will not appear in the Command  Palette **without saving the new setting** and reloading vscode.  
 
 <br/>
 
@@ -882,14 +964,14 @@ An example of keybinding with **NO associated setting**, in `keybindings.json`:
 ```jsonc
 {
   "key": "alt+y",
-  "command": "findInCurrentFile",           // note no setting command here
+  "command": "findInCurrentFile",           // note no setting command here, like findInCurrentFIle.removeDigits
   "args": {
     
     // multiline regexp ^ and $ are supported, "m" flag is automatically applied to all searches  
     // if finding within a selection(s), '^' refers to the start of a selection, NOT the start of a line
     // if finding within a selection(s), '$' refers to the end of a selection, NOT the end of a line
     
-    "find": "^([ \\t]*const\\s*)(\\w*)",   // double escaping
+    "find": "^([ \\t]*const\\s*)(\\w*)",   // note the double escaping
     
     "replace": "$1\\U$2",                  // capitalize the word following "const"
     "isRegex": true,
@@ -907,7 +989,7 @@ An example of keybinding with **NO associated setting**, in `keybindings.json`:
 
 In this way you can specify a keybinding to run a generic `findInCurrentFile` command with all the arguments right in the keybinding and nowhere else.  There is no associated setting and you do not need to reload vscode for this version to work.  You can have an unlimited number of keybindings (with separate trigger keys and/or `when` clauses, of course) using the `findInCurrentFile`  version.
 
-The downside to this method is that the various commands are not kept in one place, like your `settings.json` and these `findInCurrentFile` versions cannot be found through the Command Palette.    
+The downside to this method is that these `findInCurrentFile` keybinding-only versions cannot be found through the Command Palette.    
 
 <br/>
 
@@ -920,7 +1002,9 @@ The downside to this method is that the various commands are not kept in one pla
 ### `"nearest words at cursors"`  
 <br/>  
 
->  Important:  &nbsp; What are &nbsp; **`"nearest words at cursors"`**? &nbsp; In VS Code, a cursor immediately next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a `findInCurrentFile` command with no `find` arg it will treat any and all "nearest words at cursors" as if you were asking to find those words.  Actual selections and "nearest words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  It appears that a word at a cursor is defined generally as this: `\b[a-zA-Z0-9_]\b` (consult the word separators for your given language) although some languages may define it differently.  
+>  Important:  &nbsp; What are &nbsp; **`"nearest words at cursors"`**? &nbsp; In VS Code, a cursor immediately next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a `findInCurrentFile` command with no `find` arg it will treat any and all "nearest words at cursors" as if you were asking to find those words.  Actual selections and "nearest words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  It appears that a word at a cursor is defined generally as this: `\b[a-zA-Z0-9_]\b` (consult the word separators for your given language) although some languages may define it differently.   
+
+<br/> 
 
 > If a cursor is on a blank line or next to a non-word character, there is no "nearest word at cursor" by definition and this extension will simply return the empty string for such a cursor.  
 
@@ -1026,7 +1110,7 @@ Explanation: Find using its value in `args` and replace each with its value in t
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of replace but no find keys in args"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindReplaceDemo.gif?raw=true" width="750" height="300" alt="demo of replace but no find keys in args"/>  
 
 Explanation: With no `find` value find all the words at the cursors or selections and apply the replacement.  
 
@@ -1253,7 +1337,10 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 1.0.0 Added ability to do math and string operations on `findInCurrentFile` replacements.  
 &emsp;&emsp;Can do multiple finds and replaces in a single keybinding or setting.  
 
-* 1.1.0 Work on `$${<operation>}`, adding `return`.  **Breaking change**.  
+* 1.1.0 Work on ` $${<operation>} `, adding `return`.  **Breaking change**.  
+* 1.2.0 Work on ` $${<operation>}$$ `, adding `$$` to the end for parsing.  **Breaking change**.   
+&emsp;&emsp;Added snippet-like cursor replacements.
+&emsp;&emsp;Added ability to have an array of code for jsOp `replace`.  
 
 <br/> 
 

@@ -105,12 +105,16 @@ async function activate(context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 
 	// make a generic "run" command for keybindings args using find in current file only
-	const runDisposable = vscode.commands.registerTextEditorCommand('findInCurrentFile', async (editor, edit, args) => {
+  const runDisposable = vscode.commands.registerTextEditorCommand('findInCurrentFile', async (editor, edit, args) => {
 
-		// get this from keybinding:  { find: "(document)", replace: "\\U$1" }
+    // get this from keybinding:  { find: "(document)", replace: "\\U$1" }
 
-		// TODO warn if fewer capture groups in the find than used in the replace ? or did you mean isRegex
-		let continueRun = true; // TODO what is ContinueRun doing? 
+    // TODO warn if fewer capture groups in the find than used in the replace ? or did you mean isRegex
+    let continueRun = true;
+    
+    // call a function that looks for all jsOp's $${...}$$ in args.replace
+    if (Array.isArray(args.replace) && args.replace.find(el => el === "$${"))
+      args.replace = await parseCommands.buildJSOperationsFromArgs(args.replace);
 
 		if (args && enableWarningDialog) {
 			const argsBadObject = await utilities.checkArgs(args, "findBinding");
@@ -122,7 +126,7 @@ async function activate(context) {
       if (!args) args = { title: "Keybinding for generic command run" };
 			else if (!args.title) args.title = "Keybinding for generic command run";
 
-			parseCommands.splitFindCommands(editor, edit, args);
+			await parseCommands.splitFindCommands(editor, edit, args);
 		}
 	});
 
@@ -171,6 +175,27 @@ async function activate(context) {
 	});
 
 	context.subscriptions.push(selectDigitInCompletion);
+
+	// ---------------------------------------------------------------------------------------------------------------------
+  
+  // select the 'operation' in completionItems like '$${operation}$$'
+	// not exposed in package.json
+  let selectOperationInCompletion = vscode.commands.registerCommand('find-and-transform.selectOperationInCompletion', async (completionText, completionRange) => {
+
+		// args = [completionText, Range]
+		// if completionText startsWith '$${operation'
+		let keyLength;
+		if (completionText?.startsWith("$${operation")) keyLength = 12;
+		else return;
+
+		if (completionRange?.start) {
+			const operationStart = new vscode.Position(completionRange.start.line, completionRange.start.character + keyLength - 9);
+			const operationEnd = new vscode.Position(completionRange.start.line, completionRange.start.character + keyLength);
+			vscode.window.activeTextEditor.selection = new vscode.Selection(operationStart, operationEnd);
+		}
+	});
+
+	context.subscriptions.push(selectOperationInCompletion);
 
 	// ---------------------------------------------------------------------------------------------------------------------
 

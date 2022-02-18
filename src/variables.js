@@ -280,7 +280,13 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
   // --------------------  path variables -----------------------------------------------------------
 
   // https://regex101.com/r/zwuKpM/1 for full regex
-  // (?<pathCaseModifier>\\\\[UuLl])?(?<path>\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|\${\s*fileBasenameNoExtension\s*}|\${\s*fileExtname\s*}|\${\s*fileDirname\s*}|\${\s*fileWorkspaceFolder\s*}|\${\s*workspaceFolder\s*}|\${\s*relativeFileDirname\s*}|\${\s*workspaceFolderBasename\s*}|\${\s*selectedText\s*}|\${\s*pathSeparator\s*}|\${\s*lineIndex\s*}|\${\s*lineNumber\s*}|\${\s*CLIPBOARD\s*}|\${\s*resultsFiles\s*})|(?<caseModifier>\\\\[UuLl])(?<capGroup>\$\{?\d\d?\}?)|(?<caseTransform>\$\{(\d\d?):\/((up|down|pascal|camel)case|capitalize)\})|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})|(?<capGroupOnly>\$\{?\d\d?\}?)|(?<jsOp>\$\$\{(.*)\})
+  // (?<pathCaseModifier>\\\\[UuLl])?(?<path>\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|
+  // \${ \s * fileBasenameNoExtension\s *}|\${ \s * fileExtname\s *}|\${ \s * fileDirname\s *}|\${ \s * fileWorkspaceFolder\s *}|
+  // \${ \s * workspaceFolder\s *}|\${ \s * relativeFileDirname\s *}|\${ \s * workspaceFolderBasename\s *}|
+  // \${ \s * selectedText\s *}|\${ \s * pathSeparator\s *}|\${ \s * lineIndex\s *}|\${ \s * lineNumber\s *}|
+  // \${ \s * CLIPBOARD\s *}|\${ \s * resultsFiles\s *})| (? <caseModifier>\\\\[UuLl])(?<capGroup>\$\{?\d\d?\}?)|
+  // (? <caseTransform>\$\{(\d\d?):\/((up|down|pascal|camel)case|capitalize)\})|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})|
+  // (? <capGroupOnly>\$\{?\d\d?\}?)|(?<jsOp>\$\$\{(.*)\}\$\$)
 
   // (?<=\.replaceAll\(|replace\()\s*\/([^\/]+)\/[gmi]\s*,\s*["'`]([^"'`]*)["'`]\s*\)
   // https://regex101.com/r/dTTHi7/1
@@ -307,7 +313,7 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     
     // // if a '}' in a replacement? => '\\}' must be escaped
     // // ${1:+${2}}  ?  => ${1:+`$2`} or ${1:+`$2`} note the backticks or ${1:+$1 pardner}
-    //  checks for capture groups inside _applyConditionalTransform
+    //  will check for capture groups inside _applyConditionalTransform
     resolved = resolved.replaceAll(re, (match, p1, p2, p3, p4, offset, string, namedGroups) =>
       _applyConditionalTransform(match, p1, p2, p3, p4, offset, string, namedGroups, groups));
     // --------------------  conditional -----------------------------------------------------------
@@ -315,7 +321,17 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     // --------------------  capGroupOnly ----------------------------------------------------------
     re = new RegExp("(?<capGroupOnly>(?<!\\$)\\$\{(\\d\\d?)\\}|(?<!\\$)\\$(\\d\\d?))", "g");
     
-    resolved = resolved.replaceAll(re, function(match, p1, p2, p3) {
+    resolved = resolved.replaceAll(re, function (match, p1, p2, p3, offset) {
+      
+      // So can use 'replace(/.../, '$nn?')` and use the replace capture group
+      
+      // check for a capture group '$nn?' in a replace/replaceAll replacement
+      // if there is a capture group, check to see if it is the <capGroupOnly> $nn by their same index and offset
+      // if true just return the match $nn? and do not replace the capture group by any group[n] match
+      const replaceRE = /(?<=(?:\.replaceAll\(|\.replace\()\s*\/[^/]+\/[gmi]?\s*,\s*\\?["'`].*?)(?<capGroup>\$\d\d?).*?(?=\\?["'`]\s*\))/g;
+      const found = [...resolved.matchAll(replaceRE)];
+      if (found[0]?.index === offset) return match;    // also works for emptyPointSelections
+            
       if (groups && p2 && groups[p2]) return groups[p2];
       else if (groups && p3 && groups[p3]) return groups[p3];
       else return "";     // no matching capture group
@@ -324,11 +340,11 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     
     
     // -------------------  jsOp ------------------------------------------------------------------
-    // can only have one $${...} in a replace
-    re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\})$", "gm");
+    // can only have multiple $${...}$$ in a replace
+    re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
     
     resolved = resolved.replaceAll(re, function (match, p1, operation) {
-      // checking for capture groups is not necessary, already done above
+      // checking for capture groups, etc. is not necessary, already done above
       return Function(`"use strict"; ${operation}`)();
     });
     // -------------------  jsOp ------------------------------------------------------------------

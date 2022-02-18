@@ -31,8 +31,7 @@
  ],
  "activationEvents": [
   "onStartupFinished",
-  "onCommand:findInCurrentFile.addClassToElement",
-  "onCommand:runInSearchPanel.removeDigits"
+  "onCommand:findInCurrentFile.addClassToElement"
  ],
  "contributes": {
   "menus": {
@@ -103,11 +102,6 @@
    {
     "command": "findInCurrentFile.addClassToElement",
     "title": "Add Class to Html Element",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "runInSearchPanel.removeDigits",
-    "title": "Remove digits from Arturo",
     "category": "Find-Transform"
    }
   ],

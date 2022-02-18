@@ -4,7 +4,7 @@ const vscode = require('vscode');
  * Create codeActions to use on save from settings
  * @param {vscode.ExtensionContext} context
  */
-exports.makeCodeActionProvider = function (context, codeActionCommands) {
+exports.makeCodeActionProvider = async function (context, codeActionCommands) {
 
 	context.subscriptions.push(
 		vscode.languages.registerCodeActionsProvider('*',

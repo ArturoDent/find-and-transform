@@ -5,6 +5,35 @@ const utilities = require('./utilities');
 
 
 /**
+ * Reduce any jsOp's in args.replace to single entries.
+ * @param {string[]} arg - args.replace
+ * @returns {Promise<string[] | string>}
+ */
+exports.buildJSOperationsFromArgs = async function (arg) {
+  
+  if (!Array.isArray(arg)) return arg;
+  
+  // find the starting $${ and the }ending }$$, 
+  // make their content into one operation and splice that into arg
+  
+  for (let index = 0; index < arg.length; index++) {
+    const start = arg.findIndex(el => el === "$${");
+    const end = arg.findIndex(element => element === '}$$');
+    if (start !== -1 && end !== -1) {
+      // const opArray = arg.slice(start, end + 1);
+      // const operation = opArray.join('');
+      const operation = arg.slice(start, end + 1).join('');
+      arg.splice(start, end+1 - start, operation);
+      index = start;
+    }
+    else return arg;    
+  }
+
+  return arg;
+}
+
+
+/**
  * From 'findInCurrentFile' settings or keybindings. If necessary, split and run each command in 
  * its separate steps (if find/replace are arrays of multiple values).
  * 
@@ -21,7 +50,7 @@ exports.splitFindCommands = async function (editor, edit, args) {
   else if (typeof args.find == "string") numFindArgs = 1;
    // even if no 'find' one will be created from "wordAtCursor"
 
-  // and not startsWith $${ and endsWith }
+  // and not startsWith $${ and endsWith } after args.replace.join('')
   if (Array.isArray(args.replace)) numReplaceArgs = args.replace.length;
   else if (typeof args.replace == "string") numReplaceArgs = 1;
 

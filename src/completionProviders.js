@@ -14,7 +14,6 @@ exports.makeKeybindingsCompletionProvider = function(context) {
       {
         provideCompletionItems(document, position) {
 
-					// const doc = vscode.window.activeTextEditor.document;
 					const linePrefix = document.lineAt(position).text.substring(0, position.character);
 					let find = false;
 					let search = false;
@@ -50,7 +49,6 @@ exports.makeKeybindingsCompletionProvider = function(context) {
 					search = false;
 							
 					const rootNode = jsonc.parseTree(document.getText());
-					// const node = jsonc.findNodeAtOffset(rootNode, document.offsetAt(position));
 					const curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
 
           const thisConfig = _findConfig(rootNode, document.offsetAt(position));
@@ -64,12 +62,15 @@ exports.makeKeybindingsCompletionProvider = function(context) {
           
 					// ---------  $ for 'filesToInclude/filesToExclude/find/replace/restrictFind' completions  ------
 
-          const argCompletions = _completeArgs(linePrefix, position, find, search);
+          // curLocation.path = [26, 'args', 'replace', 1], isAtPropertyKey = false
+          
+          const argCompletions = _completeArgs(linePrefix, position, find, search, curLocation.path[2]);
           if (argCompletions) return argCompletions;
           
 					// ---------------    duplicate args removal start   ----------------------------
 
-					if (curLocation?.path[1] !== 'args') return undefined;
+          // curLocation.path = [26, 'args', ''] = good  or [26, 'args', 'replace', 1] = bad here
+          if (!curLocation?.path[2] === false || curLocation?.path[1] !== 'args') return undefined;
 
           const argsNode = thisConfig.children.filter(entry => {
             return entry.children[0].value === "args";
@@ -137,16 +138,19 @@ exports.makeSettingsCompletionProvider = function(context) {
 
 				// --------    $ completion for 'filesToInclude/filesToExclude/find/replace' completions   ------------
 
-        const argCompletions = _completeArgs(linePrefix, position, find, search);
+        const argCompletions = _completeArgs(linePrefix, position, find, search, curLocation.path[2]);
         if (argCompletions) return argCompletions;
 
 				// -----------------------------------------------------------------------
-
+        
+        // curLocation.path = [findInCurrentFile, addClassToElement, ''] = good here 
+        // or [findInCurrentFile, addClassToElement, replace] =  bad
+        if (!curLocation.path[2] === false) return undefined;
+        
         let keysText = "";
         let subCommandNode;
 
 				if (curLocation.isAtPropertyKey && subCommand) {
-					// const subCommandNode = node.parent.parent.parent.children[1];
           if (find) subCommandNode = findCommandNode.children[1].children[0].children[1];
           else if (search) subCommandNode = searchCommandNode.children[1].children[0].children[1];
 					const keysRange = new vscode.Range(document.positionAt(subCommandNode.offset), document.positionAt(subCommandNode.offset + subCommandNode.length));
@@ -173,76 +177,104 @@ exports.makeSettingsCompletionProvider = function(context) {
 }
 
 
-function _completeArgs(linePrefix, position, find, search) {
+/**
+ * Parse linePrefix for correct completionItems.
+ * 
+ * @param {string} linePrefix 
+ * @param {vscode.Position} position 
+ * @param {boolean} find 
+ * @param {boolean} search 
+ * @param {jsonc.Segment} arg - which args are we in: find/replace/etc.
+ * @returns {Array<vscode.CompletionItem>}
+ */
+function _completeArgs(linePrefix, position, find, search, arg) {
   
-  let re$ = /^\s*"(filesToInclude|filesToExclude)"\s*:\s*".*\$$/m;
-  let re$2 = /^\s*"(filesToInclude|filesToExclude)"\s*:\s*".*\$\{$/m;
+// ----------  filesToInclude/filesToExclude  -----------
 
-  // if (find || search) {
-  if (linePrefix.substring(0, position.character).search(re$) !== -1) {
-    return _completePathVariables(position, '$');
-  }
-  else if (linePrefix.substring(0, position.character).search(re$2) !== -1) {
-    return _completePathVariables(position, "${");
-  }
-  // }
-
-  re$ = /^\s*"find"\s*:\s*("|\[\s*").*?\$$/m;                 // just for 'find'
-  re$2 = /^\s*"find"\s*:\s*("|\[\s*")(.*?[^\\]*)\\$/m;
-  let re$3 = /^\s*"find"\s*:\s*("|\[\s*")(.*[^\\]*)\\\\$/m;
-
-  if (linePrefix.substring(0, position.character).search(re$) !== -1) {
-    return _completePathVariables(position, '$');
-  }
-  else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
-    return _completeFindCaseTransforms(position, '\\\\');
-  }
-  else if (linePrefix.substring(0, position.character).search(re$2) !== -1) {
-    return _completeFindCaseTransforms(position, '\\');
+  if (arg === 'filesToInclude' || arg === 'filesToExclude') {
+    if (linePrefix.endsWith('${'))
+      return _completePathVariables(position, "${");
+    
+    else if (linePrefix.endsWith('$'))
+      return _completePathVariables(position, '$');
   }
 
-  re$ = /^\s*"replace"\s*:\s*("|\[\s*").*?\$$/m;                 // just for 'replace'
-  re$2 = /^\s*"replace"\s*:\s*("|\[\s*")(.*?[^\\]*)\\$/m;
-  re$3 = /^\s*"replace"\s*:\s*("|\[\s*")(.*[^\\]*)\\\\$/m;
+ // ---------------------  find  ------------------------
 
-  if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
-    return _completeReplaceFindVariables(position, '$');
+  if (arg === 'find') {
+    if (linePrefix.endsWith('$'))
+      return _completePathVariables(position, '$');  // other variables?  jsOp?
+    
+    else if (linePrefix.endsWith('${'))
+      return _completePathVariables(position, '${');
+    
+    else if (linePrefix.endsWith('\\\\'))
+      return _completeFindCaseTransforms(position, '\\\\');
+    
+    else if (linePrefix.endsWith('\\'))
+      return _completeFindCaseTransforms(position, '\\');
   }
-  else if (search && linePrefix.substring(0, position.character).search(re$) !== -1) {
-    return _completePathVariables(position, '$');
-  }
-  else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
-    return _completeReplaceCaseTransforms(position, '\\\\');
-  }
-  else if (linePrefix.substring(0, position.character).search(re$2) !== -1) {
-    return _completeReplaceCaseTransforms(position, '\\');
+  
+// ---------------------  replace  ------------------------
+  
+  if (arg === 'replace') {
+  
+    if (find && linePrefix.endsWith('$${')) 
+      return _completeReplaceFindVariables(position, '$${');
+    
+    else if (find && linePrefix.endsWith('$$'))
+      return _completeReplaceFindVariables(position, '$$');
+      
+    // shouldn't include the jsOp $${...}$$
+    else if (find && linePrefix.endsWith('${')) 
+      return _completeReplaceFindVariables(position, '${');
+
+    else if (find && linePrefix.endsWith('$')) 
+      return _completeReplaceFindVariables(position, '$');
+      
+    else if (linePrefix.endsWith('\\\\'))
+      return _completeReplaceCaseTransforms(position, '\\\\');
+    
+    else if (linePrefix.endsWith('\\'))
+      return _completeReplaceCaseTransforms(position, '\\');
+      
+    // else if (find) {
+    //   const regex = /\$\{(?<pathVar>\w*)$/m;
+    //   const found = linePrefix.match(regex);
+    //   if (found?.groups?.pathVar) 
+    //     return _completeReplaceFindVariables(position, '${');
+    // } 
+    
+    else if (search && linePrefix.endsWith('$'))
+      return _completePathVariables(position, '$');
   }
 
-  re$ = /^\s*"cursorMoveSelect"\s*:\s*("|\[\s*").*?\$$/m;           // just for 'cursorMoveSelect'
-  re$2 = /^\s*"cursorMoveSelect"\s*:\s*("|\[\s*")(.*?[^\\]*)\\$/m;
-  re$3 = /^\s*"cursorMoveSelect"\s*:\s*("|\[\s*")(.*[^\\]*)\\\\$/m;
+// -------------------  cursorMoveSelect  ----------------------
 
-  if (find && linePrefix.substring(0, position.character).search(re$) !== -1) {
-    return _completeReplaceFindVariables(position, '$');
-  }
-  else if (linePrefix.substring(0, position.character).search(re$3) !== -1) {
-    return _completeReplaceCaseTransforms(position, '\\\\');
-  }
-  else if (find && linePrefix.substring(0, position.character).search(re$2) !== -1) {
-    return _completeReplaceCaseTransforms(position, '\\');
+  if (arg === 'cursorMoveSelect') {
+    if (find && linePrefix.endsWith('$')) 
+      return _completeReplaceFindVariables(position, '$');
+    
+    else if (linePrefix.endsWith('\\\\'))
+      return _completeReplaceCaseTransforms(position, '\\\\');
+    
+    else if (find && linePrefix.endsWith('\\'))
+      return _completeReplaceCaseTransforms(position, '\\');
   }
 
-  re$ = /^\s*"restrictFind"\s*:\s*"\w*$/m;
-  if (find && linePrefix.search(re$) !== -1)
+// ---------------------  restrictFind ------------------------
+  
+  if (find && arg === 'restrictFind') {
     return _completeRestrictFindValues(position);
+  }
 }
 
 /**
  * Get the keybinding where the cursor is located.
  * 
- * @param {Object} rootNode - all parsed confogs in keybindings.json
+ * @param {jsonc.Node} rootNode - all parsed confogs in keybindings.json
  * @param {Number} offset - of cursor position
- * @returns {Object} - the node where the cursor is located
+ * @returns {jsonc.Node} - the node where the cursor is located
  */
 function _findConfig(rootNode, offset)  {
 
@@ -331,14 +363,14 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
  * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
  * 
  * @param   {vscode.Position} position
- * @param   {String} dollarSign - triggered by '$' so include its range
+ * @param   {String} trigger - triggered by '$' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
-function _completePathVariables(position, dollarSign) {
+function _completePathVariables(position, trigger) {
 
 	// triggered by 1 '$', so include it to complete w/o two '$${file}'
 	let replaceRange;
-	if (dollarSign) replaceRange = new vscode.Range(position.line, position.character - dollarSign.length, position.line, position.character);
+	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
 	else replaceRange = new vscode.Range(position, position);
 
 	return [
@@ -368,6 +400,29 @@ function _completePathVariables(position, dollarSign) {
 }
 
 /**
+ * Make completion items for 'replace' values starting with a '\' sign in a 'findInCurrentFile' command
+ * 
+ * @param   {vscode.Position} position
+ * @param   {String} trigger - triggered by '$' or '$$' or '$${' so include their ranges
+ * @returns {Array<vscode.CompletionItem>}
+ */
+function _completeReplaceJSOperation(position, trigger) {
+
+	// triggered by '$' or '$$' or '$${' so use their ranges
+	let replaceRange;
+	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
+	else replaceRange = new vscode.Range(position, position);
+
+	const text = `
+		
+Replace ***operation*** with some code.`;
+
+	return [
+		_makeCompletionItem("$${operation}$$", replaceRange, "", "001", `Create a javascript operation.${ text }`),
+	];
+}
+
+/**
  * Make completion items for 'replace' values starting with a '$' sign in a 'findInCurrentFile' command
  * 
  * @param   {vscode.Position} position
@@ -381,7 +436,8 @@ function _completeReplaceFindVariables(position, trigger) {
 	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
 	else replaceRange = new vscode.Range(position, position);
 
-  let pathVariableArray = _completePathVariables(position, trigger);
+  const pathVariableArray = _completePathVariables(position, trigger);
+  const jsOperation = _completeReplaceJSOperation(position, trigger);
 
 	const text = `
 		
@@ -399,8 +455,10 @@ Replace ***n*** with some number 0-99.`;
 		_makeCompletionItem("${n:+ if add text}", replaceRange, "", "090", `Conditional replacement: if capture group ***nth***, add test.${text}`),
 		_makeCompletionItem("${n:- else add text}", replaceRange, "", "091", `Conditional replacement:  if no capture group ***nth***, add test.${text}`),
 		_makeCompletionItem("${n: else add text}", replaceRange, "", "092", `Conditional replacement:  if no capture group ***nth***, add test.${text}`),
-		_makeCompletionItem("${n:? if add text: else add this text}", replaceRange, "", "093", `Conditional replacement: if capture group ***nth***, add some text, else add other text.${text}`)
-	];
+		_makeCompletionItem("${n:? if add text: else add this text}", replaceRange, "", "093", `Conditional replacement: if capture group ***nth***, add some text, else add other text.${text}`),
+
+    ...jsOperation
+  ];
 }
 
 /**
@@ -500,6 +558,7 @@ Example: "find": "\\\\\\l\${relativeFile}"`)
 	];
 }
 
+
 /**
  * From a string input make a CompletionItemKind.Text
  *
@@ -531,6 +590,13 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 		let newCommand = {};
 		newCommand.command = "find-and-transform.selectDigitInCompletion";
 		newCommand.title = "Select the digit 'n' in completionItem";
+		newCommand.arguments = [key, replaceRange];
+		item.command = newCommand;
+  }
+  else if (key.substring(0, 12) === "$${operation") {
+		let newCommand = {};
+		newCommand.command = "find-and-transform.selectOperationInCompletion";
+		newCommand.title = "Select the 'operation' in completionItem";
 		newCommand.arguments = [key, replaceRange];
 		item.command = newCommand;
 	}

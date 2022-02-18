@@ -57,7 +57,7 @@ exports.findAndSelect = function (editor, args) {
       // lineCount is 1-based, so need to subtract 1 from it
       const lastLineRange = document.lineAt(document.lineCount - 1).range;
       docRange = new vscode.Range(0, 0, document.lineCount - 1, lastLineRange.end.character);
-      matches = buildLineNumberMatches(resolvedFind, docRange);
+      matches = _buildLineNumberMatches(resolvedFind, docRange);
     }
 
     // else get all the matches in the document, resolvedFind !== lineNumber/lineIndex
@@ -100,7 +100,7 @@ exports.findAndSelect = function (editor, args) {
         if (!selectedRange) return;
         
         if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1)
-          matches = buildLineNumberMatches(resolvedFind, selectedRange);
+          matches = _buildLineNumberMatches(resolvedFind, selectedRange);
 
         else if (resolvedFind?.length) {
           searchText = editor.document.getText(selectedRange);
@@ -123,7 +123,7 @@ exports.findAndSelect = function (editor, args) {
 
         if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
           let selectedLineRange = document.lineAt(selection.active.line).range;
-          matches = buildLineNumberMatches(resolvedFind, selectedLineRange);
+          matches = _buildLineNumberMatches(resolvedFind, selectedLineRange);
         }
         else if (resolvedFind?.length) {
           searchText = editor.document.lineAt(selection.active.line).text;
@@ -150,7 +150,7 @@ exports.findAndSelect = function (editor, args) {
           // let subLineRange = lineRange.with({ start: selection.active });
           let subLineRange = lineRange.with({ start: editor.document.getWordRangeAtPosition(selection.active).start });
           
-          matches = buildLineNumberMatches(resolvedFind, subLineRange);
+          matches = _buildLineNumberMatches(resolvedFind, subLineRange);
         }
 
         else  if (resolvedFind?.length) {
@@ -403,7 +403,7 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
     // lineCount is 1-based, so need to subtract 1 from it
     const lastLineRange = document.lineAt(document.lineCount - 1).range;
     const restOfDocRange = new vscode.Range(editor.selection.active.line, editor.selection.active.character, document.lineCount - 1, lastLineRange.end.character);
-    matches = buildLineNumberMatches(resolvedFind, restOfDocRange);
+    matches = _buildLineNumberMatches(resolvedFind, restOfDocRange);
     cursorIndex = 0;
   }
 
@@ -430,7 +430,7 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
     if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
       const docRangeBeforeCursor = new vscode.Range(0,0, editor.selection.active.line, editor.selection.active.character);
       cursorIndex = 0;
-      matches = buildLineNumberMatches(resolvedFind, docRangeBeforeCursor);
+      matches = _buildLineNumberMatches(resolvedFind, docRangeBeforeCursor);
     }
     else {
       const re = new RegExp(resolvedFind, args.regexOptions);
@@ -495,7 +495,7 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
  * @param {vscode.Range} range - line or selection range within which to search
  * @returns {Array} of matches
  */
-function buildLineNumberMatches(find, range) {
+function _buildLineNumberMatches(find, range) {
   
   let matches = [];
   const document = vscode.window.activeTextEditor.document;
@@ -546,25 +546,24 @@ exports.replaceInWholeDocument = function (editor, edit, args) {
     resolvedFind = variables.buildReplace(args, "ignoreLineNumbers", null, editor.selection, null, null);
     resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
   }
-  if (!resolvedFind) return;
 
   if (args.isRegex) {
     if (resolvedFind === "^") resolvedFind = "^(?!\n)";
     else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
   }
 
-  if (resolvedFind.search(/\$\{\s*line(Number|Index)\s*\}/) !== -1) {
+  if (resolvedFind?.search(/\$\{\s*line(Number|Index)\s*\}/) !== -1) {
     // lineCount is 1-based, so need to subtract 1 from it
     const lastLineRange = document.lineAt(document.lineCount - 1).range;
     docRange = new vscode.Range(0, 0, document.lineCount - 1, lastLineRange.end.character);
-    matches = buildLineNumberMatches(resolvedFind, docRange);
+    matches = _buildLineNumberMatches(resolvedFind, docRange);
   }
 
   // get all the matches in the document, resolvedFind !== lineNumber/lineIndex
-  // else if (resolvedFind.length) {
-  fullText = document.getText();
-  matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
-  // }
+  else if (resolvedFind?.length) {
+    fullText = document.getText();
+    matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
+  }
   
   args?.pointReplaces?.forEach(point => {
     const match = {index : document.offsetAt(point.active)};
@@ -666,7 +665,7 @@ exports.replaceInSelections = function (editor, edit, args) {
       if (!resolvedFind && !args.replace) return;
   
       if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
-        matches = buildLineNumberMatches(resolvedFind, selectedRange);
+        matches = _buildLineNumberMatches(resolvedFind, selectedRange);
         selectionStartIndex = 0;
       }
 
