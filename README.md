@@ -2,9 +2,9 @@
 
 > v1.1.0 **Breaking change**: Must use a `return` statement in a ` $${<operation>}$$ `, examples below.  This change enabled more powerful javascript statements to be used in a ` $${<operation>}$$ `.  
 
-> v1.2.0 **Breaking change**: Added the `$$` to the end of the javascript operation syntax to aid parsing.  
+> v2.0.0 **Breaking change**: Added the `$$` to the end of the javascript operation syntax to aid parsing.  
 
-*  &nbsp; New in v1.2.0: Insert a resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.   
+*  &nbsp; New in v2.0.0: Insert a resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.   
 
 *  &nbsp; Find and transform text in a single file, folder, workspace or custom groups.
 
