@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const findCommands = require('./transform');
 const variables = require('./variables');
+const languageConfigs = require('./getLanguageConfig');
 const utilities = require('./utilities');
 
 
@@ -106,6 +107,10 @@ async function _buildArgs(args, index)  {
 		clipText = string;
   });
   
+  let currentLanguageConfig = {};
+  const documentLanguageId = editor.document.languageId;
+  currentLanguageConfig = await languageConfigs.get(documentLanguageId, 'comments');
+  
   let resultsFiles = "";
   
   await vscode.commands.executeCommand('search.action.copyAll');
@@ -166,7 +171,7 @@ async function _buildArgs(args, index)  {
 	let regexOptions = "gmi";
 	if (defaultArgs.matchCase) regexOptions = "gm";
 
-	let resolvedArgs = { find:findValue, replace:replaceValue, regexOptions, madeFind, clipText, resultsFiles };
+	let resolvedArgs = { find:findValue, replace:replaceValue, regexOptions, madeFind, clipText, currentLanguageConfig, resultsFiles };
 	resolvedArgs = Object.assign(defaultArgs, resolvedArgs);
 
 	return resolvedArgs;

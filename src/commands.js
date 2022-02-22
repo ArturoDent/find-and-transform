@@ -302,4 +302,4 @@ exports.registerSearchCommands = async function (searchArray, context, disposabl
 		context.subscriptions.push(disposable);
 		disposables.push(disposable);
 	}
-}
+};

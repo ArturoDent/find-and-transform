@@ -198,6 +198,129 @@ exports.resolveLineVariable = function (variableToResolve, index) {
 
 
 /**
+ * If the "filesToInclude/find/replace" entry uses a path variable(s) return the resolved value  
+ * 
+ * @param {String} variableToResolve - the "filesToInclude/find/replace" value 
+ * @param {Object} args -  keybinding/settings args
+ * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude 
+ * @param {vscode.Selection} selection - current selection
+ * @param {Object} groups - the current match
+ * @returns {String} - the resolved path variable
+ */
+ function _resolveSnippetVariables (variableToResolve, args, caller, selection, groups) {
+
+  if (typeof variableToResolve !== 'string') return variableToResolve;
+
+  const _date = new Date();
+  const document = vscode.window.activeTextEditor.document;
+  let blockCommentConfig = {};
+  // const documentLanguageId = document.languageId;
+  // const currentLanguageConfig = await languageConfigs.get(documentLanguageId, 'comments');
+
+  let resolved = variableToResolve;
+  const namedGroups = resolved.match(/(?<pathCaseModifier>\\[UuLl])?(?<snippetVars>\$\{\s*.*?\s*\})/).groups;
+
+  switch (namedGroups.snippetVars) {
+     
+    case "$TM_CURRENT_LINE": case "${TM_CURRENT_LINE}":
+      const textLine = document.lineAt(document.positionAt(groups?.index).line).text;
+      resolved = textLine;
+    break; 
+
+    case "$TM_CURRENT_WORD": case "${TM_CURRENT_WORD}":
+      const wordRange = document.getWordRangeAtPosition(selection.active);
+      if (wordRange) resolved = document.getText(wordRange);
+      else resolved = "";
+      break;
+     
+    case "$CURRENT_YEAR": case "${CURRENT_YEAR}":
+      resolved = String(_date.getFullYear()).slice(-2);
+      break;
+     
+    case "$CURRENT_YEAR_SHORT": case "${CURRENT_YEAR_SHORT}":
+      resolved = String(_date.getFullYear());
+      break;
+     
+    case "$CURRENT_MONTH": case "${CURRENT_MONTH}":
+      resolved = String(_date.getMonth().valueOf() + 1).padStart(2, '0');
+      break;
+     
+    case "$CURRENT_MONTH_NAME": case "${CURRENT_MONTH_NAME}":
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      resolved = monthNames[_date.getMonth()];
+      break;
+     
+    case "$CURRENT_MONTH_NAME_SHORT": case "${CURRENT_MONTH_NAME_SHORT}":
+      const monthNamesShort = ["Jan", "Feb", "Mar", "Aprl", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      resolved = monthNamesShort[_date.getMonth()];
+      break;
+     
+    case "$CURRENT_DATE": case "${CURRENT_DATE}":
+      resolved = String(_date.getDate().valueOf()).padStart(2, '0');
+      break;
+     
+    case "$CURRENT_DAY_NAME": case "${CURRENT_DAY_NAME}":
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      resolved = dayNames[_date.getDay()];
+      break;
+     
+    case "$CURRENT_DAY_NAME_SHORT": case "${CURRENT_DAY_NAME_SHORT}":
+      const dayNamesShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      resolved = dayNamesShort[_date.getDay()];
+      break;
+     
+    case "$CURRENT_HOUR": case "${CURRENT_HOUR}":
+      resolved = String(_date.getHours().valueOf()).padStart(2, '0');
+      break;
+     
+    case "$CURRENT_MINUTE": case "${CURRENT_MINUTE}":
+      resolved = String(_date.getMinutes().valueOf()).padStart(2, '0');
+      break;
+     
+    case "$CURRENT_SECOND": case "${CURRENT_SECOND}": case "${ CURRENT_SECOND }":
+      resolved = String(_date.getSeconds().valueOf()).padStart(2, '0');
+      break;
+     
+    case "$CURRENT_SECONDS_UNIX": case "${CURRENT_SECONDS_UNIX}": case "${ CURRENT_SECONDS_UNIX }":
+      resolved = String(Math.floor(_date.getTime() / 1000));
+      break;
+     
+    case "$RANDOM": case "${RANDOM}": case "${ RANDOM }":
+      resolved = Math.random().toString().slice(-6);
+      break;
+     
+    case "$RANDOM_HEX": case "${RANDOM_HEX}": case "${ RANDOM_HEX }":
+      resolved = Math.random().toString(16).slice(-6);
+      break;
+     
+    case "$BLOCK_COMMENT_START": case "${BLOCK_COMMENT_START}": case "${ BLOCK_COMMENT_START }":
+      blockCommentConfig = args.currentLanguageConfig?.blockComment;
+      resolved = blockCommentConfig ? blockCommentConfig[0] : "";
+      break;
+     
+    case "$BLOCK_COMMENT_END": case "${BLOCK_COMMENT_END}": case "${ BLOCK_COMMENT_END }":
+      blockCommentConfig = args.currentLanguageConfig?.blockComment;
+      resolved = blockCommentConfig ? blockCommentConfig[1] : "";
+      break;
+     
+    case "$LINE_COMMENT": case "${LINE_COMMENT}": case "${ LINE_COMMENT }":
+      resolved = args.currentLanguageConfig?.lineComment ?? "";
+      break;
+     
+    default:
+      break;
+   }
+
+	// escape .*{}[]?^$ if using in a find
+  if (!args.isRegex && caller === "find") return resolved.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+   
+  else if (caller === "filesToInclude" && resolved === ".") return  "./";
+  
+  else return resolved;
+};
+
+
+/**
  * Build the replaceString by updating the setting 'replaceValue' to
  * account for case modifiers, capture groups and conditionals
  *
@@ -251,7 +374,7 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
  * @param {Array} groups - may be a single match
  * @param {vscode.Selection} selection - the current selection
  * @param {Number} matchIndex - which match is it
- * @returns {string} - the resolved string
+ * @returns {String} - the resolved string
  */
 exports.buildReplace = function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
 
@@ -278,6 +401,17 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     return _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, variableToResolve);
   });
   // --------------------  path variables -----------------------------------------------------------
+  
+  // --------------------  snippet variables -----------------------------------------------------------
+  vars = _getSnippetVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+  re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<snippetVars>${ vars })`, 'g');
+
+  resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
+    
+    const variableToResolve = _resolveSnippetVariables(match, args, caller, selection, groups);
+    return _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, variableToResolve);
+  });
+  // --------------------  snippet variables -----------------------------------------------------------
 
   // https://regex101.com/r/zwuKpM/1 for full regex
   // (?<pathCaseModifier>\\\\[UuLl])?(?<path>\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|
@@ -534,6 +668,23 @@ function _getPathVariables() {
     "${fileWorkspaceFolder}", "${workspaceFolder}", "${relativeFileDirname}", "${workspaceFolderBasename}", 
     "${selectedText}", "${pathSeparator}", "${lineIndex}", "${lineNumber}", "${CLIPBOARD}", "${resultsFiles}",
     "${matchIndex}", "${matchNumber}"
+  ];
+}
+
+/**
+ * @returns {Array} - all the available snippet variables
+ */
+function _getSnippetVariables() {
+
+  return [
+    "${TM_CURRENT_LINE}", "${TM_CURRENT_WORD}", 
+    
+    "${CURRENT_YEAR}", "${CURRENT_YEAR_SHORT}", "${CURRENT_MONTH}", "${CURRENT_MONTH_NAME}",
+    "${CURRENT_MONTH_NAME_SHORT}", "${CURRENT_DATE}", "${CURRENT_DAY_NAME}", "${CURRENT_DAY_NAME_SHORT}",
+    "${CURRENT_HOUR}", "${CURRENT_MINUTE}", "${CURRENT_SECOND}", "${CURRENT_SECONDS_UNIX}",
+    
+    "${RANDOM}", "${RANDOM_HEX}",
+    "${BLOCK_COMMENT_START}", "${BLOCK_COMMENT_END}", "${LINE_COMMENT}"
   ];
 }
 

@@ -400,6 +400,59 @@ function _completePathVariables(position, trigger) {
 }
 
 /**
+ * Make completion items for 'snippet' variables starting with a '$' sign
+ * 
+ * @param   {vscode.Position} position
+ * @param   {String} trigger - triggered by '$' so include its range
+ * @returns {Array<vscode.CompletionItem>}
+ */
+function _completeSnippetVariables(position, trigger) {
+
+	// triggered by 1 '$', so include it to complete w/o two '$${file}'
+	let replaceRange;
+	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
+	else replaceRange = new vscode.Range(position, position);
+
+  return [
+    // many of these are the same as path variables
+		// _makeCompletionItem("${TM_SELECTED_TEXT}", replaceRange, "", "0600", "The currently selected text or the empty string."),
+		_makeCompletionItem("${TM_CURRENT_LINE}", replaceRange, "", "0601", "The contents of the current line"),
+		_makeCompletionItem("${TM_CURRENT_WORD}", replaceRange, "", "0602", "The contents of the word at the cursor or the empty string."),
+		// _makeCompletionItem("${TM_LINE_INDEX}", replaceRange, "", "0603", "The zero-index based line number."),
+		// _makeCompletionItem("${TM_LINE_NUMBER}", replaceRange, "", "0604", "The one-index based line number."),
+		// _makeCompletionItem("${TM_FILENAME}", replaceRange, "", "0605", "The filename of the current document without extension."),
+		// _makeCompletionItem("${TM_FILENAME_BASE}", replaceRange, "", "0606", "The directory of the current document."),
+		// _makeCompletionItem("${TM_DIRECTORY}", replaceRange, "", "0607", "The full file path of the current document."),
+		// _makeCompletionItem("${TM_FILEPATH}", replaceRange, "", "0608", "The full path (`/home/UserName/myProject`) to the currently opened workspaceFolder."),
+		// _makeCompletionItem("${RELATIVE_FILEPATH}", replaceRange, "", "0609", "The relative (to the opened workspace or folder) file path of the current document."),
+		// _makeCompletionItem("${WORKSPACE_NAME}", replaceRange, "", "0610", "The name of the opened workspace or folder"),
+		// _makeCompletionItem("${WORKSPACE_FOLDER}", replaceRange, "", "0611", "The path of the opened workspace or folder"),
+    // _makeCompletionItem("${CLIPBOARD}", replaceRange, "", "0612", "The clipboard contents."),   // same as path vars
+    
+    _makeCompletionItem("${CURRENT_YEAR}", replaceRange, "", "0613", "The current year."),
+		_makeCompletionItem("${CURRENT_YEAR_SHORT}", replaceRange, "", "0614", "The current year's last two digits."),
+		_makeCompletionItem("${CURRENT_MONTH}", replaceRange, "", "0615", "The month as two digits (example '02')."),
+    _makeCompletionItem("${CURRENT_MONTH_NAME}", replaceRange, "", "0616", "The full name of the month (example 'July')."),
+    _makeCompletionItem("${CURRENT_MONTH_NAME_SHORT}", replaceRange, "", "0617", "The short name of the month (example 'Jul')."),
+    _makeCompletionItem("${CURRENT_DATE}", replaceRange, "", "0618", "The day of the month as two digits (example '08')."),
+    _makeCompletionItem("${CURRENT_DAY_NAME}", replaceRange, "", "0619", "The name of day (example 'Monday')."),
+    _makeCompletionItem("${CURRENT_DAY_NAME_SHORT}", replaceRange, "", "0620", "The short name of the day (example 'Mon')."),
+    _makeCompletionItem("${CURRENT_HOUR}", replaceRange, "", "0621", "The current hour in 24-hour clock format."),
+    _makeCompletionItem("${CURRENT_MINUTE}", replaceRange, "", "0621", "The current minute as two digits."),
+    _makeCompletionItem("${CURRENT_SECOND}", replaceRange, "", "0622", "The current second as two digits."),
+    _makeCompletionItem("${CURRENT_SECONDS_UNIX}", replaceRange, "", "0623", "The number of seconds since the Unix epoch."),
+ 
+    _makeCompletionItem("${RANDOM}", replaceRange, "", "0624", "Six random Base-10 digits."),
+    _makeCompletionItem("${RANDOM_HEX}", replaceRange, "", "0625", "Six random Base-16 digits."),
+    // _makeCompletionItem("${UUID}", replaceRange, "", "0626", "A Version 4 UUID."),
+ 
+    _makeCompletionItem("${BLOCK_COMMENT_START}", replaceRange, "", "0627", "Example output: in PHP `/*` or in HTML `<!--`."),
+    _makeCompletionItem("${BLOCK_COMMENT_END}", replaceRange, "", "0628", "Example output: in PHP `*/` or in HTML `-->`."),
+    _makeCompletionItem("${LINE_COMMENT}", replaceRange, "", "0629", "Example output: in PHP `//`."),
+  ];
+}
+
+/**
  * Make completion items for 'replace' values starting with a '\' sign in a 'findInCurrentFile' command
  * 
  * @param   {vscode.Position} position
@@ -432,32 +485,87 @@ Replace ***operation*** with some code.`;
 function _completeReplaceFindVariables(position, trigger) {
 
 	// triggered by 1 '$', so include it to complete w/o two '$${file}'
-	let replaceRange;
-	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
-	else replaceRange = new vscode.Range(position, position);
+	// let replaceRange;
+	// if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
+	// else replaceRange = new vscode.Range(position, position);
 
   const pathVariableArray = _completePathVariables(position, trigger);
+  const conditionalsArray = _completeFindConditionalTransforms(position, trigger);
+  const snippetVariableArray = _completeSnippetVariables(position, trigger);  
   const jsOperation = _completeReplaceJSOperation(position, trigger);
 
-	const text = `
+// 	const text = `
 		
-Replace ***n*** with some number 0-99.`;
+// Replace ***n*** with some number 0-99.`;
 
 	return [
     ...pathVariableArray,  // or just ..._completePathVariables(position, trigger); ?
+    ...conditionalsArray,
 
-		_makeCompletionItem("${n:/upcase}", replaceRange, "", "080", `Transform to uppercase the ***nth*** capture group.${text}`),
-		_makeCompletionItem("${n:/downcase}", replaceRange, "", "081", `Transform to lowercase the ***nth*** capture group.${text}`),
-		_makeCompletionItem("${n:/capitalize}", replaceRange, "", "082", `Capitalize the ***nth*** capture group.${text}`),
-		_makeCompletionItem("${n:/pascalcase}", replaceRange, "", "083", `Transform to pascalcase the ***nth*** capture group.${text}`),
-		_makeCompletionItem("${n:/camelcase}", replaceRange, "", "084", `Transform to camelcase the ***nth*** capture group.${text}`),
+		// _makeCompletionItem("${n:/upcase}", replaceRange, "", "080", `Transform to uppercase the ***nth*** capture group.${text}`),
+		// _makeCompletionItem("${n:/downcase}", replaceRange, "", "081", `Transform to lowercase the ***nth*** capture group.${text}`),
+		// _makeCompletionItem("${n:/capitalize}", replaceRange, "", "082", `Capitalize the ***nth*** capture group.${text}`),
+		// _makeCompletionItem("${n:/pascalcase}", replaceRange, "", "083", `Transform to pascalcase the ***nth*** capture group.${text}`),
+		// _makeCompletionItem("${n:/camelcase}", replaceRange, "", "084", `Transform to camelcase the ***nth*** capture group.${text}`),
 
-		_makeCompletionItem("${n:+ if add text}", replaceRange, "", "090", `Conditional replacement: if capture group ***nth***, add test.${text}`),
-		_makeCompletionItem("${n:- else add text}", replaceRange, "", "091", `Conditional replacement:  if no capture group ***nth***, add test.${text}`),
-		_makeCompletionItem("${n: else add text}", replaceRange, "", "092", `Conditional replacement:  if no capture group ***nth***, add test.${text}`),
-		_makeCompletionItem("${n:? if add text: else add this text}", replaceRange, "", "093", `Conditional replacement: if capture group ***nth***, add some text, else add other text.${text}`),
+		// _makeCompletionItem("${n:+ if add text}", replaceRange, "", "090", `Conditional replacement: if capture group ***nth***, add test.${text}`),
+		// _makeCompletionItem("${n:- else add text}", replaceRange, "", "091", `Conditional replacement:  if no capture group ***nth***, add test.${text}`),
+		// _makeCompletionItem("${n: else add text}", replaceRange, "", "092", `Conditional replacement:  if no capture group ***nth***, add test.${text}`),
+		// _makeCompletionItem("${n:? if add text: else add this text}", replaceRange, "", "093", `Conditional replacement: if capture group ***nth***, add some text, else add other text.${text}`),
 
-    ...jsOperation
+    ...jsOperation,
+    ...snippetVariableArray
+  ];
+}
+
+/**
+ * Make completion items for 'find' values starting with a '\' sign in a 'findInCurrentFile' command
+ * 
+ * @param   {vscode.Position} position
+ * @param   {String} trigger - triggered by '\' or '\\' so include its range
+ * @returns {Array<vscode.CompletionItem>}
+ */
+function _completeFindConditionalTransforms(position, trigger) {
+
+  // triggered by 1 or 2 '\', so include it to complete w/o three '\\\U'
+  let replaceRange;
+  if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
+  else replaceRange = new vscode.Range(position, position);
+  
+  	const text = `
+		
+Replace ***n*** with some number 0-99.
+
+`;
+
+  return [
+   	_makeCompletionItem("${n:/upcase}", replaceRange, "", "080", `Transform to uppercase the ***nth*** capture group.${text}.
+Example: "find": "\${1:/upcase}"`),
+    
+    _makeCompletionItem("${n:/downcase}", replaceRange, "", "081", `Transform to lowercase the ***nth*** capture group.${text}
+Example: "find": "\${2:/downcase}"`),
+    
+    _makeCompletionItem("${n:/capitalize}", replaceRange, "", "082", `Capitalize the ***nth*** capture group.${text}
+Example: "find": "\${1:/capitalize}"`),
+    
+    _makeCompletionItem("${n:/pascalcase}", replaceRange, "", "083", `Transform to pascalcase the ***nth*** capture group.${text}
+Example: "find": "\${2:/pascalcase}"`),
+    
+    _makeCompletionItem("${n:/camelcase}", replaceRange, "", "084", `Transform to camelcase the ***nth*** capture group.${text}
+Example: "find": "\${1:/camelcase}"`),
+    
+        
+    _makeCompletionItem("${n:+ if add text}", replaceRange, "", "090", `Conditional replacement: if capture group ***nth***, add test.${text}
+Example: "find": "\${2:+ if add text}"`),
+            
+    _makeCompletionItem("${n:- else add text}", replaceRange, "", "091", `Conditional replacement:  if no capture group ***nth***, add test.${text}
+Example: "find": "\${1:- else add text}"`),
+                
+    _makeCompletionItem("${n: else add text}", replaceRange, "", "092", `Conditional replacement:  if no capture group ***nth***, add test.${text}
+Example: "find": "\${2: else add text}"`),
+                    
+    _makeCompletionItem("${n:? if add text: else add this text}", replaceRange, "", "093", `Conditional replacement: if capture group ***nth***, add some text, else add other text.${text}
+Example: "find": "\${1:? if add text: else add this text}"`),
   ];
 }
 

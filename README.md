@@ -320,7 +320,10 @@ $${ return \\"$1\\".includes('tro') }$$  escape the double quotes
     "replace": "$${ return `$1`.toUpperCase() + ' C' + `$2`.substring(1).toUpperCase() }$$",
     // trouble brewing => TROUBLE CREWING  
 
-    "replace": "$${ return `$1`.replace('ou','e') }$$",  // trouble => treble  
+    "replace": "$${ return `$1`.replace('ou','e') }$$",  // trouble => treble 
+    
+    // using a capture group in replace/replaceAll, see note below 
+    "replace": "$${ return `$1`.replace('(ou)','-$1-') }$$",  
 
     "replace": "$${ return '$1'.split('o')[1] }$$",      // trouble => uble  
 
@@ -335,6 +338,28 @@ $${ return \\"$1\\".includes('tro') }$$  escape the double quotes
   }
 }
 ``` 
+
+* Note: If, in a javascript operation you have a `<sring>.replace(/../, '$n')` (or `replaceAll`) with a capture group in the replacement like:
+
+```jsonc
+"replace": [
+  "$${",
+  
+  "if (`${fileBasenameNoExtension}`.includes('-')) {",
+  "  let groovy = `${fileBasenameNoExtension}`.replace(/(-)/g, \"*$1*\");",  // $1 here
+  "  return groovy[0].toUpperCase() + groovy.substring(1).toLowerCase();",
+  "}",
+  "else {",
+  "  let groovy = `${fileBasename}`.split('.');",
+  "  groovy = groovy.map(word => word[0].toUpperCase() + word.substring(1).toLowerCase());",
+  "  return groovy.join(' ');",
+  "}",
+  
+  "}$$"
+],
+```
+
+that capture group will be from the `replace/replaceAll` as you would expect.  Other capture groups in a javascript operation will reflect the capture groups from the `find` argument.  
 
 > You can combine math or string operations within **` $${<operations>}$$ `**. 
 
@@ -441,7 +466,7 @@ Explanation: Find `>` and add `class="uppercased filename">` to it.
 
 <br/>
 
-* ### Launch/task-like variables  
+* ### Launch/task-like variables (or path variables)   
 
 These can be used in the `find` or `replace` fields of the `findInCurrentFile` command or in the `find`, `replace`, and perhaps most importantly, the `filesToInclude` and `filesToExclude` fields of the `runInSearchPanel` command:
 
@@ -480,6 +505,48 @@ These variables should have the same resolved values as found at &nbsp; [vscode'
 > These path variables can also be used in a conditional like `${1:+${relativeFile}}`.  If capture group 1, insert the relativeFileName.     
 
 > Examples are given below using `lineIndex/Number` and `matchIndex/Number`.  
+
+<br/>
+
+* ### Snippet variables  
+
+```
+${TM_CURRENT_LINE}               The text of the current line for each selection.
+${TM_CURRENT_WORD}               The word at the cursor for each selection or the empty string.
+${CURRENT_YEAR}                  The current year.
+${CURRENT_YEAR_SHORT}            The current year's last two digits.
+${CURRENT_MONTH}                 The month as two digits (example '02').
+${CURRENT_MONTH_NAME}            The full name of the month (example 'July').
+${CURRENT_MONTH_NAME_SHORT}      The short name of the month (example 'Jul').
+${CURRENT_DATE}                  The day of the month as two digits (example '08').
+${CURRENT_DAY_NAME}              The name of day (example 'Monday').
+${CURRENT_DAY_NAME_SHORT}        The short name of the day (example 'Mon').
+${CURRENT_HOUR}                  The current hour in 24-hour clock format.
+${CURRENT_MINUTE}                The current minute as two digits.
+${CURRENT_SECOND}                The current second as two digits.
+${CURRENT_SECONDS_UNIX}          The number of seconds since the Unix epoch.
+${RANDOM}                        Six random Base-10 digits.
+${RANDOM_HEX}                    Six random Base-16 digits.
+${BLOCK_COMMENT_START}           Example output: in PHP `/*` or in HTML `<!--`.
+${BLOCK_COMMENT_END}             Example output: in PHP `*/` or in HTML `-->`.
+${LINE_COMMENT}                  Example output: in PHP `//`.
+```
+
+These snippet variables are used just like the path variables mentioned above.   With `\\U$${CURRENT_MONTH_NAME}` to uppercase the current month name for example.   
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    "replace": "$${ return ${CURRENT_HOUR} - 1 }$$"
+  }
+}
+```
+
+Explanation: The above keybinding (or it could be a command) will insert the result of (current hour - 1) at the cursor, **if** the cursor is not at a word - so on a empty line or with a space separating the cursor from any other word.   Otherwise, if the cursor is on a word that word will be treated as the `find` and all its occurrences (within the `restrictFind` scope: entire document/selections/once/line/next..) will be replaced by (current hour - 1).   
+
+Note that vscode can do fancy things with snippet comment variables like `${LINE_COMMENT}` by examining the language of individual tokens so that, for example, css in js would get its correct comment characters if within the css part of the code.  This extension cannot do that and will get the proper comment characters for the file type only.  
 
 <br/>
 
@@ -1326,7 +1393,7 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?    
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
 * Add a `cursorMove` option (like `cursorMoveSelect` without the selection).    
-* Consider how `cursorMoveSelect` should work in full document search?  
+* Consider how `cursorMoveSelect` should work in full document search?   
 
 
 ## Release Notes
@@ -1337,10 +1404,12 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 1.0.0 Added ability to do math and string operations on `findInCurrentFile` replacements.  
 &emsp;&emsp;Can do multiple finds and replaces in a single keybinding or setting.  
 
-* 1.1.0 Work on ` $${<operation>} `, adding `return`.  **Breaking change**.  
-* 1.2.0 Work on ` $${<operation>}$$ `, adding `$$` to the end for parsing.  **Breaking change**.   
+* 1.1.0 Work on ` $${<operation>} `, adding `return`.  **Breaking change**. 
+ 
+* 2.0.0 Work on ` $${<operation>}$$ `, adding `$$` to the end for parsing.  **Breaking change**.   
 &emsp;&emsp;Added snippet-like cursor replacements.
-&emsp;&emsp;Added ability to have an array of code for jsOp `replace`.  
+&emsp;&emsp;Added ability to have an **array of code** for jsOp `replace`.  
+&emsp;&emsp;Added snippet variables like `${CURRENT_HOUR}`, `${LINE_COMMENT}`, `${TM_CURRENT_LINE}`, etc. 
 
 <br/> 
 
