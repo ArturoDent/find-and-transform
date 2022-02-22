@@ -1393,7 +1393,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?    
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
 * Add a `cursorMove` option (like `cursorMoveSelect` without the selection).    
-* Consider how `cursorMoveSelect` should work in full document search?   
+* Consider how `cursorMoveSelect` should work in full document search?  
+* Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.   
 
 
 ## Release Notes
@@ -1407,9 +1408,12 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 1.1.0 Work on ` $${<operation>} `, adding `return`.  **Breaking change**. 
  
 * 2.0.0 Work on ` $${<operation>}$$ `, adding `$$` to the end for parsing.  **Breaking change**.   
-&emsp;&emsp;Added snippet-like cursor replacements.
+&emsp;&emsp;Added snippet-like cursor replacements.  
 &emsp;&emsp;Added ability to have an **array of code** for jsOp `replace`.  
-&emsp;&emsp;Added snippet variables like `${CURRENT_HOUR}`, `${LINE_COMMENT}`, `${TM_CURRENT_LINE}`, etc. 
+&emsp;&emsp;Added snippet variables like `${CURRENT_HOUR}`, `${LINE_COMMENT}`, `${TM_CURRENT_LINE}`, etc.   
+
+* 2.1.0 Added intellisense for `find` snippet variables.  
+&emsp;&emsp;Fixed `find` `${TM_CURRENT_LINE}` resolution.    
 
 <br/> 
 
