@@ -203,10 +203,11 @@ function _completeArgs(linePrefix, position, find, search, arg) {
 
   if (arg === 'find') {
     if (linePrefix.endsWith('$'))
-      return _completePathVariables(position, '$');  // other variables?  jsOp?
+      // return _completePathVariables(position, '$');  // other variables?  jsOp?
+      return _completePathVariables(position, '$').concat(_completeSnippetVariables(position, '$'));  // other variables?  jsOp?
     
     else if (linePrefix.endsWith('${'))
-      return _completePathVariables(position, '${');
+      return _completePathVariables(position, '${').concat(_completeSnippetVariables(position, '${'));
     
     else if (linePrefix.endsWith('\\\\'))
       return _completeFindCaseTransforms(position, '\\\\');
@@ -414,20 +415,8 @@ function _completeSnippetVariables(position, trigger) {
 	else replaceRange = new vscode.Range(position, position);
 
   return [
-    // many of these are the same as path variables
-		// _makeCompletionItem("${TM_SELECTED_TEXT}", replaceRange, "", "0600", "The currently selected text or the empty string."),
 		_makeCompletionItem("${TM_CURRENT_LINE}", replaceRange, "", "0601", "The contents of the current line"),
 		_makeCompletionItem("${TM_CURRENT_WORD}", replaceRange, "", "0602", "The contents of the word at the cursor or the empty string."),
-		// _makeCompletionItem("${TM_LINE_INDEX}", replaceRange, "", "0603", "The zero-index based line number."),
-		// _makeCompletionItem("${TM_LINE_NUMBER}", replaceRange, "", "0604", "The one-index based line number."),
-		// _makeCompletionItem("${TM_FILENAME}", replaceRange, "", "0605", "The filename of the current document without extension."),
-		// _makeCompletionItem("${TM_FILENAME_BASE}", replaceRange, "", "0606", "The directory of the current document."),
-		// _makeCompletionItem("${TM_DIRECTORY}", replaceRange, "", "0607", "The full file path of the current document."),
-		// _makeCompletionItem("${TM_FILEPATH}", replaceRange, "", "0608", "The full path (`/home/UserName/myProject`) to the currently opened workspaceFolder."),
-		// _makeCompletionItem("${RELATIVE_FILEPATH}", replaceRange, "", "0609", "The relative (to the opened workspace or folder) file path of the current document."),
-		// _makeCompletionItem("${WORKSPACE_NAME}", replaceRange, "", "0610", "The name of the opened workspace or folder"),
-		// _makeCompletionItem("${WORKSPACE_FOLDER}", replaceRange, "", "0611", "The path of the opened workspace or folder"),
-    // _makeCompletionItem("${CLIPBOARD}", replaceRange, "", "0612", "The clipboard contents."),   // same as path vars
     
     _makeCompletionItem("${CURRENT_YEAR}", replaceRange, "", "0613", "The current year."),
 		_makeCompletionItem("${CURRENT_YEAR_SHORT}", replaceRange, "", "0614", "The current year's last two digits."),
@@ -484,35 +473,16 @@ Replace ***operation*** with some code.`;
  */
 function _completeReplaceFindVariables(position, trigger) {
 
-	// triggered by 1 '$', so include it to complete w/o two '$${file}'
-	// let replaceRange;
-	// if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
-	// else replaceRange = new vscode.Range(position, position);
+	// triggered by 1 '$' or '$${' or '${'
 
   const pathVariableArray = _completePathVariables(position, trigger);
   const conditionalsArray = _completeFindConditionalTransforms(position, trigger);
   const snippetVariableArray = _completeSnippetVariables(position, trigger);  
   const jsOperation = _completeReplaceJSOperation(position, trigger);
 
-// 	const text = `
-		
-// Replace ***n*** with some number 0-99.`;
-
 	return [
     ...pathVariableArray,  // or just ..._completePathVariables(position, trigger); ?
     ...conditionalsArray,
-
-		// _makeCompletionItem("${n:/upcase}", replaceRange, "", "080", `Transform to uppercase the ***nth*** capture group.${text}`),
-		// _makeCompletionItem("${n:/downcase}", replaceRange, "", "081", `Transform to lowercase the ***nth*** capture group.${text}`),
-		// _makeCompletionItem("${n:/capitalize}", replaceRange, "", "082", `Capitalize the ***nth*** capture group.${text}`),
-		// _makeCompletionItem("${n:/pascalcase}", replaceRange, "", "083", `Transform to pascalcase the ***nth*** capture group.${text}`),
-		// _makeCompletionItem("${n:/camelcase}", replaceRange, "", "084", `Transform to camelcase the ***nth*** capture group.${text}`),
-
-		// _makeCompletionItem("${n:+ if add text}", replaceRange, "", "090", `Conditional replacement: if capture group ***nth***, add test.${text}`),
-		// _makeCompletionItem("${n:- else add text}", replaceRange, "", "091", `Conditional replacement:  if no capture group ***nth***, add test.${text}`),
-		// _makeCompletionItem("${n: else add text}", replaceRange, "", "092", `Conditional replacement:  if no capture group ***nth***, add test.${text}`),
-		// _makeCompletionItem("${n:? if add text: else add this text}", replaceRange, "", "093", `Conditional replacement: if capture group ***nth***, add some text, else add other text.${text}`),
-
     ...jsOperation,
     ...snippetVariableArray
   ];

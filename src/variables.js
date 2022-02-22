@@ -223,7 +223,13 @@ exports.resolveLineVariable = function (variableToResolve, index) {
   switch (namedGroups.snippetVars) {
      
     case "$TM_CURRENT_LINE": case "${TM_CURRENT_LINE}":
-      const textLine = document.lineAt(document.positionAt(groups?.index).line).text;
+      let textLine = "";
+      if (caller === 'replace')                 // caller === replace
+        textLine = document.lineAt(document.positionAt(groups?.index).line).text;
+      else {                                    // caller === find/ignoreLineNumbers/cursorMoveSelect
+        const selectionOffset = document.offsetAt(selection.active);
+        textLine = document.lineAt(document.positionAt(selectionOffset).line).text;
+      }
       resolved = textLine;
     break; 
 

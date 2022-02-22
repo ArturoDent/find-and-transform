@@ -198,10 +198,10 @@ exports.replaceInLine = function (editor, edit, args) {
 
 		// get all the matches on the line
     let lineIndex;
-    // let matches = [];
     let lines = [];
     let index = 0;
 
+    // handle 'Error: Overlapping ranges are not allowed!` 2 cursors on the same line
     editor.edit(function (edit) {
 
       editor.selections.forEach(selection => {
@@ -233,9 +233,9 @@ exports.replaceInLine = function (editor, edit, args) {
           const startPos = editor.document.positionAt(lineIndex + match.index);
           const endPos = editor.document.positionAt(lineIndex + match.index + match[0].length);
           const matchRange = new vscode.Range(startPos, endPos);
-          edit.replace(matchRange, resolvedReplace);
+          edit.replace(matchRange, resolvedReplace); // 'Error: Overlapping ranges are not allowed!`
           lines[index++] = startPos.line;
-          // should these select?
+          // should these select? or clear all selections?
         });
       })
     }).then(success => {
