@@ -113,25 +113,27 @@ async function _buildArgs(args, index)  {
   
   let resultsFiles = "";
   
-  await vscode.commands.executeCommand('search.action.copyAll');
-  await vscode.env.clipboard.readText()
-    .then(async results => {
-      if (results) {
-        results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
-        let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
+  const result = await vscode.commands.executeCommand('search.action.copyAll');
+  if (result) {
+    await vscode.env.clipboard.readText()
+      .then(async results => {
+        if (results) {
+          results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
+          let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
 
-        let pathArray = resultsArray.filter(result => result !== "");
-        pathArray = pathArray.map(path => utilities.getRelativeFilePath(path));
+          let pathArray = resultsArray.filter(result => result !== "");
+          pathArray = pathArray.map(path => utilities.getRelativeFilePath(path));
 
-        resultsFiles = pathArray.join(", ");
-      }
-      else {
-        // notifyMessage?
-        resultsFiles = "";
-      }
-      // put the previous clipBoard text back on the clipboard
-      await vscode.env.clipboard.writeText(clipText);
-    });
+          resultsFiles = pathArray.join(", ");
+        }
+        else {
+          // notifyMessage?
+          resultsFiles = "";
+        }
+        // put the previous clipBoard text back on the clipboard
+        await vscode.env.clipboard.writeText(clipText);
+      });
+  }
   
 
 	let  defaultArgs = { restrictFind: "document", isRegex: false, cursorMoveSelect: "", matchWholeWord: false, matchCase: false };

@@ -31,7 +31,8 @@
  ],
  "activationEvents": [
   "onStartupFinished",
-  "onCommand:findInCurrentFile.addClassToElement"
+  "onCommand:findInCurrentFile.reduceUserEntry",
+  "onCommand:runInSearchPanel.reduceUserEntry"
  ],
  "contributes": {
   "menus": {
@@ -100,8 +101,13 @@
     "category": "Find-Transform"
    },
    {
-    "command": "findInCurrentFile.addClassToElement",
-    "title": "Add Class to Html Element",
+    "command": "findInCurrentFile.reduceUserEntry",
+    "title": "Reduce User to ...",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "runInSearchPanel.reduceUserEntry",
+    "title": "Reduce User to ...",
     "category": "Find-Transform"
    }
   ],

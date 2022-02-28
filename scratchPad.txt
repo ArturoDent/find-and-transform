@@ -113,7 +113,7 @@ zip/wwwroot/css                                         ${relativeFileDirname}
 /c:/Users/Mark/OneDrive/Test Bed                        ${workspaceFolder}
 Test Bed                                                ${workspaceFolderBasename}
 
-
+Test
 
 ---------------------------------------------------------------------------------
 
@@ -132,9 +132,16 @@ FolderXX                                                ${relativeFileDirname}
 /c:/Users/Mark/testWorkspace  /c:/Users/Mark/AA/BB      ${workspaceFolder}
 testWorkspace BB                                        ${workspaceFolderBasename}
 
-@Column({ nullable: true })
-  CharterId: number
-
-  @ManyToOne(() => Charter, (charter) => charter.Flights, { eager: true })
-  @JoinColumn({ name: 'CharterId' })
-  Charter: Charter
+adasdasd
+asdasdadsda
+asdasd
+line1 xxxxx
+line2 xx
+line3 xxxxxxxx
+.
+.
+.
+line10 xxx
+asdasd
+asdasdad
+asdasd
