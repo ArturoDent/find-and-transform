@@ -53,10 +53,10 @@ exports.findAndSelect = function (editor, args) {
     resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
     if (!resolvedFind) return;
     
-    if (args.isRegex) {
-      if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-      else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-    }
+    // if (args.isRegex) {
+    //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
+    //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
+    // }
     
     if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
       // lineCount is 1-based, so need to subtract 1 from it
@@ -93,10 +93,10 @@ exports.findAndSelect = function (editor, args) {
       resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
       if (!resolvedFind) return;
       
-      if (args.isRegex) {
-        if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-        else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-      }     
+      // if (args.isRegex) {
+      //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
+      //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
+      // }     
 
       let searchText;
 
@@ -222,10 +222,10 @@ exports.replaceInLine = function (editor, edit, args) {
         resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
         if (!resolvedFind && !args.replace) return;
         
-        if (args.isRegex) {
-          if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-          else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-        }
+        // if (args.isRegex) {
+        //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
+        //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
+        // }
 
         const re = new RegExp(resolvedFind, args.regexOptions);
         currentLine = editor.document.getText(editor.document.lineAt(selection.active.line).rangeIncludingLineBreak);
@@ -269,7 +269,7 @@ exports.replaceInLine = function (editor, edit, args) {
           
           if (args.isRegex) {
             if (cursorMoveSelect === "^") cursorMoveSelect = "^(?!\n)";
-            else if (cursorMoveSelect === "$") cursorMoveSelect = "$(?!\n)";
+            else if (cursorMoveSelect === "$") cursorMoveSelect = "(?<!\n)$";
           }
  
           if (!args.isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
@@ -309,10 +309,10 @@ exports.replaceInLine = function (editor, edit, args) {
         resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
         if (!resolvedFind && !args.replace) return;  // correct here or already handled in findAndSelect?
         
-        if (args.isRegex) {
-          if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-          else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-        }        
+        // if (args.isRegex) {
+        //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
+        //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
+        // }        
 
         const re = new RegExp(resolvedFind, args.regexOptions);
         // get first match on line from cursor forward
@@ -357,9 +357,10 @@ exports.replaceInLine = function (editor, edit, args) {
 
           let cursorMoveSelect = variables.buildReplace(args, "cursorMoveSelect", line, editor.selection, null, index);
 
+          // TODO check this
           if (args.isRegex) {
             if (cursorMoveSelect === "^") cursorMoveSelect = "^(?!\n)";
-            else if (cursorMoveSelect === "$") cursorMoveSelect = "$(?!\n)";
+            else if (cursorMoveSelect === "$") cursorMoveSelect = "(?<!\n)$";
           }
 
           if (!args.isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
@@ -414,10 +415,10 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
   resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
   if (!resolvedFind) return;
 
-  if (args.isRegex) {
-    if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-    else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-  }
+  // if (args.isRegex) {
+  //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
+  //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
+  // }
 
   if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
     // lineCount is 1-based, so need to subtract 1 from it
@@ -567,10 +568,10 @@ exports.replaceInWholeDocument = function (editor, edit, args) {
     resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
   }
 
-  if (args.isRegex) {
-    if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-    else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-  }
+  // if (args.isRegex) {
+  //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
+  //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
+  // }
 
   if (resolvedFind?.search(/\$\{\s*line(Number|Index)\s*\}/) !== -1) {
     // lineCount is 1-based, so need to subtract 1 from it
@@ -623,9 +624,11 @@ exports.replaceInWholeDocument = function (editor, edit, args) {
         
         if (args.isRegex) cursorMoveSelect = cursorMoveSelect.replace(/(?<!\r)\n/g, "\r\n");
 
+        // TODO check this
         if (args.isRegex) {
           if (cursorMoveSelect === "^") cursorMoveSelect = "^(?!\n)";
-          else if (cursorMoveSelect === "$") cursorMoveSelect = "$(?!\n)";
+          // else if (cursorMoveSelect === "$") cursorMoveSelect = "$(?!\n)";
+          else if (cursorMoveSelect === "$") cursorMoveSelect = "(?<!\n)$";
         }
 
         if (!args.isRegex) cursorMoveSelect = cursorMoveSelect.replace(/([?$^.\\*\|\{\}\[\]\(\)])/g, "\\$1");
@@ -684,10 +687,10 @@ exports.replaceInSelections = function (editor, edit, args) {
       resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
       if (!resolvedFind && !args.replace) return;
       
-      if (args.isRegex) {
-        if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-        else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-      }
+      // if (args.isRegex) {
+      //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
+      //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
+      // }
   
       if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
         matches = _buildLineNumberMatches(resolvedFind, selectedRange);
@@ -748,7 +751,7 @@ exports.replaceInSelections = function (editor, edit, args) {
           }
           else if (cursorMoveSelect === "$") { // if multiple matches in the selection adjust the selection.end
             const diff = resolvedFind.length - resolvedReplace.length;
-            const selPos = new vscode.Position(selection.end.line, selection.end.character - (matchesPerSelection[index] * diff));
+            const selPos = new vscode.Position(selection.end.line, Math.abs(selection.end.character - (matchesPerSelection[index] * diff)));
             foundSelections.push(new vscode.Selection(selPos, selPos));
           }
           else {
@@ -793,6 +796,11 @@ function _adjustFindValue(findValue, isRegex, matchWholeWord, madeFind) {
 
   // since all \n are replaced by \r?\n by vscode
   if (isRegex) findValue = findValue.replace(/\n/g, "\r?\n");
+  
+  if (isRegex) {
+    if (findValue === "^") findValue = "^(?!\n)";
+    else if (findValue === "$") findValue = "$(?!\n)";
+  }
 
 	return findValue;
 }

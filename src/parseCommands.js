@@ -146,6 +146,9 @@ async function _buildArgs(args, index)  {
 	// no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
 	// or if find === "" empty string ==> use wordsAtCursors
   else {
+    
+    // await vscode.commands.executeCommand('expandLineSelection');
+    
     // if multiple selections, isRegex must be true  TODO
     const findObject = variables.makeFind(editor.selections, args);
     findValue = findObject.find;

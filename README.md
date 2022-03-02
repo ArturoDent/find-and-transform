@@ -779,10 +779,13 @@ If, for example you use these args:
     
                                         // select only if at beginning of same line
     "cursorMoveSelect": "^\\s*pa[rn]am" // will be interpreted as a regexp since 'isRegex' is true 
+    
     // "cursorMoveSelect": "^"          // cursor will go to beginning of line (if matchWholeWord is false)
+    // "cursorMoveSelect": "$"          // cursor will go to end of line (if matchWholeWord is false, the default)
     
     // "restrictFind": "selections", 
-    // "cursorMoveSelect": "^"          // cursor will go to beginning of each single-line selection
+    // "cursorMoveSelect": "^"          // cursor will go to beginning of each selection
+    // "cursorMoveSelect": "$"          // cursor will go to end of each selection
   }
 }
 ```
