@@ -114,7 +114,7 @@ Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command
  }
  ```
  
- &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableWarningDialogSetting.jpg?raw=true" width="500" height="150" alt="surround and pad selected text"/>  
+ &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/surroundPad.gif?raw=true" width="800" height="300" alt="surround and pad selected text"/>  
 
 -----------------
 
