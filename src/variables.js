@@ -12,7 +12,7 @@ const utilities = require('./utilities');
  * @returns {String} - resolvedVariable with matchIndex/Number replaced
  */
 exports.resolveMatchVariable = function (variableToResolve, replaceIndex) {
-
+  
   if (typeof variableToResolve !== 'string') return variableToResolve;
 
   variableToResolve = variableToResolve.replaceAll(/\$\{\s*matchIndex\s*\}/g, String(replaceIndex));

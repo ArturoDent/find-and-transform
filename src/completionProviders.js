@@ -300,10 +300,13 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 	const defaults = searchCommands.getDefaults();
 
 	const priority = {
-		"title": "01",
-		"find": "011",
-		"replace": "02",
-		"isRegex": "021",
+    "title": "01",
+    
+    "preCommands": "011",
+		"find": "012",
+		"replace": "013",
+    "isRegex": "014",
+    "postCommands": "015",
 
 		"isCaseSensitive": "022",
 		"matchCase": "023",
@@ -321,15 +324,17 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 		"onlyOpenEditors": "053",
 
 		"preserveCase": "07"
-	};
-
+  };
+  
 	const description = {
 		"title": "This will appear in the Command Palette as `Find-and-Transform:<title>`. Can include spaces.",
 
+    "preCommands": "A single command, as a string, or an array of commands to run before any find occurs.",
 		"find": "Query to find or search.  Can be a regexp or plain text.",
 		"replace": "Replacement text.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
 		"isRegex": "Is the find query a regexp.",
-
+    "postCommands": "A single command, as a string, or an array of commands to run after any replace occurs.",
+    
 		"isCaseSensitive": "Do you want the search to be case-senstive.",
 		"matchCase": "Match only where the case is the same as the find query.",
 		"matchWholeWord": "Match the find query with word boundaries.  As in `\\b<query>\\b`.",
@@ -653,9 +658,22 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 	item.range = replaceRange;
   if (defaultValue) item.detail = `default: ${ defaultValue }`;
 
-	if (sortText) item.sortText = sortText;
-	if (documentation) item.documentation = new vscode.MarkdownString(documentation);
+  if (sortText) item.sortText = sortText;
+  
+  const preCommandText = `"preCommands": "cursorHome"
+"preCommands": ["cursorHome", "cursorEndSelect"]`;
+  
+  const postCommandText = `"postCommands": "editor.action.selectFromAnchorToCursor"
+"postCommands": ["cursorHome", "editor.action.clipboardCopyAction"]`;
 
+  if (documentation) {
+    if (key === 'preCommands')
+      item.documentation = new vscode.MarkdownString(documentation).appendCodeblock(preCommandText, 'jsonc');
+    else if (key === 'postCommands')
+      item.documentation = new vscode.MarkdownString(documentation).appendCodeblock(postCommandText, 'jsonc');
+    else item.documentation = new vscode.MarkdownString(documentation);
+  }
+  
 	if (key.substring(0, 3) === "${n") {
 		let newCommand = {};
 		// call command 'selectDigitInCompletion' defined in extension.js

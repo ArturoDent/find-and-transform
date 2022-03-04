@@ -5,7 +5,15 @@ const parseCommands = require('./parseCommands');
 const searchCommands = require('./search');
 const utilities = require('./utilities');
 
-// let enableWarningDialog;
+
+exports.runPrePostCommands = async function (commands)  {
+  if (Array.isArray(commands) && commands.length) {
+    for (const command of commands) {
+      await vscode.commands.executeCommand(command); 
+    }
+  }
+  else if (!Array.isArray(commands)) await vscode.commands.executeCommand(commands);  
+}
 
 /**
  * Get all the findInCurrentFile or runInSearchPanel settings

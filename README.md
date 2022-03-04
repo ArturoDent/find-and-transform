@@ -1,8 +1,7 @@
 # find-and-transform
 
-> v1.1.0 **Breaking change**: Must use a `return` statement in a ` $${<operation>}$$ `, examples below.  This change enabled more powerful javascript statements to be used in a ` $${<operation>}$$ `.  
 
-> v2.0.0 **Breaking change**: Added the `$$` to the end of the javascript operation syntax to aid parsing.  
+> v2.2.0 Added the ability to run vscode commands **before** and **after** running the find/replaces.  Preview Feature.  
 
 *  &nbsp; New in v2.0.0: Insert a resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.   
 
@@ -36,13 +35,90 @@
 
 -------------
 
-> Note: commands can be removed by deleting or commenting out the associated settings and re-saving the `settings.json` file and reloading VS Code. 
+> Note: commands that you create in the settings can be removed by deleting or commenting out the associated settings and re-saving the `settings.json` file and reloading VS Code. 
 
 -----------------
 
 Below you will find information on using the `findInCurrentFile` command - which performs a find within the current file, like using the Find Widget but with the ability to save these file/replaces as settings or keybindings and many more variables and javascript operations supported.  Some of the information here will be useful to using the `runInSearchPanel` as well - so you should read both.  See  [Search using the Panel](searchInPanel.md).  
 
 ------------------
+
+## preCommands and postCommands : PREVIEW status as of v2.2.0  
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    
+    "preCommands": [                 // select all of the current line
+      "cursorHome",
+      "cursorEndSelect"    
+    ],
+    
+    // ... other options, like find/replace, etc.
+    
+    "postCommands": "editor.action.insertCursorAtEndOfEachLineSelected",
+  }
+}    
+```
+Above is an example of the `preCommands` and the `postCommands` arguments.  This addition is considered to be in preview as of v2.2.0, particularly the `postCommands` as a lot of asynchronous code runs after the `preCommands` have finished.  So be very cautious with the `postCommands` for now.      
+
+`preCommands` are run before any `find` or `replace` occurs.  It can be a single string or an array of strings.  The arguments `preCommands` and `postCommands` can appear anywhere in the arguments.  All the arguments can be in any order.  
+
+`postCommands` are run after the find and replace has occurred. 
+
+Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command ID` - the same command ID's you would use in a keybinding.   
+
+`preCommands` are particularly useful when you want to move the cursor to a different word or **insertion point** (like moving the cursor to the beginning of the line and then insert something) before doing anything else or programmatically selecting something without having to remember to do that manually each time before you run the keybinding or command.  
+
+ For example, some replacements are much easier to do when the current line is selected first.  That way, when the replacement occurs it replaces the entire line.  Otherwise you would first have to select that line and then run the keybinding.  The following example only works if the current line is selected first.  Note in this example, there is no `find` argument.  As you will learn below, when that is the case this extension will make the `find` from the current word at the cursor or the current selection.  It can do that for multiple cursors too. 
+ 
+ Note also in the demo that cursors are placed at the end of all the lines thanks to the `postCommand`.  The keybinding used in the demo is below.  The replacement is fairly complicated - it is a small bit of javascript code that can perform many operations to create a complicated replacement.  More on javascript operations later.     
+ 
+ ```jsonc
+ {
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+        
+    "preCommands": [                                 // select entire line where there is a cursor
+      "cursorHome", 
+      "cursorEndSelect"    
+    ],
+    
+    "postCommands": "editor.action.insertCursorAtEndOfEachLineSelected",
+    
+    "replace": [
+      "$${",                      // run these math and string operations to create the replacement
+      
+      "const ch = '/';",
+      "const spacer = 3;",                                  // spaces around the text at the center
+      "const textLength = '${TM_CURRENT_LINE}'.length;",
+      "const isOdd = textLength % 2;",
+      "const surround = Math.floor((80 - (2 * spacer) - textLength) / 2);",
+      
+      "let result = ch.padEnd(80, ch) + '\\n';",
+      "result += ch.padEnd(surround, ch) + ''.padEnd(spacer, ' ');",
+      "result += '${TM_CURRENT_LINE}'.padEnd(textLength + spacer, ' ') + ch.padEnd(surround, ch);",
+      
+      "if (isOdd) result += ch;",                          // add one if textLength is odd
+      "result += '\\n' + ch.padEnd(80, ch);",
+      "return result;",
+      
+      "}$$"
+    ],
+    "isRegex": true,
+    "restrictFind": "line"                     // run on a line or lines with cursors only
+  }
+ }
+ ```
+ 
+ &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableWarningDialogSetting.jpg?raw=true" width="500" height="150" alt="surround and pad selected text"/>  
+
+-----------------
+
+<br/>
 
 ## Contributed Setting
 
@@ -1397,7 +1473,9 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
 * Add a `cursorMove` option (like `cursorMoveSelect` without the selection).    
 * Consider how `cursorMoveSelect` should work in full document search?  
-* Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.   
+* Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.  
+* Add a Table of Contents to the README.  
+* `async/await` all code so `postCommands` are more reliable.     
 
 
 ## Release Notes
@@ -1416,7 +1494,10 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 &emsp;&emsp;Added snippet variables like `${CURRENT_HOUR}`, `${LINE_COMMENT}`, `${TM_CURRENT_LINE}`, etc.   
 
 * 2.1.0 Added intellisense for `find` snippet variables.  
-&emsp;&emsp;Fixed `find` `${TM_CURRENT_LINE}` resolution.    
+&emsp;&emsp;Fixed `find` `${TM_CURRENT_LINE}` resolution.   
+
+* 2.2.0  Added the ability to run vscode commands **before** performing the find.   
+&emsp;&emsp;Improved `^` and `$` regex line delimiter handling in `cursorMoveSelect`.    
 
 <br/> 
 

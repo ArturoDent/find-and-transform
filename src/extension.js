@@ -112,6 +112,10 @@ async function activate(context) {
     // TODO warn if fewer capture groups in the find than used in the replace ? or did you mean isRegex
     let continueRun = true;
     
+    if (args.preCommands) {
+      await commands.runPrePostCommands(args.preCommands);
+    }
+    
     // call a function that looks for all jsOp's $${...}$$ in args.replace
     if (Array.isArray(args.replace) && args.replace.find(el => el === "$${"))
       args.replace = await parseCommands.buildJSOperationsFromArgs(args.replace);
@@ -127,7 +131,11 @@ async function activate(context) {
 			else if (!args.title) args.title = "Keybinding for generic command run";
 
 			await parseCommands.splitFindCommands(editor, edit, args);
-		}
+    }
+    
+    if (args.postCommands) {
+      await commands.runPrePostCommands(args.postCommands);
+    }
 	});
 
 	context.subscriptions.push(runDisposable);

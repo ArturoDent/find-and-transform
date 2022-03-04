@@ -812,7 +812,7 @@ function _adjustFindValue(findValue, isRegex, matchWholeWord, madeFind) {
  */
 exports.getKeys = function () {
 	// preserveCase ?
-	return ["title", "find", "replace", "isRegex", "matchCase", "matchWholeWord", "restrictFind", "cursorMoveSelect"];
+	return ["title", "preCommands", "find", "replace", "isRegex", "postCommands", "matchCase", "matchWholeWord", "restrictFind", "cursorMoveSelect"];
 }
 
 
@@ -823,7 +823,8 @@ exports.getKeys = function () {
 exports.getValues = function () {
 	// preserveCase ?
 	return {
-		title: "string", find: "string", replace: "string", isRegex: [true, false], matchCase: [true, false],
+    title: "string", find: "string", replace: "string", isRegex: [true, false], matchCase: [true, false],
+    preCommands: "string", 
 		matchWholeWord: [true, false],
 		restrictFind: ["document", "selections", "line", "once", "nextSelect", "nextMoveCursor", "nextDontMoveCursor"],
 		cursorMoveSelect: "string"
@@ -837,9 +838,11 @@ exports.getValues = function () {
  */
 exports.getDefaults = function () {
 	return {
-		"title": "",
+    "title": "",
+    "preCommands": "",
 		"find": "",
-		"replace": "",
+    "replace": "",
+    "postCommands": "",
 		"isRegex": "false",
 		"matchCase": "false",
 		"matchWholeWord": "false",
