@@ -43,36 +43,45 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 ------------------
 
-## preCommands and postCommands : PREVIEW status as of v2.2.0  
+## preCommands and postCommands : PREVIEW status as of v2.3.0  
 
 ```jsonc
 {
-  "key": "alt+r",
+  "key": "alt+r",                      // whatever keybinding you want
   "command": "findInCurrentFile",
   "args": {
     
-    "preCommands": [                 // select all of the current line
-      "cursorHome",
-      "cursorEndSelect"    
+    "preCommands": [                 
+      "cursorHome",                    // move cursor to start of text
+      {
+        "command": "type",             // insert "howdy " at cursor
+        "args": {
+          "text": "howdy "             // same args as a keybinding would have
+        }
+      },
+      "cursorEndSelect"                // select from cursor to end of line
     ],
     
     // ... other options, like find/replace, etc.
+    // and you can 'find' text that you might have inserted in the preCommands
     
     "postCommands": "editor.action.insertCursorAtEndOfEachLineSelected",
   }
 }    
 ```
-Above is an example of the `preCommands` and the `postCommands` arguments.  This addition is considered to be in preview as of v2.2.0, particularly the `postCommands` as a lot of asynchronous code runs after the `preCommands` have finished.  So be very cautious with the `postCommands` for now.      
+Above is an example of the `preCommands` and the `postCommands` arguments.  This functionality is in preview as of v2.3.0, particularly the `postCommands` as a lot of asynchronous code runs after the `preCommands` have finished.  So be very cautious with the `postCommands` for now.      
 
-`preCommands` are run before any `find` or `replace` occurs.  It can be a single string or an array of strings.  The arguments `preCommands` and `postCommands` can appear anywhere in the arguments.  All the arguments can be in any order.  
+`preCommands` are run before any `find` or `replace` occurs.  It can be a single string or an object or an array of strings/objects.  The arguments `preCommands` and `postCommands` can appear anywhere in the arguments.  All the arguments can be in any order.  
 
 `postCommands` are run after the find and replace has occurred. 
 
-Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command ID` - the same command ID's you would use in a keybinding.   
+Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command ID` - the same command ID's you would use in a keybinding.  And the same for of `args` for each of those commands - see the `type` example above.  
 
 `preCommands` are particularly useful when you want to move the cursor to a different word or **insertion point** (like moving the cursor to the beginning of the line and then insert something) before doing anything else or programmatically selecting something without having to remember to do that manually each time before you run the keybinding or command.  
 
- For example, some replacements are much easier to do when the current line is selected first.  That way, when the replacement occurs it replaces the entire line.  Otherwise you would first have to select that line and then run the keybinding.  The following example only works if the current line is selected first.  Note in this example, there is no `find` argument.  As you will learn below, when that is the case this extension will make the `find` from the current word at the cursor or the current selection.  It can do that for multiple cursors too. 
+ For example, some replacements are much easier to do when the current line is selected first.  That way, when the replacement occurs it replaces the entire line.  Otherwise you would first have to select that line and then run the keybinding.  The following example only works if the current line is selected first.  
+ 
+ In the example below there is **no `find` argument**.  As you will learn, when that is the case this extension will make the `find` from the current word at the cursor or the current selection.  It can do that for multiple cursors too.  
  
  Note also in the demo that cursors are placed at the end of all the lines thanks to the `postCommand`.  The keybinding used in the demo is below.  The replacement is fairly complicated - it is a small bit of javascript code that can perform many operations to create a complicated replacement.  More on javascript operations later.     
  
@@ -1498,6 +1507,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 
 * 2.2.0  Added the ability to run vscode commands **before** performing the find.   
 &emsp;&emsp;Improved `^` and `$` regex line delimiter handling in `cursorMoveSelect`.    
+
+* 2.3.0  Can now execute vscode commands with arguments.     
 
 <br/> 
 

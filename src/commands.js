@@ -6,14 +6,36 @@ const searchCommands = require('./search');
 const utilities = require('./utilities');
 
 
-exports.runPrePostCommands = async function (commands)  {
-  if (Array.isArray(commands) && commands.length) {
+
+              // "preCommands": [
+              //   "cursorHome",
+              //   {
+              //     "command": "type",
+              //     "args": {
+              //       "text": "howdy "
+              //     }
+              //   },
+              //   "cursorEndSelect"
+              // ],
+/**
+ * Execute the pre/post commands, which are vscode commands and may have args
+ * @param {string | string[] | object} commands 
+ */
+exports.runPrePostCommands = async function (commands) {
+  
+  if (typeof commands === 'string') await vscode.commands.executeCommand(commands); 
+  else if (typeof commands === 'object' && !Array.isArray(commands))
+    await vscode.commands.executeCommand(commands.command, commands.args);
+  
+  else if (Array.isArray(commands) && commands.length) {
     for (const command of commands) {
-      await vscode.commands.executeCommand(command); 
+      if (typeof command === 'string') await vscode.commands.executeCommand(command);
+      else if (typeof command === 'object')
+        await vscode.commands.executeCommand(command.command, command.args);
     }
   }
-  else if (!Array.isArray(commands)) await vscode.commands.executeCommand(commands);  
 }
+
 
 /**
  * Get all the findInCurrentFile or runInSearchPanel settings
