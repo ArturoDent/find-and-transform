@@ -215,11 +215,11 @@ async function activate(context) {
 			
 			enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
 
+      // easier to just dispose of them all and re-enable them all
 			for (let disposable of disposables) {
 				await disposable.dispose();
 			}
-			// should do disposables = [] here? Or does it matter?
-
+      
 			// reload
 			await _loadSettingsAsCommands(context, disposables, false);
 

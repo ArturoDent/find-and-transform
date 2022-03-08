@@ -6,9 +6,9 @@ const variables = require('./variables');
 /**
  * Input argsArray is an object from runInSearchPanel keybindings or settings
  * @param {Array} argsArray
- * @returns {Object} - an array of objects {key: value}
+ * @returns {Promise<Object>} - an array of objects {key: value}
  */
-exports.getObjectFromArgs = function (argsArray) {
+exports.getObjectFromArgs = async function (argsArray) {
 
   const args = {};
 
@@ -24,8 +24,8 @@ exports.getObjectFromArgs = function (argsArray) {
  * @returns {Array}
  */
 exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "matchCase"
-  return ["title", "find", "replace", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude", "preserveCase", 
-		"useExcludeSettingsAndIgnoreFiles", "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors"];
+  return ["title", "preCommands", "find", "replace", "postCommands", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude",  
+		"preserveCase", "useExcludeSettingsAndIgnoreFiles", "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors"];
 }
 
 /**
@@ -34,7 +34,8 @@ exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "match
  */
 exports.getValues = function () {    // removed "isCaseSensitive" in favor of "matchCase"
 	return {
-		title: "string", find: "string", replace: "string", isRegex: [true, false], matchCase: [true, false],
+    title: "string", find: "string", replace: "string", isRegex: [true, false], matchCase: [true, false],
+    preCommands: "string", postCommands: "string",
 		matchWholeWord: [true, false], triggerSearch: [true, false], triggerReplaceAll: [true, false],
     useExcludeSettingsAndIgnoreFiles: [true, false], preserveCase: [true, false],
 		filesToInclude: "string", filesToExclude: "string", onlyOpenEditors: [true, false]
@@ -47,9 +48,11 @@ exports.getValues = function () {    // removed "isCaseSensitive" in favor of "m
  */
 exports.getDefaults = function () {
 	return {
-		"title": "",
+    "title": "",
+    "preCommands": "",
 		"find": "",
-		"replace": "",
+    "replace": "",
+    "postCommands": "",
 		"restrictFind": "document",   	      
 		"triggerSearch": true,
 		"triggerReplaceAll": 'false',
@@ -101,8 +104,13 @@ exports.useSearchPanel = async function (args) {
   if (args.replace) args.replace = await variables.resolveSearchPathVariables(args.replace, args, "replace", vscode.window.activeTextEditor.selections[0]);
   
   if (args.find) {
+    // "find": "(\\$1 \\$2)" replace capture groups with selections[n]
+    const findValue = await variables.replaceFindCaptureGroups(args.find);
     // regex was passed as true, so changed caller to 'findSearch' from 'find'
-    args.query = await variables.resolveSearchPathVariables(args.find, args, "findSearch", vscode.window.activeTextEditor.selections[0]);
+    args.query = await variables.resolveSearchPathVariables(findValue, args, "findSearch", vscode.window.activeTextEditor.selections[0]);
+  
+    // TODO resolve more variable types?
+    
     delete args.find;
   }
   else {

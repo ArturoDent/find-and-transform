@@ -150,7 +150,7 @@ exports.checkArgs = async function (args, fromWhere) {
         if (typeof args[key] !== "string") badValues.push({ [key]: args[key] });
       }
       else {
-        let badValue = !goodValues[key].includes(args[key]);
+        let badValue = !goodValues[key]?.includes(args[key]); // TODO
         if (badValue) {
           // badValues[key] = args[key];
           badValues.push({ [key] : args[key] });

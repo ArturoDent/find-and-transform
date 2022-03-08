@@ -2,7 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "2.3.1",
+ "version": "2.4.0",
  "engines": {
   "vscode": "^1.56.0"
  },
@@ -30,9 +30,7 @@
   "path variable"
  ],
  "activationEvents": [
-  "onStartupFinished",
-  "onCommand:findInCurrentFile.reduceUserEntry",
-  "onCommand:runInSearchPanel.reduceUserEntry"
+  "onStartupFinished"
  ],
  "contributes": {
   "menus": {
@@ -98,16 +96,6 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.reduceUserEntry",
-    "title": "Reduce User to ...",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "runInSearchPanel.reduceUserEntry",
-    "title": "Reduce User to ...",
     "category": "Find-Transform"
    }
   ],

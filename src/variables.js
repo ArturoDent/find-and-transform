@@ -5,6 +5,31 @@ const utilities = require('./utilities');
 
 
 /**
+ * 
+ * @param {string} findValue 
+ * @returns {Promise<string>}
+ */
+exports.replaceFindCaptureGroups = async function (findValue) {
+  
+  const editor = vscode.window.activeTextEditor;
+  findValue = findValue.replace(/\\\$(\d+)/g, (match, p1) => {
+    
+    // if no selection[n] in document, but in findValue
+    if (p1 > editor.selections.length) return "";
+    
+    // if selection.isEmpty get wordRangeAtCursor
+    else if (editor.selections[p1 - 1].isEmpty) {
+      const pos = editor.selections[p1 - 1].active;
+      const range = editor.document.getWordRangeAtPosition(pos);
+      return editor.document.getText(range);
+    }
+      
+    else return editor.document.getText(editor.selections[p1 - 1]);
+  });
+  return findValue;
+}
+
+/**
  * Resolve the matchIndex/Number variable.
  * 
  * @param {String} variableToResolve 

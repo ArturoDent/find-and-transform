@@ -269,67 +269,91 @@ function _activationEventArraysAreEquivalent(settings, packages) {
 
 
 /**
- * Get the settings and register TextEditorCommands for them
- * @param {Array} findArray
+ * Get the settings and register TextEditorCommands for the findInCurrentFile commands
+ * @param {Array} argArray
  * @param {vscode.ExtensionContext} context
  * @param {Array<vscode.Disposable>} disposables
  */
-exports.registerFindCommands = async function (findArray, context, disposables, enableWarningDialog) {
+exports.registerFindCommands = async function (argArray, context, disposables, enableWarningDialog) {
 
 	let disposable;
 	let continueRun = true;
 
-	for (const elem in findArray) {
+	for (const elem in argArray) {
 
-    if (Array.isArray(findArray[elem][1].replace) && findArray[elem][1].replace.find(el => el === "$${"))
-      findArray[elem][1].replace = await parseCommands.buildJSOperationsFromArgs(findArray[elem][1].replace);
-
-    disposable = vscode.commands.registerTextEditorCommand(`findInCurrentFile.${ findArray[elem][0] }`, async (editor, edit) => {
+    disposable = vscode.commands.registerTextEditorCommand(`findInCurrentFile.${ argArray[elem][0] }`, async (editor, edit) => {
 			// could check for bad args here - on use of settings commands
 			if (enableWarningDialog) {
-				const argsBadObject = await utilities.checkArgs(findArray[elem][1], "findSetting");
+				const argsBadObject = await utilities.checkArgs(argArray[elem][1], "findSetting");
 				// boolean modal or not
-				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, findArray[elem][0]);
+				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, argArray[elem][0]);
 			}
+      
+      if (Array.isArray(argArray[elem][1].replace) && argArray[elem][1].replace.find(el => el === "$${"))
+        argArray[elem][1].replace = await parseCommands.buildJSOperationsFromArgs(argArray[elem][1].replace);
+        
+      if (argArray[elem][1].preCommands) {
+        await this.runPrePostCommands(argArray[elem][1].preCommands);
+      }
 
-			if (continueRun) await parseCommands.splitFindCommands(editor, edit, findArray[elem][1]);
-		});
-		context.subscriptions.push(disposable);
-		disposables.push(disposable);
+      if (continueRun) await parseCommands.splitFindCommands(editor, edit, argArray[elem][1]);
+      
+      if (argArray[elem][1].postCommands) {
+        await this.runPrePostCommands(argArray[elem][1].postCommands);
+      }
+      
+      // triggering from Command Palette doesn't seem to return focus to the current editor [seems like an extension testing bug]
+      // not needed for keybinding trigger though
+      await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
+    });
+
+    context.subscriptions.push(disposable);
+    disposables.push(disposable);   // this is necessary to dispose all on onDidChangeConfiguration()
 	}
 }
 
 	/**
- * Get the settings and register TextEditorCommands for them
+ * Get the settings and register TextEditorCommands for the runInSearchPanel commands
  * 
- * @param {Array} searchArray
+ * @param {Array} argArray
  * @param {vscode.ExtensionContext} context
  * @param {Array<vscode.Disposable>} disposables
  */
-exports.registerSearchCommands = async function (searchArray, context, disposables, enableWarningDialog) {
+exports.registerSearchCommands = async function (argArray, context, disposables, enableWarningDialog) {
 
 	let disposable;
 	let continueRun = true;
 
-	for (const elem in searchArray) {
+	for (const elem in argArray) {
 
-		disposable = vscode.commands.registerCommand(`runInSearchPanel.${ searchArray[elem][0] }`, async () => {
+		disposable = vscode.commands.registerCommand(`runInSearchPanel.${ argArray[elem][0] }`, async () => {
 
-			let temp = searchArray[0][1];
+			let temp = argArray[0][1];
 			// could check for bad args here - on use of settings commands
 			if (enableWarningDialog) {
-				const argsBadObject = await utilities.checkArgs(searchArray[elem][1], "findSetting");
+				const argsBadObject = await utilities.checkArgs(argArray[elem][1], "findSetting");
 				// boolean modal or not
-				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, searchArray[elem][0]);
-			}
+				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, argArray[elem][0]);
+      }
+      
+      if (Array.isArray(argArray[elem][1].replace) && argArray[elem][1].replace.find(el => el === "$${"))
+        argArray[elem][1].replace = await parseCommands.buildJSOperationsFromArgs(argArray[elem][1].replace);
+        
+      if (argArray[elem][1].preCommands) {
+        await this.runPrePostCommands(argArray[elem][1].preCommands);
+      }
 
 			if (continueRun) {
 				let argsArray = [];
-				if (temp) argsArray = searchCommands.getObjectFromArgs(temp);
-				searchCommands.useSearchPanel(argsArray);
-			}
+				if (temp) argsArray = await searchCommands.getObjectFromArgs(temp);
+				await searchCommands.useSearchPanel(argsArray);
+      }
+      
+      if (argArray[elem][1].postCommands) {
+        await this.runPrePostCommands(argArray[elem][1].postCommands);
+      }
 		});
-		context.subscriptions.push(disposable);
-		disposables.push(disposable);
+    context.subscriptions.push(disposable);
+    disposables.push(disposable);  // this is necessary to dispose all on onDidChangeConfiguration()
 	}
 };

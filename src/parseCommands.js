@@ -55,6 +55,7 @@ exports.splitFindCommands = async function (editor, edit, args) {
   if (Array.isArray(args.replace)) numReplaceArgs = args.replace.length;
   else if (typeof args.replace == "string") numReplaceArgs = 1;
 
+  // TODO needs explanation
   let most = (numFindArgs >= numReplaceArgs) ? numFindArgs : numReplaceArgs;
   if (most === 0) most = 1;
 
@@ -63,29 +64,29 @@ exports.splitFindCommands = async function (editor, edit, args) {
     const splitArgs = await _buildArgs(args, index);
 
     if (!splitArgs.find && !splitArgs.replace && !splitArgs.restrictFind?.startsWith("next"))
-      await findCommands.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
+      findCommands.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
 
     // add all "empty selections" to editor.selections_replaceInSelections
     else if (args.restrictFind === "selections" && splitArgs.replace !== undefined) {
-      await findCommands.addEmptySelectionMatches(editor);
-      await findCommands.replaceInSelections(editor, edit, splitArgs);
+      findCommands.addEmptySelectionMatches(editor);
+      findCommands.replaceInSelections(editor, edit, splitArgs);
     }
 
     else if ((splitArgs.restrictFind === "line" || splitArgs.restrictFind === "once") && splitArgs.replace !== undefined) {
-      await findCommands.replaceInLine(editor, edit, splitArgs);
+      findCommands.replaceInLine(editor, edit, splitArgs);
     }
 
     // find/noFind and replace/noReplace, restrictFind = nextSelect/nextMoveCursor/nextDontMoveCursor
     else if (splitArgs.restrictFind?.startsWith("next")) {
-      await findCommands.replaceNextInWholeDocument(editor, edit, splitArgs);
+      findCommands.replaceNextInWholeDocument(editor, edit, splitArgs);
     }
 
     // find and replace, restrictFind = document/default
     else if (splitArgs.replace !== undefined) {
-      await findCommands.replaceInWholeDocument(editor, edit, splitArgs);
+      findCommands.replaceInWholeDocument(editor, edit, splitArgs);
     }
 
-    else await findCommands.findAndSelect(editor, splitArgs);   // find but no replace
+    else findCommands.findAndSelect(editor, splitArgs);   // find but no replace
   }
 }
 
@@ -134,7 +135,6 @@ async function _buildArgs(args, index)  {
         await vscode.env.clipboard.writeText(clipText);
       });
   }
-  
 
 	let  defaultArgs = { restrictFind: "document", isRegex: false, cursorMoveSelect: "", matchWholeWord: false, matchCase: false };
 	Object.assign(defaultArgs, args);
@@ -146,17 +146,19 @@ async function _buildArgs(args, index)  {
 	// no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
 	// or if find === "" empty string ==> use wordsAtCursors
   else {
-    
-    // await vscode.commands.executeCommand('expandLineSelection');
-    
     // if multiple selections, isRegex must be true  TODO
     const findObject = variables.makeFind(editor.selections, args);
     findValue = findObject.find;
     defaultArgs.isRegex = defaultArgs.isRegex || findObject.mustBeRegex;
     madeFind = true;
     defaultArgs.pointReplaces = findObject.emptyPointSelections;
-	}
-
+  }
+  
+  //  "find": "(\\$1 \\$2)" if find has (double-escaped) capture groups 
+  if (findValue && /\\\$(\d+)/.test(findValue)) {
+    findValue = await variables.replaceFindCaptureGroups(findValue);
+  }
+  
 	let replaceValue = undefined;
 
   // handle "replace": ""  <== empty string should remove find values
@@ -181,7 +183,6 @@ async function _buildArgs(args, index)  {
 
 	return resolvedArgs;
 }
-
 
 /**
  * Called from extension.js 'searchInFolder' or 'searchInFile' registerCommand()

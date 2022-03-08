@@ -5,14 +5,15 @@
 1. &nbsp; Find and transform text in a single file with many kinds of transforms.  
 2. &nbsp; Search across files with pre-defined options.
 3. &nbsp; Do a series of find and replaces in the current file.
-4. &nbsp; Do javascript, like math or string operations, on replacements.
-5. &nbsp; Supports using path variables in the Search Panel `find/replace/filesToInclude/filesToExclude` or the Find in file Widget `find/replace` fields.
+4. &nbsp; Execute javascript code, like math or string operations, on replacements.
+5. &nbsp; Supports using path variables in the Search Panel or the Find in File Widget fields.
 6. &nbsp; Save named settings or keybindings for finds or searches.
 7. &nbsp; After replacing some text, optionally move the cursor to a next designated location with `cursorMoveSelect`.
 8. &nbsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See &nbsp;[running commands on save](codeActions.md).
 9. &nbsp; Do a second search using only the files found in a previous search. See `${resultsFiles}` in [Search using the Panel](searchInPanel.md).
 10. &nbsp; Insert any resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.
-11. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.
+11. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.  
+12. &nbsp; I can put a capture group into a `find`?  See [Make easy finds with cursors.](#findReplaceCaptureGroups).  
 
 
 -------------
@@ -21,7 +22,7 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 -----------------
 
-### Table of Contents 
+### Table of Contents   
 
 &emsp; &emsp; [<span style="color:#fff">1. `preCommands` and `postCommands`</span>](#prePostCommands)   
 
@@ -30,6 +31,8 @@ Below you will find information on using the `findInCurrentFile` command - which
 &emsp; &emsp; [<span style="color:#fff">3. Using Newlines</span>](#using-newlines)  
 
 &emsp; &emsp; [<span style="color:#fff">4. `findInCurrentFile` Arguments</span>](#findInCurrentFile-args)  
+
+&emsp; &emsp; [<span style="color:#fff">1. Using capture groups in a `find`</span>](#findReplaceCaptureGroups)
 
 &emsp; &emsp; [<span style="color:#fff">5. How to Insert a value at the Cursor</span>](#insert-at-cursor)  
 
@@ -78,7 +81,7 @@ Below you will find information on using the `findInCurrentFile` command - which
  
 -----------------
 
-## preCommands and postCommands : PREVIEW status as of v2.3.0  <a id='prePostCommands'></a>
+## preCommands and postCommands : PREVIEW status as of v2.4.0  <a id='prePostCommands'></a>
 
 ```jsonc
 {
@@ -252,7 +255,95 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 > **Defaults**: If you do not specify an argument, its default will be applied.  So `"matchCase": false` is the same as no `"matchCase"` argument at all.  
 
+<br/>
+
 -----------
+
+##  Using capture groups in a `find`  <a id='findReplaceCaptureGroups'></a>  
+
+### &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;  &emsp; &emsp; Example : `"find": "\\$1(\\d+)"`
+
+This has two main purposes:
+
+1. Any numbered capture group, like the double-escaped `\\$1` above, will be **replaced by the first selection** in the current file (`\\$2` will be replaced by the second selection and so on).  You can easily make find regex's this way.  After this replacement, the `find` is run.  
+2. The part of the `find` in the capture group, like `(.\\d+)` above, will be selected if the entire `find` is a match of course.  Only the first `(...)` will be selected, subsequent capture groups will be ignored.  
+
+a. This works for both find in a file or search across files, keybindings or settings.   
+b. The first selection, which can be just a cursor in a word, is really the first selection made in the file - it may actually appear before or after the second selection!  
+c. The selections can be words or longer parts of text.  
+d. If you use a numbered capture group higher than the number of selections, those are replaced with `""`, the empty string.  
+ 
+```jsonc
+{
+  "key": "alt+r",                    // as a keybinding in keybindings.json  
+  "command": "findInCurrentFile",    // or "runInSearchPanel" to search across files
+  "args": {
+    
+    "find": "\\$1(\\d+)",            // double-escaping necessary
+    
+    // "find": "\\$1(\\d+)\\$2",     // can have multiple capture groups
+    // "replace": "",                // if no replace, matches will be highlighted
+    
+    // "isRegex": true necessary if other parts of the find use regexp's, like \\d, etc.
+    "isRegex": true,                 // not necessary for the \\$n's + other plain text
+  }
+},
+
+{
+  "key": "alt+b",
+  "command": "runInSearchPanel",     // uses the Search Panel
+  "args": {
+
+    "find": "\\$1\\.decode\\([^)]+\\)",
+       
+    "triggerSearch": true,
+    // "replace": "?????",           // not necessary
+    // "filesToInclude": "${relativeFileDirname} or other path variables",
+    // "filesToExclude": "<other path variables>",
+    // "onlyOpenEditors": true
+    // other options: matchCase/matchWholeWord/preserveCase/useExcludeSettingsAndIgnoreFiles
+  }
+},
+```
+
+Make it into a setting:  
+
+```jsonc
+"findInCurrentFile": {                          // in settings.json
+  "findRequireDecodeReferences": {
+    "title": "Find in file: package function references",
+    "find": "\\$1\\.decode\\([^)]+\\)",
+    "isRegex": true,
+  }
+},
+
+"runInSearchPanel": { 
+  "searchRequireDecodeReferences": {
+    "title": "Search files: package function references",
+    // "preCommands": "editor.action.clipboardCopyAction",
+    "find": "\\$1\\.decode\\([^)]+\\)",
+    "isRegex": true,
+    "triggerSearch": true,
+    
+    // "filesToInclude": "${fileDirname}"
+    // "onlyOpenEditors": true
+    // and more options
+  }
+},
+```
+
+And then those settings' commands can be triggered by the Command Palette or by a keybinding like:
+
+```jsonc
+{
+  "key": "alt+k",
+  "command": "findInCurrentFile.findRequireDecodeReferences"
+}
+```
+
+<br/>
+
+--------------------
 
 ## How to insert a value at the cursor    <a id='insert-at-cursor'></a>
 
@@ -261,18 +352,28 @@ If you do not want to find something and replace it but just want to insert some
 ```jsonc
 {
   "key": "alt+y",
-  "command": "findInCurrentFile",
+  "command": "findInCurrentFile",  
   "args": {
-                                                           // no find key
-    "replace": "\\U${relativeFileDirname}",         
+                                                                  // no find key!!
+    "replace": "\\U${relativeFileDirname}",                       // insert at cusor
     "replace": "Chapter ${matchNumber}",                          // Chapter 1, Chapter 2, etc.
     "replace": "Chapter $${ return ${matchNumber} * 10 }$$",      // Chapter 10, Chapter 20, etc.
   }
 }
 ```  
 
-It is important that the cursor or cursors **NOT** be at a word (discussed below) because if they were this extension would automatically compute a find value from those "nearest words to the cursor".  Put the cursor on a blank line or separated by spaces from the nearest word and the replace value will be inserted there.  Similar to a snippet insertion.  
+There are two ways to use this - when there is no `find`:
 
+1. The cursor is at a word (or a word is selected, same thing).  The `find` is constructed from that word/selection and the `replace` will replace any matches.  
+
+2.  The cursor is not at any word - on a blank line or separated by spaces from any word.  Then there is **no find** constructed and the `replace` is just inserted where the cursor(s) are located.
+
+Demo using `"replace": "Chapter ${matchNumber}"` and no `find`:
+
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/insertionsDemo.gif?raw=true" width="300" height="250" alt="insertions at cursor demo"/>
+
+Explanation:  In the first case, the cursor is placed on `Chapter`, so that is the `find` and each occurrence of it is replaced with `Chapter ${matchNumber}`.  In the second case, multiple cursors are placed on empty lines so there is no find, in which case `"Chapter ${matchNumber}"` is inserted at each cursor.  
+ 
 -----
 
 <br/>
@@ -1545,7 +1646,9 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 2.2.0  Added the ability to run vscode commands **before** performing the find.   
 &emsp;&emsp;Improved `^` and `$` regex line delimiter handling in `cursorMoveSelect`.    
 
-* 2.3.0  Can now execute vscode commands with arguments.     
+* 2.3.0  Can now execute vscode commands with arguments.   
+
+* 2.4.0  Use capture groups in `find`.  
 
 <br/> 
 

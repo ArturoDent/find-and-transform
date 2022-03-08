@@ -8,7 +8,7 @@ const findCommands = require('./transform');
  * Register a CompletionItemProvider for keybindings.json
  * @param {vscode.ExtensionContext} context
  */
-exports.makeKeybindingsCompletionProvider = function(context) {
+exports.makeKeybindingsCompletionProvider = async function(context) {
     const configCompletionProvider = vscode.languages.registerCompletionItemProvider (
       { pattern: '**/keybindings.json' },
       {
@@ -109,7 +109,7 @@ exports.makeKeybindingsCompletionProvider = function(context) {
  * Register a CompletionItemProvider for settings.json
  * @param {vscode.ExtensionContext} context
  */
-exports.makeSettingsCompletionProvider = function(context) {
+exports.makeSettingsCompletionProvider = async function(context) {
   const settingsCompletionProvider = vscode.languages.registerCompletionItemProvider (
     { pattern: '**/settings.json' },
     {
