@@ -71,18 +71,10 @@ exports.findAndSelect = function (editor, args) {
       matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
     }
 
-    // If a capture group, that means a find like '\\$1(\\d+)'
-    // then use the capture group index and length.  Ignore multiple capture groups, do for $1 only.
+    // Any way to designate a capture group to select, like '\\$1(\\d+)' ?
     matches?.forEach((match, index) => {
-      let startPos, endPos;
-      if (match[1]) {
-        startPos = editor.document.positionAt(match.index + match[0].indexOf(match[1]));
-        endPos = editor.document.positionAt(match.index + match[1].length + match[0].indexOf(match[1]));
-      }
-      else {
-        startPos = editor.document.positionAt(match.index);
-        endPos = editor.document.positionAt(match.index + match[0].length);
-      }
+      const startPos = editor.document.positionAt(match.index);
+      const endPos = editor.document.positionAt(match.index + match[0].length);
 			foundSelections[index] = new vscode.Selection(startPos, endPos);
 		});
     if (foundSelections.length) editor.selections = foundSelections; // this will not? remove all the original selections

@@ -2,7 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "2.4.0",
+ "version": "2.4.1",
  "engines": {
   "vscode": "^1.56.0"
  },
@@ -30,7 +30,9 @@
   "path variable"
  ],
  "activationEvents": [
-  "onStartupFinished"
+  "onStartupFinished",
+  "onCommand:findInCurrentFile.findRequireDecodeReferences",
+  "onCommand:runInSearchPanel.searchRequireDecodeReferences"
  ],
  "contributes": {
   "menus": {
@@ -96,6 +98,16 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.findRequireDecodeReferences",
+    "title": "Find in file: package function references",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "runInSearchPanel.searchRequireDecodeReferences",
+    "title": "Search files: package function references",
     "category": "Find-Transform"
    }
   ],

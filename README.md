@@ -13,7 +13,7 @@
 9. &nbsp; Do a second search using only the files found in a previous search. See `${resultsFiles}` in [Search using the Panel](searchInPanel.md).
 10. &nbsp; Insert any resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.
 11. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.  
-12. &nbsp; I can put a capture group into a `find`?  See [Make easy finds with cursors.](#findReplaceCaptureGroups).  
+12. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#findReplaceCaptureGroups).  
 
 
 -------------
@@ -32,7 +32,7 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 &emsp; &emsp; [<span style="color:#fff">4. `findInCurrentFile` Arguments</span>](#findInCurrentFile-args)  
 
-&emsp; &emsp; [<span style="color:#fff">1. Using capture groups in a `find`</span>](#findReplaceCaptureGroups)
+&emsp; &emsp; [<span style="color:#fff">1. Using numbered capture groups in a `find`</span>](#findReplaceCaptureGroups)
 
 &emsp; &emsp; [<span style="color:#fff">5. How to Insert a value at the Cursor</span>](#insert-at-cursor)  
 
@@ -259,14 +259,13 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 -----------
 
-##  Using capture groups in a `find`  <a id='findReplaceCaptureGroups'></a>  
+##  Using numbered capture groups in a `find`  <a id='findReplaceCaptureGroups'></a>  
+<br/>  
 
-### &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;  &emsp; &emsp; Example : `"find": "\\$1(\\d+)"`
+### &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;  &emsp; &emsp; Example : `"find": "\\$1(\\d+)"`  
+<br/>  
 
-This has two main purposes:
-
-1. Any numbered capture group, like the double-escaped `\\$1` above, will be **replaced by the first selection** in the current file (`\\$2` will be replaced by the second selection and so on).  You can easily make find regex's this way.  After this replacement, the `find` is run.  
-2. The part of the `find` in the capture group, like `(.\\d+)` above, will be selected if the entire `find` is a match of course.  Only the first `(...)` will be selected, subsequent capture groups will be ignored.  
+> Any numbered capture group, like the double-escaped `\\$1` above, will be **replaced by the first selection** in the current file (`\\$2` will be replaced by the second selection and so on).  You can easily make generic find regex's this way, that are determined by your selections not by hard-coding them first.  After these replacements, the `find` is run.   
 
 a. This works for both find in a file or search across files, keybindings or settings.   
 b. The first selection, which can be just a cursor in a word, is really the first selection made in the file - it may actually appear before or after the second selection!  
