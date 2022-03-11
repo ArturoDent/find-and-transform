@@ -7,8 +7,8 @@ const path = require('path');
  * @description - from the language configuration for the current file
  * @description - get the value of config argument
  *
- * @param {String} langID - the languageID of the desired language configuration
- * @param {String} config - the language configuration to get, e.g., 'comments.lineComment' or 'autoClosingPairs'
+ * @param {string} langID - the languageID of the desired language configuration
+ * @param {string} config - the language configuration to get, e.g., 'comments.lineComment' or 'autoClosingPairs'
  *
  * @returns {Promise<any>} - string or array or null if can't be found
  */

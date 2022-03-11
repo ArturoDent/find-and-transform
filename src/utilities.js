@@ -8,8 +8,8 @@ const searchCommands = require('./search');
 
 /**
  * Get the relative path to the workspace folder  
- * @param {String} filePath   
- * @returns {String} relativePath of file 
+ * @param {string} filePath   
+ * @returns {string} relativePath of file 
  */
 exports.getRelativeFilePath = function (filePath) {
 
@@ -30,8 +30,8 @@ exports.getRelativeFilePath = function (filePath) {
 
 /**
  * Get the relative path to the workspace folder  
- * @param {String} filePath   
- * @returns {String} relativePath of folder
+ * @param {string} filePath   
+ * @returns {string} relativePath of folder
  */
 exports.getRelativeFolderPath = function (filePath) {
 
@@ -77,8 +77,8 @@ exports.getSearchResultsFiles = async function () {
  * first_second_third => FirstSecondThird  
  * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/snippetParser.ts}  
  * 
- * @param {String} value - string to transform to PascalCase  
- * @returns {String} transformed value  
+ * @param {string} value - string to transform to PascalCase  
+ * @returns {string} transformed value  
  */
 exports.toPascalCase = function(value) {
 
@@ -99,8 +99,8 @@ exports.toPascalCase = function(value) {
  * first_second_third => firstSecondThird  
  * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/snippetParser.ts}  
  * 
- * @param {String} value - string to transform to camelCase
- * @returns {String} transformed value  
+ * @param {string} value - string to transform to camelCase
+ * @returns {string} transformed value  
  */
 exports.toCamelCase = function (value) {
 
@@ -124,8 +124,8 @@ exports.toCamelCase = function (value) {
  * Check args of commands: keys and values
  *  
  * @param {Array} args from keybindings or settings
- * @param {String} fromWhere findBinding/findSetting/searchBinding/searchSetting
- * @returns {Promise<Object>}  of badKeys or badValues 
+ * @param {string} fromWhere findBinding/findSetting/searchBinding/searchSetting
+ * @returns {Promise<object>}  of badKeys or badValues 
  */
 exports.checkArgs = async function (args, fromWhere) {
 
@@ -166,10 +166,10 @@ exports.checkArgs = async function (args, fromWhere) {
 
 /**
  * 
- * @param {Object} badObject - badKeys and badValues
- * @param {Boolean} modal - show a modal dialog
- * @param {String} name - setting name, if any
- * @returns {Promise<Boolean>} - ignore
+ * @param {object} badObject - badKeys and badValues
+ * @param {boolean} modal - show a modal dialog
+ * @param {string} name - setting name, if any
+ * @returns {Promise<boolean>} - ignore
  */
 exports.showBadKeyValueMessage = async function (badObject, modal, name) {
 	

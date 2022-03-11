@@ -513,7 +513,7 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
 /**
  * If find has ${lineNumber} or ${lineIndex} check match on each line 
  * 
- * @param {String} find - value to match
+ * @param {string} find - value to match
  * @param {vscode.Range} range - line or selection range within which to search
  * @returns {Array} of matches
  */
@@ -778,11 +778,11 @@ exports.replaceInSelections = function (editor, edit, args) {
 
 /**
  * Wrap or escape the findValue if matchWholeWord or not a regexp.
- * @param {String} findValue 
- * @param {Boolean} isRegex 
- * @param {Boolean} matchWholeWord 
- * @param {Boolean} madeFind 
- * @returns {String} findValue escaped or wrapped
+ * @param {string} findValue 
+ * @param {boolean} isRegex 
+ * @param {boolean} matchWholeWord 
+ * @param {boolean} madeFind 
+ * @returns {string} findValue escaped or wrapped
  */
 function _adjustFindValue(findValue, isRegex, matchWholeWord, madeFind) {
 

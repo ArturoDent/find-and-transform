@@ -91,7 +91,7 @@ exports.loadCommands = async function (findSettings, searchSettings, context, en
 /**
  * Transform the settings into package.json-style commands {command: "", title: ""}
  * @param {object} settings - this extension's settings from getCurrentSettings()
- * @param {Boolean} enableWarningDialog
+ * @param {boolean} enableWarningDialog
  * @returns { Promise<vscode.Command[] | any[]> } - package.json form of 'contributes.commands'
  */
 async function _makePackageCommandsFromFindSettings(settings, enableWarningDialog) {
@@ -130,7 +130,7 @@ async function _makePackageCommandsFromFindSettings(settings, enableWarningDialo
 /**
  * Transform the settings into package.json-style commands {command: "", title: ""}
  * @param {object} settings - this extension's settings from getCurrentSettings()
- * @param {Boolean} enableWarningDialog
+ * @param {boolean} enableWarningDialog
  * @returns { Promise<any[]|vscode.Command[]> } - package.json form of 'contributes.commands'
  */
 async function _makePackageCommandsFromSearchSettings(settings, enableWarningDialog) {

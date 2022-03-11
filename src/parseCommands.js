@@ -40,7 +40,7 @@ exports.buildJSOperationsFromArgs = async function (arg) {
  * 
  * @param {vscode.TextEditor} editor
  * @param {vscode.TextEditorEdit} edit
- * @param { Object } args
+ * @param {object} args
  */
 exports.splitFindCommands = async function (editor, edit, args) {
 
@@ -94,9 +94,9 @@ exports.splitFindCommands = async function (editor, edit, args) {
 /**
  * Get the args for each step in a possible find/replace array of commands.
  * 
- * @param {Object} args - all args from a 'findInCurrentFile' keybinding or setting
- * @param {Number} index - for which step to retrieve its args
- * @returns {Promise<Object>} - all args for this command
+ * @param {object} args - all args from a 'findInCurrentFile' keybinding or setting
+ * @param {number} index - for which step to retrieve its args
+ * @returns {Promise<object>} - all args for this command
  */
 async function _buildArgs(args, index)  {
 
@@ -189,7 +189,7 @@ async function _buildArgs(args, index)  {
  * to parse the args to get the 'filesToInclude' search arg.
  * 
  * @param {Array} commandArgs 
- * @param {String} resourceType - file or folder
+ * @param {string} resourceType - file or folder
  * @returns {Promise<String>} - folders/files for the 'filesToInclude' arg
  */
 exports.parseArgs = async function (commandArgs, resourceType) {

@@ -2,7 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "2.4.1",
+ "version": "2.4.2",
  "engines": {
   "vscode": "^1.56.0"
  },

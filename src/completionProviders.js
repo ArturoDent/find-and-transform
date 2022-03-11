@@ -274,7 +274,7 @@ function _completeArgs(linePrefix, position, find, search, arg) {
  * Get the keybinding where the cursor is located.
  * 
  * @param {jsonc.Node} rootNode - all parsed confogs in keybindings.json
- * @param {Number} offset - of cursor position
+ * @param {number} offset - of cursor position
  * @returns {jsonc.Node} - the node where the cursor is located
  */
 function _findConfig(rootNode, offset)  {
@@ -290,8 +290,8 @@ function _findConfig(rootNode, offset)  {
 /**
  * Make CompletionItem arrays, eliminate already used option keys found in the args text
  *
- * @param   {String[]} argArray - options for forward or backward commands
- * @param   {String} argsText - text of the 'args' options:  "args": { .... }
+ * @param   {string[]} argArray - options for forward or backward commands
+ * @param   {string} argsText - text of the 'args' options:  "args": { .... }
  * @param   {vscode.Position} position - cursor position
  * @returns {Array<vscode.CompletionItem>}
  */
@@ -369,7 +369,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
  * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
  * 
  * @param   {vscode.Position} position
- * @param   {String} trigger - triggered by '$' so include its range
+ * @param   {string} trigger - triggered by '$' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
 function _completePathVariables(position, trigger) {
@@ -409,7 +409,7 @@ function _completePathVariables(position, trigger) {
  * Make completion items for 'snippet' variables starting with a '$' sign
  * 
  * @param   {vscode.Position} position
- * @param   {String} trigger - triggered by '$' so include its range
+ * @param   {string} trigger - triggered by '$' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
 function _completeSnippetVariables(position, trigger) {
@@ -450,7 +450,7 @@ function _completeSnippetVariables(position, trigger) {
  * Make completion items for 'replace' values starting with a '\' sign in a 'findInCurrentFile' command
  * 
  * @param   {vscode.Position} position
- * @param   {String} trigger - triggered by '$' or '$$' or '$${' so include their ranges
+ * @param   {string} trigger - triggered by '$' or '$$' or '$${' so include their ranges
  * @returns {Array<vscode.CompletionItem>}
  */
 function _completeReplaceJSOperation(position, trigger) {
@@ -473,7 +473,7 @@ Replace ***operation*** with some code.`;
  * Make completion items for 'replace' values starting with a '$' sign in a 'findInCurrentFile' command
  * 
  * @param   {vscode.Position} position
- * @param   {String} trigger - triggered by '$' so include its range
+ * @param   {string} trigger - triggered by '$' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
 function _completeReplaceFindVariables(position, trigger) {
@@ -497,7 +497,7 @@ function _completeReplaceFindVariables(position, trigger) {
  * Make completion items for 'find' values starting with a '\' sign in a 'findInCurrentFile' command
  * 
  * @param   {vscode.Position} position
- * @param   {String} trigger - triggered by '\' or '\\' so include its range
+ * @param   {string} trigger - triggered by '\' or '\\' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
 function _completeFindConditionalTransforms(position, trigger) {
@@ -569,7 +569,7 @@ function _completeRestrictFindValues(position) {
  * Make completion items for 'find' values starting with a '\' sign in a 'findInCurrentFile' command
  * 
  * @param   {vscode.Position} position
- * @param   {String} trigger - triggered by '\' or '\\' so include its range
+ * @param   {string} trigger - triggered by '\' or '\\' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
 function _completeFindCaseTransforms(position, trigger) {
@@ -603,7 +603,7 @@ Example: "find": "\\\\\\l\${relativeFile}"`)
  * Make completion items for 'replace' values starting with a '\' sign in a 'findInCurrentFile' command
  * 
  * @param   {vscode.Position} position
- * @param   {String} trigger - triggered by '\' or '\\' so include its range
+ * @param   {string} trigger - triggered by '\' or '\\' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
 function _completeReplaceCaseTransforms(position, trigger) {
@@ -645,11 +645,11 @@ Example: "find": "\\\\\\l\${relativeFile}"`)
 /**
  * From a string input make a CompletionItemKind.Text
  *
- * @param   {String} key
+ * @param   {string} key
  * @param   {vscode.Range} replaceRange
- * @param   {String|Boolean} defaultValue - default value for this option
- * @param   {String} sortText - sort order of item in completions
- * @param   {String} documentation - markdown description of each item
+ * @param   {string|boolean} defaultValue - default value for this option
+ * @param   {string} sortText - sort order of item in completions
+ * @param   {string} documentation - markdown description of each item
  * @returns {vscode.CompletionItem} - CompletionItemKind.Text
  */
 function _makeCompletionItem(key, replaceRange, defaultValue, sortText, documentation) {

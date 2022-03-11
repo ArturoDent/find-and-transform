@@ -32,9 +32,9 @@ exports.replaceFindCaptureGroups = async function (findValue) {
 /**
  * Resolve the matchIndex/Number variable.
  * 
- * @param {String} variableToResolve 
- * @param {Number} replaceIndex  - for a find/replace/filesToInclude value?
- * @returns {String} - resolvedVariable with matchIndex/Number replaced
+ * @param {string} variableToResolve 
+ * @param {number} replaceIndex  - for a find/replace/filesToInclude value?
+ * @returns {string} - resolvedVariable with matchIndex/Number replaced
  */
 exports.resolveMatchVariable = function (variableToResolve, replaceIndex) {
   
@@ -50,9 +50,9 @@ exports.resolveMatchVariable = function (variableToResolve, replaceIndex) {
 /**
  * Resolve thelineIndex/Number variable.
  * 
- * @param {String} variableToResolve 
- * @param {Number} index  - match.index
- * @returns {String} - resolvedVariable with matchIndex/Number replaced
+ * @param {string} variableToResolve 
+ * @param {number} index  - match.index
+ * @returns {string} - resolvedVariable with matchIndex/Number replaced
  */
 exports.resolveLineVariable = function (variableToResolve, index) {
 
@@ -69,15 +69,15 @@ exports.resolveLineVariable = function (variableToResolve, index) {
 /**
  * If the "filesToInclude/find/replace" entry uses a path variable(s) return the resolved value  
  * 
- * @param {String} variableToResolve - the "filesToInclude/find/replace" value 
+ * @param {string} variableToResolve - the "filesToInclude/find/replace" value 
  * @param {Object} args -  keybinding/settings args
- * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude 
+ * @param {string} caller - if called from a find.parseVariables() or replace or filesToInclude 
  * @param {vscode.Selection} selection - current selection
  * @param {Object} match - the current match
- * @param {Number} selectionStartIndex - in the start index of this selection
- * @param {Number} matchIndex - which match is it
+ * @param {number} selectionStartIndex - in the start index of this selection
+ * @param {number} matchIndex - which match is it
  * 
- * @returns {String} - the resolved path variable
+ * @returns {string} - the resolved path variable
  */
  function _resolvePathVariables (variableToResolve, args, caller, selection, match, selectionStartIndex, matchIndex) {
 
@@ -225,12 +225,12 @@ exports.resolveLineVariable = function (variableToResolve, index) {
 /**
  * If the "filesToInclude/find/replace" entry uses a path variable(s) return the resolved value  
  * 
- * @param {String} variableToResolve - the "filesToInclude/find/replace" value 
+ * @param {string} variableToResolve - the "filesToInclude/find/replace" value 
  * @param {Object} args -  keybinding/settings args
- * @param {String} caller - if called from a find.parseVariables() or replace or filesToInclude 
+ * @param {string} caller - if called from a find.parseVariables() or replace or filesToInclude 
  * @param {vscode.Selection} selection - current selection
  * @param {Object} groups - the current match
- * @returns {String} - the resolved path variable
+ * @returns {string} - the resolved path variable
  */
  function _resolveSnippetVariables (variableToResolve, args, caller, selection, groups) {
 
@@ -356,9 +356,9 @@ exports.resolveLineVariable = function (variableToResolve, index) {
  * Build the replaceString by updating the setting 'replaceValue' to
  * account for case modifiers, capture groups and conditionals
  *
- * @param {String} replaceValue
+ * @param {string} replaceValue
  * @param {Object} args - keybinding/setting args
- * @param {String} caller - find/replace/cursorMoveSelect
+ * @param {string} caller - find/replace/cursorMoveSelect
  * @param {vscode.Selection} selection - the current selection
  * 
  * @returns {Promise<string>} - the resolved string
@@ -402,11 +402,11 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
  * account for case modifiers, capture groups and conditionals
  *
  * @param {Object} args - keybinding/settings args
- * @param {String} caller - find/replace/cursorMoveSelect
+ * @param {string} caller - find/replace/cursorMoveSelect
  * @param {Array} groups - may be a single match
  * @param {vscode.Selection} selection - the current selection
- * @param {Number} matchIndex - which match is it
- * @returns {String} - the resolved string
+ * @param {number} matchIndex - which match is it
+ * @returns {string} - the resolved string
  */
 exports.buildReplace = function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
 
@@ -461,21 +461,21 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
   if (caller !== "find") {
   
     // --------------------  caseModifier/capGroup --------------------------------------------------
-    re = new RegExp("(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d\\d?\\}?)", "g");
+    re = new RegExp("(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d\\}?)", "g");
       
     resolved = resolved.replaceAll(re, (match, p1, p2, offset, string, namedGroups) =>
       _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, ""));
     // --------------------  caseModifier/capGroup --------------------------------------------------
       
     // --------------------  caseTransform ----------------------------------------------------------
-    re = new RegExp("(?<caseTransform>\\$\\{(\\d\\d?):\\/((up|down|pascal|camel)case|capitalize)\\})", "g");
+    re = new RegExp("(?<caseTransform>\\$\\{(\\d):\\/((up|down|pascal|camel)case|capitalize)\\})", "g");
 
     resolved = resolved.replaceAll(re, (match, p1, p2, p3, p4, offset, string, namedGroups) =>
       _applyCaseTransform(match, p1, p2, p3, p4, offset, string, namedGroups, groups));
     // --------------------  caseTransform ----------------------------------------------------------
     
     // --------------------  conditional ------------------------------------------------------------
-    re = new RegExp("(?<conditional>\\$\\{(\\d\\d?):([-+?]?)(.*?)\\})", "g");
+    re = new RegExp("(?<conditional>\\$\\{(\\d):([-+?]?)(.*?)\\})", "g");
     
     // // if a '}' in a replacement? => '\\}' must be escaped
     // // ${1:+${2}}  ?  => ${1:+`$2`} or ${1:+`$2`} note the backticks or ${1:+$1 pardner}
@@ -485,7 +485,7 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     // --------------------  conditional -----------------------------------------------------------
     
     // --------------------  capGroupOnly ----------------------------------------------------------
-    re = new RegExp("(?<capGroupOnly>(?<!\\$)\\$\{(\\d\\d?)\\}|(?<!\\$)\\$(\\d\\d?))", "g");
+    re = new RegExp("(?<capGroupOnly>(?<!\\$)\\$\{(\\d)\\}|(?<!\\$)\\$(\\d))", "g");
     
     resolved = resolved.replaceAll(re, function (match, p1, p2, p3, offset) {
       
@@ -511,7 +511,7 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     
     resolved = resolved.replaceAll(re, function (match, p1, operation) {
       // checking for capture groups, etc. is not necessary, already done above
-      return Function(`"use strict"; ${operation}`)();
+      return Function(`"use strict";  ${operation}`)();
     });
     // -------------------  jsOp ------------------------------------------------------------------
   }
@@ -523,16 +523,16 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
 /**
  * Apply case modifier, like '\\U' to capture groups $1, etc..
  * 
- * @param {String} match
- * @param {String} p1 - capture group 1
- * @param {String} p2 - capture group 2
- * @param {Number} offset - offset index of this match
- * @param {String} string - the entire matched string
+ * @param {string} match
+ * @param {string} p1 - capture group 1
+ * @param {string} p2 - capture group 2
+ * @param {number} offset - offset index of this match
+ * @param {string} string - the entire matched string
  * @param {Object} namedGroups
  * @param {Object} groups
- * @param {String} resolvedPathVariable
+ * @param {string} resolvedPathVariable
  * 
- * @returns {String} - case-modified text
+ * @returns {string} - case-modified text
  */
 function _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, resolvedPathVariable) {
 
@@ -578,16 +578,16 @@ function _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, 
 /**
  * Apply case transform, like '${1:/upcase}' to text.
  * 
- * @param   {String} match 
- * @param   {String} p1 - capture group 1
- * @param   {String} p2 - capture group 2
- * @param   {String} p3 - capture group 3
- * @param   {String} p4 - capture group 4
- * @param   {Number} offset - offset index of this match
- * @param   {String} string - entire matched string
+ * @param   {string} match 
+ * @param   {string} p1 - capture group 1
+ * @param   {string} p2 - capture group 2
+ * @param   {string} p3 - capture group 3
+ * @param   {string} p4 - capture group 4
+ * @param   {number} offset - offset index of this match
+ * @param   {string} string - entire matched string
  * @param   {Object} namedGroups
  * @param   {Object} groups
- * @returns {String} - modified text
+ * @returns {string} - modified text
  */
 function _applyCaseTransform(match, p1, p2, p3, p4, offset, string, namedGroups, groups) {
   
@@ -622,16 +622,16 @@ function _applyCaseTransform(match, p1, p2, p3, p4, offset, string, namedGroups,
 /**
  * Apply conditional transform, like '${1:+ add text }' to text.
  * 
- * @param   {String} match 
- * @param   {String} p1 - capture group 1
- * @param   {String} p2 - capture group 2
- * @param   {String} p3 - capture group 3
- * @param   {String} p4 - capture group 4
- * @param   {Number} offset - offset index of this match
- * @param   {String} string - entire matched string
+ * @param   {string} match 
+ * @param   {string} p1 - capture group 1
+ * @param   {string} p2 - capture group 2
+ * @param   {string} p3 - capture group 3
+ * @param   {string} p4 - capture group 4
+ * @param   {number} offset - offset index of this match
+ * @param   {string} string - entire matched string
  * @param   {Object} namedGroups
  * @param   {Object} groups
- * @returns {String} - modified text
+ * @returns {string} - modified text
  */
 function _applyConditionalTransform(match, p1, p2, p3, p4, offset, string, namedGroups, groups) {
   
@@ -672,9 +672,9 @@ function _applyConditionalTransform(match, p1, p2, p3, p4, offset, string, named
 /**
  * Are there capture groups, like `$1` in this conditional replacement text?
  * 
- * @param {String} replacement 
+ * @param {string} replacement 
  * @param {Array} groups 
- * @returns {String} - resolve the capture group
+ * @returns {string} - resolve the capture group
  */
 function _checkForCaptureGroupsInConditionalReplacement(replacement, groups) {
 

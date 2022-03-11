@@ -280,7 +280,7 @@ d. If you use a numbered capture group higher than the number of selections, tho
     
     "find": "\\$1(\\d+)",            // double-escaping necessary
     
-    // "find": "\\$1(\\d+)\\$2",     // can have multiple capture groups
+    // "find": "\\$1(\\d+)\\$2",     // up to 9 capture groups
     // "replace": "",                // if no replace, matches will be highlighted
     
     // "isRegex": true necessary if other parts of the find use regexp's, like \\d, etc.
@@ -1647,7 +1647,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 
 * 2.3.0  Can now execute vscode commands with arguments.   
 
-* 2.4.0  Use capture groups in `find`.  
+* 2.4.0  Use capture groups in `find`.   
+&emsp;&emsp;2.4.2 Restrict number of capture groups to 9.   
 
 <br/> 
 

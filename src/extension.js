@@ -49,7 +49,7 @@ async function activate(context) {
 
     args.filesToInclude = await parseCommands.parseArgs(commandArgs, "folder");
     args.triggerSearch = true;
-    searchCommands.useSearchPanel(args);
+    await searchCommands.useSearchPanel(args);
 	});
 
 	context.subscriptions.push(contextMenuCommandFolder);
@@ -71,7 +71,7 @@ async function activate(context) {
 
     args.filesToInclude = await parseCommands.parseArgs(commandArgs, "file");
     args.triggerSearch = true;
-		searchCommands.useSearchPanel(args);
+		await searchCommands.useSearchPanel(args);
 	});
 
 	context.subscriptions.push(contextMenuCommandFile);
@@ -97,7 +97,7 @@ async function activate(context) {
     args.triggerSearch = true;
     args.filesToInclude = await utilities.getSearchResultsFiles();
 
-		searchCommands.useSearchPanel(args);
+		await searchCommands.useSearchPanel(args);
 	});
 
 	context.subscriptions.push(contextMenuCommandResults);  
@@ -243,7 +243,7 @@ async function activate(context) {
  * 
  * @param {vscode.ExtensionContext} context 
  * @param {Array<vscode.Disposable>} disposables
- * @param {Boolean} firstRun 
+ * @param {boolean} firstRun 
  */
 async function _loadSettingsAsCommands(context, disposables, firstRun) {
 

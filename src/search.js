@@ -6,7 +6,7 @@ const variables = require('./variables');
 /**
  * Input argsArray is an object from runInSearchPanel keybindings or settings
  * @param {Array} argsArray
- * @returns {Promise<Object>} - an array of objects {key: value}
+ * @returns {Promise<object>} - an array of objects {key: value}
  */
 exports.getObjectFromArgs = async function (argsArray) {
 
@@ -30,7 +30,7 @@ exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "match
 
 /**
  * Get just the runSearchInPanel args values, like true/false, "selections", etc.
- * @returns {Object}
+ * @returns {object}
  */
 exports.getValues = function () {    // removed "isCaseSensitive" in favor of "matchCase"
 	return {
@@ -44,7 +44,7 @@ exports.getValues = function () {    // removed "isCaseSensitive" in favor of "m
 
 /**
  * Get the default values for all runInSearchPanel keys
- * @returns {Object} - {"title": "", "find": ""}
+ * @returns {object} - {"title": "", "find": ""}
  */
 exports.getDefaults = function () {
 	return {
@@ -70,7 +70,7 @@ exports.getDefaults = function () {
 
 /**
  * Register a command that uses the Search Panel
- * @param {Object} args - the keybinding/settings args
+ * @param {object} args - the keybinding/settings args
  */
 exports.useSearchPanel = async function (args) {
 
