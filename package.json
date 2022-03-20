@@ -2,7 +2,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "2.4.2",
+ "version": "2.4.3",
  "engines": {
   "vscode": "^1.56.0"
  },
@@ -31,7 +31,7 @@
  ],
  "activationEvents": [
   "onStartupFinished",
-  "onCommand:findInCurrentFile.findRequireDecodeReferences",
+  "onCommand:findInCurrentFile.addClassToElement",
   "onCommand:runInSearchPanel.searchRequireDecodeReferences"
  ],
  "contributes": {
@@ -101,8 +101,8 @@
     "category": "Find-Transform"
    },
    {
-    "command": "findInCurrentFile.findRequireDecodeReferences",
-    "title": "Find in file: package function references",
+    "command": "findInCurrentFile.addClassToElement",
+    "title": "Add Class to Html Element",
     "category": "Find-Transform"
    },
    {

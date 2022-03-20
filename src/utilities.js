@@ -44,6 +44,7 @@ exports.getRelativeFolderPath = function (filePath) {
 }
 
 
+
 /**
  * Get the relative paths of the current search results 
  * for the next `runInSearchPanel` call  

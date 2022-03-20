@@ -3,6 +3,10 @@ const jsonc = require("jsonc-parser");
 const fs = require('fs');
 const path = require('path');
 
+function _getLanguagesToSkip  () {
+  return ['log', 'Log', 'search-result', 'plaintext', 'scminput', 'properties', 'csv', 'tsv', 'excel'];
+}
+
 /**
  * @description - from the language configuration for the current file
  * @description - get the value of config argument
@@ -13,6 +17,8 @@ const path = require('path');
  * @returns {Promise<any>} - string or array or null if can't be found
  */
 exports.get = async function (langID, config) {
+  
+  if (_getLanguagesToSkip().includes(langID)) return null;
 
 	// const currentLanguageConfig = languageConfigs.get('javascript', 'comments');
 	let configArg;
@@ -39,7 +45,7 @@ exports.get = async function (langID, config) {
 				_packageLangData => (_packageLangData.id === langID)
 			);
 			// If found, get the absolute config file path
-			if (!!packageLangData) {
+			if (!!packageLangData && packageLangData.configuration) {
 				langConfigFilePath = path.join(
 					_ext.extensionPath,
 					packageLangData.configuration

@@ -11,13 +11,11 @@ let disposables = [];
 
 let enableWarningDialog = false;
 
-
 /**
  * @param {vscode.ExtensionContext} context
  */
 async function activate(context) {
-  
-  
+   
 	let firstRun = true;
 
   await _loadSettingsAsCommands(context, disposables, firstRun);
@@ -59,7 +57,7 @@ async function activate(context) {
 	// make a context menu "searchInFile" command for searches in the Search Panel: "Search in File(s)"
 	// parse args to get filesToInclude entry
 	let contextMenuCommandFile = vscode.commands.registerCommand('find-and-transform.searchInFile', async (...commandArgs) => {
-
+    
     let args = {};
 
     if (commandArgs?.length === 1 && !(commandArgs[0] instanceof vscode.Uri)) {   // if from keybinding

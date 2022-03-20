@@ -976,7 +976,7 @@ Example keybinding:
 You can use the `cursorMoveSelect` option with the below `restrictFind` options.  
 
 4. `"restrictFind": "document"` the **default**, make all replacements in the document, select all of them.  
-5. `"restrictFind": "once"` make the next replacement on the **same line** only.  
+5. `"restrictFind": "once"` make the next replacement **after the cursor** on the **same line** only.  
 6. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
 7. `"restrictFind": "selections"` make all replacements in the selections only. 
 
@@ -1520,7 +1520,7 @@ Explanation: Find the first `>` within selection(s) and replace them with ` clas
 
 <br/>
 
-* `"restrictFind": "once"` => find the FIRST instance of the `find` query AFTER the cursor, replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.  
+* `"restrictFind": "once"` => find the FIRST instance of the `find` query AFTER the cursor (so if your cursor is in the middle of a word, only part of that word is **after** the cursor), replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.  
 
 * `"restrictFind": "line"` => find all instances of the `find` query on the entire line with the cursor, replace them and then go to and select All `cursorMoveSelect` values if any.  Works on each line if multiple cursors.  But it only considers the line where the cursor(s) is, so if there is a multi-line selection, only the line with the cursor is searched.   
 
@@ -1648,7 +1648,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 2.3.0  Can now execute vscode commands with arguments.   
 
 * 2.4.0  Use capture groups in `find`.   
-&emsp;&emsp;2.4.2 Restrict number of capture groups to 9.   
+&emsp;&emsp;2.4.2 Restrict number of capture groups to 9.  
+&emsp;&emsp;2.4.3 Fixed `cursorMoveSelect` and once/line.  Added ignore langID's.     
 
 <br/> 
 

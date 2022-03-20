@@ -167,19 +167,20 @@ exports.findAndSelect = function (editor, args) {
         else  if (resolvedFind?.length) {
           const fullLine = editor.document.lineAt(selection.active.line).text;
           // to not include the word under cursor TODO?
-          // searchText = fullLine.substring(selection.active.character);
-          const wordRangeAtCursor = editor.document.getWordRangeAtPosition(selection.active);
-          if (wordRangeAtCursor) searchText = fullLine.substring(wordRangeAtCursor?.start?.character);
-          else searchText = fullLine.substring(selection?.start?.character);
+          // const wordRangeAtCursor = editor.document.getWordRangeAtPosition(selection.end);
+          // if (wordRangeAtCursor) searchText = fullLine.substring(wordRangeAtCursor?.end?.character);
+          // else searchText = fullLine.substring(selection?.end?.character);
+          searchText = fullLine.substring(selection?.end?.character);
           
           if (!searchText) return;
           
           matches = [...searchText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
-          lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
+          lineIndex = editor.document.offsetAt(new vscode.Position(selection.end.line, 0));
           // this starts at the beginning of the current word
-          subStringIndex = editor.document.getWordRangeAtPosition(selection.active)?.start?.character;
-          // if no curent word = empty line or at spaces between words or at end of a line with a space
-          if (subStringIndex === undefined) subStringIndex = selection.active?.character;
+          // subStringIndex = editor.document.getWordRangeAtPosition(selection.end)?.start?.character;
+          // // if no curent word = empty line or at spaces between words or at end of a line with a space
+          // if (subStringIndex === undefined) subStringIndex = selection.end?.character;
+          subStringIndex = selection.end?.character;
         }
 
         if (matches?.length) {  // just do once
@@ -210,6 +211,7 @@ exports.replaceInLine = function (editor, edit, args) {
 		// get all the matches on the line
     let lineIndex;
     let lines = [];
+    let lineMatches = [];  // for cursorMoveSelect
     let index = 0;
 
     // handle 'Error: Overlapping ranges are not allowed!` 2 cursors on the same line
@@ -222,11 +224,6 @@ exports.replaceInLine = function (editor, edit, args) {
         let resolvedFind = variables.buildReplace(args, "find", null, selection, null, index);
         resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
         if (!resolvedFind && !args.replace) return;
-        
-        // if (args.isRegex) {
-        //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-        //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-        // }
 
         const re = new RegExp(resolvedFind, args.regexOptions);
         currentLine = editor.document.getText(editor.document.lineAt(selection.active.line).rangeIncludingLineBreak);
@@ -250,6 +247,7 @@ exports.replaceInLine = function (editor, edit, args) {
           const endPos = editor.document.positionAt(lineIndex + match.index + match[0].length);
           const matchRange = new vscode.Range(startPos, endPos);
           edit.replace(matchRange, resolvedReplace); // 'Error: Overlapping ranges are not allowed!`
+          lineMatches[index] = match;
           lines[index++] = startPos.line;
           // should these select? or clear all selections?
         });
@@ -265,7 +263,7 @@ exports.replaceInLine = function (editor, edit, args) {
 
         for (const line of lines) {
 
-          let cursorMoveSelect = variables.buildReplace(args, "cursorMoveSelect", line, editor.selection, null, index);
+          let cursorMoveSelect = variables.buildReplace(args, "cursorMoveSelect", lineMatches[index], editor.selection, null, index);
           index++;
           
           if (args.isRegex) {
@@ -300,6 +298,7 @@ exports.replaceInLine = function (editor, edit, args) {
     let subStringIndex;
     let lines = [];
     let subStringIndices = [];
+    let lineMatches = [];      // for cursorMoveSelect
     
     editor.edit(function (edit) {
 
@@ -309,29 +308,27 @@ exports.replaceInLine = function (editor, edit, args) {
         let resolvedFind = variables.buildReplace(args, "find", null, selection, null, index);
         resolvedFind = _adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
         if (!resolvedFind && !args.replace) return;  // correct here or already handled in findAndSelect?
-        
-        // if (args.isRegex) {
-        //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-        //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-        // }        
 
         const re = new RegExp(resolvedFind, args.regexOptions);
         // get first match on line from cursor forward
         fullLine = editor.document.getText(editor.document.lineAt(selection.active.line).rangeIncludingLineBreak);
-        // currentLine = fullLine.substring(selection.active.character);
-        const currentWordRange = editor.document.getWordRangeAtPosition(selection.active);
-        if (resolvedFind && !currentWordRange) return;
         
-        subStringIndex = currentWordRange.start.character;        
-        // currentLine = fullLine.substring(selection.active.character);
-        currentLine = fullLine.substring(subStringIndex);        
+        // const currentWordRange = editor.document.getWordRangeAtPosition(selection.active);
+        // what did the below solve?  TODO
+        // if (resolvedFind && !currentWordRange) return;
+        
+        // subStringIndex = currentWordRange.start.character;        
+        // currentLine = fullLine.substring(subStringIndex);  
+        subStringIndex = selection.end?.character;
+        // subStringIndex = currentWordRange.end.character; 
+        currentLine = fullLine.substring(selection.end.character);
         
         // use matchAll() to get index even though only using the first one
         const matches = [...currentLine.matchAll(re)];
 
         if (matches.length) {  // just do once
           
-          lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
+          lineIndex = editor.document.offsetAt(new vscode.Position(selection.end.line, 0));
           // subStringIndex = selection.active.character;
 
           let resolvedReplace = variables.buildReplace(args, "replace", matches[0], selection, null, index);
@@ -342,7 +339,8 @@ exports.replaceInLine = function (editor, edit, args) {
 
           edit.replace(matchRange, resolvedReplace);
           lines[index] = startPos.line;
-          subStringIndices[index++] = subStringIndex + matches[0].index; // so cursorMoveSelect is only after a once match
+          lineMatches[index] = matches[0];
+          subStringIndices[index++] = subStringIndex + matches[0].index; // so cursorMoveSelect is only **after** a once match
           // should these select? else get weird effect where vscode tries to maintain the selection size if a wordAtCursor
         }
       });
@@ -356,8 +354,9 @@ exports.replaceInLine = function (editor, edit, args) {
         let index = 0;
         for (const line of lines) {
 
-          let cursorMoveSelect = variables.buildReplace(args, "cursorMoveSelect", line, editor.selection, null, index);
-
+          // let cursorMoveSelect = variables.buildReplace(args, "cursorMoveSelect", line, editor.selection, null, index);
+          let cursorMoveSelect = variables.buildReplace(args, "cursorMoveSelect", lineMatches[index], editor.selection, null, index);
+          
           // TODO check this
           if (args.isRegex) {
             if (cursorMoveSelect === "^") cursorMoveSelect = "^(?!\n)";
@@ -404,6 +403,7 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
   let resolvedReplace;
   let matchEndPos;
   let documentBeforeCursor;
+
   
   let matches;
   let match;
