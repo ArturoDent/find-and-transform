@@ -763,7 +763,9 @@ exports.makeFind = function (selections, args) {
 
   // if .size of the set is greater than 1 then isRegex must be true
   if (textSet.size > 1) mustBeRegex = true;
-  if (args.isRegex && find.length) find = `\\b(${ find })\\b`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
+  // if (args.isRegex && find.length) find = `\\b(${ find })\\b`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
+  if (args.isRegex && find.length) find = `(${ find })`;  // e.g. "(word|some words|more)"
+  
 
   return { find, mustBeRegex, emptyPointSelections };
 }
