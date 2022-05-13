@@ -21,9 +21,10 @@ exports.buildJSOperationsFromArgs = async function (arg) {
     const start = arg.findIndex(el => el === "$${");
     const end = arg.findIndex(element => element === '}$$');
     if (start !== -1 && end !== -1) {
-      // const opArray = arg.slice(start, end + 1);
-      // const operation = opArray.join('');
-      const operation = arg.slice(start, end + 1).join('');
+      // below makes the semicolons optional, 2 in a row is okay
+      const operation = arg.slice(start, end + 1).join(';');
+      // const operation = arg.slice(start, end + 1).join('');
+      
       arg.splice(start, end+1 - start, operation);
       index = start;
     }

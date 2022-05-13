@@ -9,7 +9,7 @@ const variables = require('./variables');
  * @returns {Promise<object>} - an array of objects {key: value}
  */
 exports.getObjectFromArgs = async function (argsArray) {
-
+  
   const args = {};
 
 	// could be bad keys/values here

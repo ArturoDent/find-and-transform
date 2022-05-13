@@ -39,11 +39,11 @@ You may want to restrict this action to certain languages.   Use this form:
 "[javascript]": {                       // will only run when saving a javascript file
   "editor.codeActionsOnSave": [
     "source.upcaseSwap",                // all commands must start with "source."
-   "source.upcaseSelectedKeywords"
+    "source.upcaseSelectedKeywords"
   ]
 }
 ```
 
-The commands will be run in the order listed.  So you could chain together find/replaces that must run in a certain order.   
+The commands will be run in the order listed.  So you could chain together find/replaces that must run in a certain order on save.   
 
 <br/>
