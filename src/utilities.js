@@ -1,4 +1,5 @@
 const vscode = require('vscode');
+const languageConfigs = require('./getLanguageConfig');
 const path = require('path');
 const os = require('os');
 
@@ -45,6 +46,51 @@ exports.getRelativeFolderPath = function (filePath) {
 
 
 /**
+ * Get the language configuration comments object for  the current file
+ * @returns {Promise<object|undefined>} comments object
+ */
+ exports.getlanguageConfigComments = async function (args) {
+  // do only if $LINE_COMMENT, $BLOCK_COMMENT_START, $BLOCK_COMMENT_END
+  let re = /\$\{LINE_COMMENT\}|\$\{BLOCK_COMMENT_START\}|\$\{BLOCK_COMMENT_END\}/;
+  if (args.find?.search(re) !== -1 || args.replace?.search(re) !== -1) {
+    const documentLanguageId = vscode.window.activeTextEditor.document.languageId;
+    return await languageConfigs.get(documentLanguageId, 'comments');
+  }
+	else return undefined;
+}
+
+/**
+ * Get the language configuration comments object for  the current file
+ * @returns {Promise<string>} comments object
+ */
+exports.getResultsFiles = async function (args) {
+
+	await vscode.commands.executeCommand('search.action.copyAll');
+	await vscode.env.clipboard.readText()
+		.then(async results => {
+			if (results) {
+				results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
+				let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
+
+				let pathArray = resultsArray.filter(result => result !== "");
+				pathArray = pathArray.map(path => this.getRelativeFilePath(path));
+
+				await vscode.env.clipboard.writeText(args.clipText);
+				return pathArray.join(", ");
+			}
+			else {
+				// notifyMessage?
+				// put the previous clipBoard text back on the clipboard
+				await vscode.env.clipboard.writeText(args.clipText);
+				return "";
+			}
+		});
+		return "";
+
+}
+
+
+/**
  * Get the relative paths of the current search results 
  * for the next `runInSearchPanel` call  
  * 
@@ -67,7 +113,7 @@ exports.getSearchResultsFiles = async function () {
 	}
 	else {
 		// notifyMessage?
-		return undefined;
+		return "";
 	}
 } 
 

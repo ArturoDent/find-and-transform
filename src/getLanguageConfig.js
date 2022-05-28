@@ -3,13 +3,18 @@ const jsonc = require("jsonc-parser");
 const fs = require('fs');
 const path = require('path');
 
+
+/**
+ * Get an array of "languages", like plaintext, that don't have comment syntax
+ * @returns {string[]} 
+ */
 function _getLanguagesToSkip  () {
   return ['log', 'Log', 'search-result', 'plaintext', 'scminput', 'properties', 'csv', 'tsv', 'excel'];
 }
 
 /**
- * @description - from the language configuration for the current file
- * @description - get the value of config argument
+ * From the language configuration for the current file get the value of config argument
+ * Usage: await languageConfigs.get(documentLanguageId, 'comments');
  *
  * @param {string} langID - the languageID of the desired language configuration
  * @param {string} config - the language configuration to get, e.g., 'comments.lineComment' or 'autoClosingPairs'
@@ -20,7 +25,6 @@ exports.get = async function (langID, config) {
   
   if (_getLanguagesToSkip().includes(langID)) return null;
 
-	// const currentLanguageConfig = languageConfigs.get('javascript', 'comments');
 	let configArg;
 
 	if (config && config.includes('.')) configArg = config.split('.');
@@ -28,13 +32,9 @@ exports.get = async function (langID, config) {
 
 	let desiredConfig = null;  // return null default if can't be found
 
-	// for language of current editor
-	// const editor = vscode.window.activeTextEditor;
-	// const documentLanguageId = editor.document.languageId;
 	var langConfigFilePath = null;
 
 	for (const _ext of vscode.extensions.all) {
-		// All vscode default extensions ids starts with "vscode."
 		if (
 			_ext.packageJSON.contributes &&
 			_ext.packageJSON.contributes.languages

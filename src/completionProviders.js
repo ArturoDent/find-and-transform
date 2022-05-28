@@ -193,10 +193,10 @@ function _completeArgs(linePrefix, position, find, search, arg) {
 
   if (arg === 'filesToInclude' || arg === 'filesToExclude') {
     if (linePrefix.endsWith('${'))
-      return _completePathVariables(position, "${");
+      return _completePathVariables(position, "${", search);
     
     else if (linePrefix.endsWith('$'))
-      return _completePathVariables(position, '$');
+      return _completePathVariables(position, '$', search);
   }
 
  // ---------------------  find  ------------------------
@@ -204,10 +204,10 @@ function _completeArgs(linePrefix, position, find, search, arg) {
   if (arg === 'find') {
     if (linePrefix.endsWith('$'))
       // return _completePathVariables(position, '$');  // other variables?  jsOp?
-      return _completePathVariables(position, '$').concat(_completeSnippetVariables(position, '$'));  // other variables?  jsOp?
+      return _completePathVariables(position, '$', search).concat(_completeSnippetVariables(position, '$'));  // other variables?  jsOp?
     
     else if (linePrefix.endsWith('${'))
-      return _completePathVariables(position, '${').concat(_completeSnippetVariables(position, '${'));
+      return _completePathVariables(position, '${', search).concat(_completeSnippetVariables(position, '${'));
     
     else if (linePrefix.endsWith('\\\\'))
       return _completeFindCaseTransforms(position, '\\\\');
@@ -247,7 +247,7 @@ function _completeArgs(linePrefix, position, find, search, arg) {
     // } 
     
     else if (search && linePrefix.endsWith('$'))
-      return _completePathVariables(position, '$');
+      return _completePathVariables(position, '$', search);
   }
 
 // -------------------  cursorMoveSelect  ----------------------
@@ -303,7 +303,8 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
     "title": "01",
     
     "preCommands": "011",
-		"find": "012",
+    "find": "012",
+    "delay": "0121",
 		"replace": "013",
     "isRegex": "014",
     "postCommands": "015",
@@ -330,7 +331,8 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 		"title": "This will appear in the Command Palette as `Find-and-Transform:<title>`. Can include spaces.",
 
     "preCommands": "A single command, as a string, or an array of commands to run before any find occurs.",
-		"find": "Query to find or search.  Can be a regexp or plain text.",
+    "find": "Query to find or search.  Can be a regexp or plain text.",
+    "delay": "Pause, in millisceonds, between searches when you have defined an array of searches.  Usually needed to allow the prior search to complete and populate the search results if you want to use those results files in a subsequent search with: .",
 		"replace": "Replacement text.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
 		"isRegex": "Is the find query a regexp.",
     "postCommands": "A single command, as a string, or an array of commands to run after any replace occurs.",
@@ -372,14 +374,19 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
  * @param   {string} trigger - triggered by '$' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
-function _completePathVariables(position, trigger) {
+function _completePathVariables(position, trigger, search) {
 
 	// triggered by 1 '$', so include it to complete w/o two '$${file}'
 	let replaceRange;
+	let addResultFiles = undefined;
+
 	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
 	else replaceRange = new vscode.Range(position, position);
 
-	return [
+	if (search)
+		addResultFiles = _makeCompletionItem("${resultsFiles}", replaceRange, "", "052", "A comma-separated list of the files in the current search results.");
+
+	const completionItems =  [
 		_makeCompletionItem("${file}", replaceRange, "", "01", "The full path (`/home/UserName/myProject/folder/test.txt`) of the current editor."),
 		_makeCompletionItem("${relativeFile}", replaceRange, "", "011", "The path of the current editor relative to the workspaceFolder (`folder/file.ext`)."),
 		_makeCompletionItem("${fileBasename}", replaceRange, "", "012", "The basename (`file.ext`) of the current editor."),
@@ -398,11 +405,13 @@ function _completePathVariables(position, trigger) {
     _makeCompletionItem("${pathSeparator}", replaceRange, "", "042", "`/` on linux/macOS, `\\` on Windows."),
     _makeCompletionItem("${lineIndex}", replaceRange, "", "043", "The line number of the **first** cursor in the current editor, lines start at 0."),
 		_makeCompletionItem("${lineNumber}", replaceRange, "", "044", "The line number of the **first** cursor in the current editor, lines start at 1."),
-		_makeCompletionItem("${resultsFiles}", replaceRange, "", "045", "A comma-separated list of the files in the current search results."),
 
     _makeCompletionItem("${matchIndex}", replaceRange, "", "05", "The 0-based find match index. Is this the first, second, etc. match?"),
     _makeCompletionItem("${matchNumber}", replaceRange, "", "051", "The 1-based find match index. Is this the first, second, etc. match?"),
 	];
+
+	if (search) return completionItems.concat(addResultFiles);
+	else return completionItems;
 }
 
 /**
@@ -480,7 +489,7 @@ function _completeReplaceFindVariables(position, trigger) {
 
 	// triggered by 1 '$' or '$${' or '${'
 
-  const pathVariableArray = _completePathVariables(position, trigger);
+  const pathVariableArray = _completePathVariables(position, trigger, false);
   const conditionalsArray = _completeFindConditionalTransforms(position, trigger);
   const snippetVariableArray = _completeSnippetVariables(position, trigger);  
   const jsOperation = _completeReplaceJSOperation(position, trigger);
@@ -580,21 +589,21 @@ function _completeFindCaseTransforms(position, trigger) {
   else replaceRange = new vscode.Range(position, position);
 
   return [
-    _makeCompletionItem("\\\\U", replaceRange, "", "010", `Find the uppercased version of the following path variable.
+    _makeCompletionItem("\\\\U", replaceRange, "", "010", `Find the uppercased version of the following variable.
 
 Example: "find": "\\\\\\U\${relativeFile}"`),
     
-    _makeCompletionItem("\\\\u", replaceRange, "", "011", `Find the the following path variable with its first letter uppercased.
+    _makeCompletionItem("\\\\u", replaceRange, "", "011", `Find the the following variable with its first letter uppercased.
 
-Example: "find": "\\\\\\u\${relativeFile}"`),
+Example: "find": "\\\\\\u\${TM_CURRENT_WORD}"`),
     
-    _makeCompletionItem("\\\\L", replaceRange, "", "012", `Find the lowercased version of the following path variable.
+    _makeCompletionItem("\\\\L", replaceRange, "", "012", `Find the lowercased version of the following variable.
 
 Example: "find": "\\\\\\L\${relativeFile}"`),
     
-    _makeCompletionItem("\\\\l", replaceRange, "", "013", `Find the the following path variable with its first letter lowercased.
+    _makeCompletionItem("\\\\l", replaceRange, "", "013", `Find the the following variable with its first letter lowercased.
 
-Example: "find": "\\\\\\l\${relativeFile}"`)
+Example: "find": "\\\\\\l\${CURRENT_MONTH_NAME}"`)
   ];
 }
 
@@ -623,21 +632,21 @@ Replace ***n*** with some number 0-99.`;
 		_makeCompletionItem("\\\\L$n", replaceRange, "", "012", `Transform to lowercase the entire ***nth*** capture group.${ text }`),
     _makeCompletionItem("\\\\l$n", replaceRange, "", "013", `Transform to lowercase the first letter of the ***nth*** capture group.${ text }`),
     
-    _makeCompletionItem("\\\\U", replaceRange, "", "014", `Find the uppercased version of the following path variable.
+    _makeCompletionItem("\\\\U", replaceRange, "", "014", `Find the uppercased version of the following variable.
 
 Example: "find": "\\\\\\U\${relativeFile}"`),
 
-    _makeCompletionItem("\\\\u", replaceRange, "", "015", `Find the the following path variable with its first letter uppercased.
+    _makeCompletionItem("\\\\u", replaceRange, "", "015", `Find the the following variable with its first letter uppercased.
 
-Example: "find": "\\\\\\u\${relativeFile}"`),
+Example: "find": "\\\\\\u\${CURRENT_MONTH_NAME}"`),
 
-    _makeCompletionItem("\\\\L", replaceRange, "", "016", `Find the lowercased version of the following path variable.
+    _makeCompletionItem("\\\\L", replaceRange, "", "016", `Find the lowercased version of the following variable.
 
 Example: "find": "\\\\\\L\${relativeFile}"`),
 
-    _makeCompletionItem("\\\\l", replaceRange, "", "017", `Find the the following path variable with its first letter lowercased.
+    _makeCompletionItem("\\\\l", replaceRange, "", "017", `Find the the following variable with its first letter lowercased.
 
-Example: "find": "\\\\\\l\${relativeFile}"`)
+Example: "find": "\\\\\\l\$TM_CURRENT_LINE"`)
 	];
 }
 
@@ -660,6 +669,8 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 
   if (sortText) item.sortText = sortText;
   
+  const delayText = `"filesToInclude": "\${resultsFiles}"`;
+  
   const preCommandText = `"preCommands": "cursorHome"
 "preCommands": ["cursorHome", "cursorEndSelect"]`;
   
@@ -667,7 +678,9 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 "postCommands": ["cursorHome", "editor.action.clipboardCopyAction"]`;
 
   if (documentation) {
-    if (key === 'preCommands')
+    if (key === 'delay')
+      item.documentation = new vscode.MarkdownString(documentation).appendCodeblock(delayText, 'jsonc');
+    else if (key === 'preCommands')
       item.documentation = new vscode.MarkdownString(documentation).appendCodeblock(preCommandText, 'jsonc');
     else if (key === 'postCommands')
       item.documentation = new vscode.MarkdownString(documentation).appendCodeblock(postCommandText, 'jsonc');

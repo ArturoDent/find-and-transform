@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const utilities = require('./utilities');
 const variables = require('./variables');
 
+// const delay = require('node:timers/promises');
 
 /**
  * Input argsArray is an object from runInSearchPanel keybindings or settings
@@ -20,11 +21,211 @@ exports.getObjectFromArgs = async function (argsArray) {
 }
 
 /**
+ * From 'findInCurrentFile' settings or keybindings. If necessary, split and run each command in 
+ * its separate steps (if find/replace are arrays of multiple values).
+ * 
+ * @param {object} args
+ */
+exports.runAllSearches = async function (args) {
+
+	let numFindArgs = 0;
+  let numReplaceArgs = 0;
+
+  await vscode.env.clipboard.readText().then(string => {
+    args.clipText = string;
+  });
+
+  if (Array.isArray(args.find)) numFindArgs = args.find.length;
+  else if (typeof args.find == "string") numFindArgs = 1;
+   // even if no 'find' one will be created from "wordAtCursor"
+
+  if (Array.isArray(args.replace)) numReplaceArgs = args.replace.length;
+  else if (typeof args.replace == "string") numReplaceArgs = 1;
+
+  // maximum number of find/replaces in args
+  let most = (numFindArgs >= numReplaceArgs) ? numFindArgs : numReplaceArgs;
+  if (most === 0) most = 1;
+
+  // fills each arg as an array to "most" length: find: ["(first)", "second", ""]
+  // replace: ["\\U$1", "second", "third"], isRegex: [true, false, true]
+  const expandedArgs = await _expandArgs(args, numFindArgs, numReplaceArgs);
+
+  for (let index = 0; index < most; index++) { 
+
+    const splitArgs = await _buildSearchArgs(expandedArgs, index);
+    await this.useSearchPanel(splitArgs);
+    
+    // need a delay to get results files, if necessary
+    if (splitArgs.delay) await new Promise(r => setTimeout(r, splitArgs.delay));
+  }
+}
+
+/**
+ * Get the args for each step in a possible find/replace array of commands.
+ * 
+ * @param {object} args - all args from a 'findInCurrentFile' keybinding or setting
+ * @param {number} index - for which step to retrieve its args
+ * @returns {Promise<object>} - all args for this command
+ */
+async function _buildSearchArgs(args, index)  {
+
+	const editor = vscode.window.activeTextEditor;
+
+	let  indexedArgs = { isRegex: false, matchWholeWord: false, matchCase: false, triggerReplaceAll: false, filesToInclude: undefined };
+  const splitArgs = await _returnArgsByIndex(args, index);
+	Object.assign(indexedArgs, splitArgs);
+
+  indexedArgs.resultsFiles = await utilities.getSearchResultsFiles();
+
+  // find = "" is allowable and does a makeFind
+  if (!indexedArgs.find) {
+    // if multiple selections, isRegex must be true  TODO
+    const findObject = variables.makeFind(editor.selections, args);
+    indexedArgs.find = findObject.find;
+    indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
+    indexedArgs.pointReplaces = findObject.emptyPointSelections;
+  }
+
+  indexedArgs.currentLanguageConfig = await utilities.getlanguageConfigComments(indexedArgs);
+
+  //  "find": "(\\$1 \\$2)" if find has (double-escaped) capture groups 
+  // "find": "(\\U\\$1)"  TODO not in find either
+  if (indexedArgs.find && /\\\$(\d+)/.test(indexedArgs.find)) {
+    // replaceFindCaptureGroups also does case modifiers
+    indexedArgs.find = await variables.replaceFindCaptureGroups(indexedArgs.find);
+  }
+
+  // check for '${...}' some variable
+  let re = /\$\{.+\}/g;
+  if (indexedArgs.find.search(re) !== -1) {
+    indexedArgs.find = await variables.resolveSearchPathVariables(indexedArgs.find, indexedArgs, "findSearch", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.find = await variables.resolveSearchSnippetVariables(indexedArgs.find, indexedArgs, "findSearch", vscode.window.activeTextEditor.selections[0]);
+  }
+  if (indexedArgs.filesToInclude && indexedArgs.filesToInclude.search(re) !== -1) 
+      indexedArgs.filesToInclude = await variables.resolveSearchPathVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude", vscode.window.activeTextEditor.selections[0]);
+  if (indexedArgs.filesToExclude && indexedArgs.filesToExclude.search(re) !== -1) 
+      indexedArgs.filesToExclude = await variables.resolveSearchPathVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude", vscode.window.activeTextEditor.selections[0]);
+  
+  if (indexedArgs.replace && indexedArgs.replace.search(re) !== -1) {
+    indexedArgs.replace = await variables.resolveSearchPathVariables(indexedArgs.replace, indexedArgs, "replace", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.replace = await variables.resolveSearchSnippetVariables(indexedArgs.replace, indexedArgs, "replace", vscode.window.activeTextEditor.selections[0]);
+  }
+
+  // at least one more find/replace than this index
+  const numSearches = args.find.length;
+  if (numSearches > index+1) indexedArgs.triggerSearch = true;
+  else if (numSearches === index+1 && args.filesToInclude[index] === "${resultsFiles}") 
+    indexedArgs.triggerSearch = true;
+  // else indexedArgs.triggerSearch = false;
+
+	// let replaceValue = indexedArgs.replace;
+  // so triggerReplaceAll is true for the last search only no matter the setting
+  // if (numSearches === index + 1 && (replaceValue || replaceValue === "")) 
+  //   indexedArgs.triggerReplaceAll = indexedArgs.triggerReplaceAll;
+  // else indexedArgs.triggerReplaceAll = false;
+  if (numSearches > index + 1) indexedArgs.triggerReplaceAll = false;
+
+  // add a delay if trigger a search now and there is another find later
+  if (!indexedArgs.delay && indexedArgs.triggerSearch && (numSearches > index+1) )
+      indexedArgs.delay = 2000;
+  if (!indexedArgs.delay && indexedArgs.triggerReplaceAll) indexedArgs.delay = 2000;
+
+  indexedArgs.query = indexedArgs.find;
+	return indexedArgs;
+}
+
+
+/**
+ * Fill an array to the greater of numFindArgs or numReplaceArgs with args values.
+ * Including empty strings if find.length < numReplaceArgs.
+ * @param {object} args
+ * @param {number} numFindArgs
+ * @param {number} numReplaceArgs 
+ * @returns {Promise<object>} 
+ */
+async function _expandArgs(args, numFindArgs, numReplaceArgs) {
+
+  const expandedArgs = {};expandedArgs
+  let keys = module.exports.getKeys();
+
+  let most = (numFindArgs >= numReplaceArgs) ? numFindArgs : numReplaceArgs;
+  if (most === 0) most = 1;
+  keys = keys.filter(key => !(key.match(/title|preCommands|postCommands/)));
+
+  for (const key of keys) {
+
+    if (args[key] || args[key] === "") expandedArgs[key] = [];
+
+    for (let index = 0; index < most; index++) { 
+
+      if (key === "find") {
+
+        // set find = "", if numReplaceArgs > numFindArgs
+        if (Array.isArray(args[key]) && args[key].length <= index) expandedArgs[key].push("");
+        else if (Array.isArray(args[key])) expandedArgs[key].push(args[key][index]);
+        else if (index >= numFindArgs)  expandedArgs[key].push("");
+        else expandedArgs[key].push(args[key]);
+      }
+
+      else if (args[key]) {  // (key !== "find")
+        // uses the last one if less than array.length, not true for find though
+        if (Array.isArray(args[key]) && args[key].length <= index) expandedArgs[key].push(args[key][args[key].length-1]);
+        else if (Array.isArray(args[key])) expandedArgs[key].push(args[key][index]);
+        else expandedArgs[key].push(args[key]);
+      }
+    }
+  }
+  return expandedArgs;
+}
+
+/**
+ * Get an object of args for the given index. find[0], replace[0], etc.
+ * @param {object} args - all args from a 'findInCurrentFile' keybinding or setting
+ * @param {number} index - for which step to retrieve its args
+ * @returns {Promise<object>} 
+ */
+async function _returnArgsByIndex(args, index) {
+
+  const indexedArgs = {};
+  let keys = module.exports.getKeys();
+  keys = keys.filter(key => !(key.match(/title|preCommands|postCommands/)));
+
+  for (const key of keys) {
+    if (args[key]) indexedArgs[key] = args[key][index];
+  }
+  return indexedArgs;
+}
+
+
+/**
+ * Register a command that uses the Search Panel
+ * @param {object} args - the keybinding/settings args
+ */
+exports.useSearchPanel = async function (args) {
+
+  if (args.triggerReplaceAll) args.triggerSearch = true;
+  if (args.matchCase) {
+    args.isCaseSensitive = args.matchCase;  // because workbench.action.findInFiles does not use "matchCase"!!
+    delete args.matchCase;
+  }
+
+  // do args.clipText and args.resultsFiles need to be removed?  Doesn't seem to affect anything.
+	await vscode.commands.executeCommand('workbench.action.findInFiles',
+		args).then(() => {
+      if (args.triggerReplaceAll)
+        setTimeout(async () => {
+          await vscode.commands.executeCommand('search.action.replaceAll');
+				}, args.delay);
+		});
+};
+
+
+/**
  * Get just the runInSearchPanel args keys, like "title", "find", etc.
  * @returns {Array}
  */
 exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "matchCase"
-  return ["title", "preCommands", "find", "replace", "postCommands", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude",  
+  return ["title", "preCommands", "find", "replace", "delay", "postCommands", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude",  
 		"preserveCase", "useExcludeSettingsAndIgnoreFiles", "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors"];
 }
 
@@ -35,7 +236,7 @@ exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "match
 exports.getValues = function () {    // removed "isCaseSensitive" in favor of "matchCase"
 	return {
     title: "string", find: "string", replace: "string", isRegex: [true, false], matchCase: [true, false],
-    preCommands: "string", postCommands: "string",
+    preCommands: "string", postCommands: "string", delay: "number",
 		matchWholeWord: [true, false], triggerSearch: [true, false], triggerReplaceAll: [true, false],
     useExcludeSettingsAndIgnoreFiles: [true, false], preserveCase: [true, false],
 		filesToInclude: "string", filesToExclude: "string", onlyOpenEditors: [true, false]
@@ -52,6 +253,7 @@ exports.getDefaults = function () {
     "preCommands": "",
 		"find": "",
     "replace": "",
+    "delay": 0,
     "postCommands": "",
 		"restrictFind": "document",   	      
 		"triggerSearch": true,
@@ -66,85 +268,4 @@ exports.getDefaults = function () {
 		// "filesToExclude": ""
 		// "onlyOpenEditors": false
 	};
-}
-
-/**
- * Register a command that uses the Search Panel
- * @param {object} args - the keybinding/settings args
- */
-exports.useSearchPanel = async function (args) {
-
-	let clipText = "";
-  await vscode.env.clipboard.readText().then(string => {
-    args.clipText = string;
-	});
-  
-  await vscode.commands.executeCommand('search.action.copyAll');
-  await vscode.env.clipboard.readText()
-    .then(async results => {
-      if (results) {
-        results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
-        let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
-
-        let pathArray = resultsArray.filter(result => result !== "");
-        pathArray = pathArray.map(path => utilities.getRelativeFilePath(path));
-
-        args.resultsFiles = pathArray.join(", ");
-      }
-      else {
-        // notifyMessage?
-        args.resultsFiles = "";
-      }
-      // put the previous clipBoard text back on the clipboard
-      await vscode.env.clipboard.writeText(clipText);
-    });
-
-  if (args.filesToInclude) args.filesToInclude = await variables.resolveSearchPathVariables(args.filesToInclude, args, "filesToInclude", vscode.window.activeTextEditor.selections[0]);
-  if (args.filesToExclude) args.filesToExclude = await variables.resolveSearchPathVariables(args.filesToExclude, args, "filesToExclude", vscode.window.activeTextEditor.selections[0]);
-  if (args.replace) args.replace = await variables.resolveSearchPathVariables(args.replace, args, "replace", vscode.window.activeTextEditor.selections[0]);
-  
-  if (args.find) {
-    // "find": "(\\$1 \\$2)" replace capture groups with selections[n]
-    const findValue = await variables.replaceFindCaptureGroups(args.find);
-    // regex was passed as true, so changed caller to 'findSearch' from 'find'
-    args.query = await variables.resolveSearchPathVariables(findValue, args, "findSearch", vscode.window.activeTextEditor.selections[0]);
-  
-    // TODO resolve more variable types?
-    
-    delete args.find;
-  }
-  else {
-    const findObject = await variables.makeFind(vscode.window.activeTextEditor.selections, args);
-    args.query = findObject.find;
-    if (!args.isRegex && findObject.mustBeRegex) args.isRegex = true;
-  }
-  
-  if (args.triggerReplaceAll) args.triggerSearch = true;
-  if (args.matchCase) {
-    args.isCaseSensitive = args.matchCase;  // because workbench.action.findInFiles does not use "matchCase"!!
-    delete args.matchCase;
-  }
-
-	if (!args.query) {    // use the first selection "word" if no "query"
-		const document = vscode.window.activeTextEditor?.document;
-		if (!document) args.query = "";
-		else {
-			const selections = vscode.window.activeTextEditor?.selections;
-			if (selections[0].isEmpty) {
-				const wordRange = document.getWordRangeAtPosition(selections[0].start);
-				if (wordRange) args.query = document.getText(wordRange);
-				else args.query = "";  // no word at cursor
-			}
-			else args.query = document.getText(selections[0]);
-		}
-	}
-
-  // do args.clipText and args.resultsFiles need to be removed?  Doesn't seem to affect anything.
-	vscode.commands.executeCommand('workbench.action.findInFiles',
-		args).then(() => {
-			if (args.triggerReplaceAll)
-				setTimeout(() => {
-					vscode.commands.executeCommand('search.action.replaceAll');
-				}, 1000);
-		});
 }

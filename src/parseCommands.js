@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const findCommands = require('./transform');
 const variables = require('./variables');
-const languageConfigs = require('./getLanguageConfig');
+// const languageConfigs = require('./getLanguageConfig');
 const utilities = require('./utilities');
 
 
@@ -62,7 +62,7 @@ exports.splitFindCommands = async function (editor, edit, args) {
 
   for (let index = 0; index < most; index++) {   
 
-    const splitArgs = await _buildArgs(args, index);
+    const splitArgs = await _buildFindArgs(args, index);
 
     if (!splitArgs.find && !splitArgs.replace && !splitArgs.restrictFind?.startsWith("next"))
       findCommands.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
@@ -99,7 +99,7 @@ exports.splitFindCommands = async function (editor, edit, args) {
  * @param {number} index - for which step to retrieve its args
  * @returns {Promise<object>} - all args for this command
  */
-async function _buildArgs(args, index)  {
+async function _buildFindArgs(args, index)  {
 
 	const editor = vscode.window.activeTextEditor;
 	let madeFind = false;
@@ -109,78 +109,50 @@ async function _buildArgs(args, index)  {
 		clipText = string;
   });
   
-  let currentLanguageConfig = {};
-  const documentLanguageId = editor.document.languageId;
-  currentLanguageConfig = await languageConfigs.get(documentLanguageId, 'comments');
-  
-  let resultsFiles = "";
-  
-  const result = await vscode.commands.executeCommand('search.action.copyAll');
-  if (result) {
-    await vscode.env.clipboard.readText()
-      .then(async results => {
-        if (results) {
-          results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
-          let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
+	let  indexedArgs = { restrictFind: "document", isRegex: false, cursorMoveSelect: "", matchWholeWord: false, matchCase: false };
+	Object.assign(indexedArgs, args);
 
-          let pathArray = resultsArray.filter(result => result !== "");
-          pathArray = pathArray.map(path => utilities.getRelativeFilePath(path));
+	if (!Array.isArray(args.find) && args.find && index === 0) indexedArgs.find = args.find;
+  else if (Array.isArray(args.find) && args.find.length > index) indexedArgs.find = args.find[index];
 
-          resultsFiles = pathArray.join(", ");
-        }
-        else {
-          // notifyMessage?
-          resultsFiles = "";
-        }
-        // put the previous clipBoard text back on the clipboard
-        await vscode.env.clipboard.writeText(clipText);
-      });
-  }
-
-	let  defaultArgs = { restrictFind: "document", isRegex: false, cursorMoveSelect: "", matchWholeWord: false, matchCase: false };
-	Object.assign(defaultArgs, args);
-
-	let findValue = "";
-	if (!Array.isArray(args.find) && args.find) findValue = args.find;
-  else if (Array.isArray(args.find) && args.find.length > index) findValue = args.find[index];
-    
-	// no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
+	// if no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
 	// or if find === "" empty string ==> use wordsAtCursors
+  // or if find is an array but length < replace array
   else {
     // if multiple selections, isRegex must be true  TODO
     const findObject = variables.makeFind(editor.selections, args);
-    findValue = findObject.find;
-    defaultArgs.isRegex = defaultArgs.isRegex || findObject.mustBeRegex;
+    indexedArgs.find = findObject.find;
+    indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
     madeFind = true;
-    defaultArgs.pointReplaces = findObject.emptyPointSelections;
+    indexedArgs.pointReplaces = findObject.emptyPointSelections;
   }
   
   //  "find": "(\\$1 \\$2)" if find has (double-escaped) capture groups 
-  if (findValue && /\\\$(\d+)/.test(findValue)) {
-    findValue = await variables.replaceFindCaptureGroups(findValue);
+  if (indexedArgs.find && /\\\$(\d+)/.test(indexedArgs.find)) {
+    indexedArgs.find = await variables.replaceFindCaptureGroups(indexedArgs.find);
   }
   
-	let replaceValue = undefined;
-
   // handle "replace": ""  <== empty string should remove find values
-	if (!Array.isArray(args.replace) && (args.replace || args.replace === "")) replaceValue = args.replace;
-  else if (Array.isArray(args.replace) && args.replace.length > index) replaceValue = args.replace[index];
+	if (!Array.isArray(args.replace) && (args.replace || args.replace === "")) indexedArgs.replace = args.replace;
+  else if (Array.isArray(args.replace) && args.replace.length > index) indexedArgs.replace = args.replace[index];
     
   // if more finds than replaces, re-use the last replace
-  else if (Array.isArray(args.replace)) replaceValue = args.replace[args.replace.length - 1];
+  else if (Array.isArray(args.replace)) indexedArgs.replace = args.replace[args.replace.length - 1];
     
-  // TODO necessary?
+  // necessary?
 	// else if (!args.find) {  // no find and no replace
 		// replaceValue = "$1";
-		// defaultArgs.isRegex = true;
+		// indexedArgs.isRegex = true;
 		// findValue = `(${findValue})`;
 	// }
 
-	let regexOptions = "gmi";
-	if (defaultArgs.matchCase) regexOptions = "gm";
+  const currentLanguageConfig = await utilities.getlanguageConfigComments(indexedArgs);
 
-	let resolvedArgs = { find:findValue, replace:replaceValue, regexOptions, madeFind, clipText, currentLanguageConfig, resultsFiles };
-	resolvedArgs = Object.assign(defaultArgs, resolvedArgs);
+	let regexOptions = "gmi";
+	if (indexedArgs.matchCase) regexOptions = "gm";
+
+	let resolvedArgs = { regexOptions, madeFind, clipText, currentLanguageConfig };
+	resolvedArgs = Object.assign(indexedArgs, resolvedArgs);
 
 	return resolvedArgs;
 }

@@ -13,7 +13,7 @@
 9. &nbsp; Do a second search using only the files found in a previous search. See `${resultsFiles}` in [Search using the Panel](searchInPanel.md).
 10. &nbsp; Insert any resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.
 11. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.  
-12. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#findReplaceCaptureGroups).  
+12. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#using-numbered-capture-groups-in-a-find).  
 
 
 -------------
@@ -24,64 +24,60 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 ### Table of Contents   
 
-&emsp; &emsp; [<span style="color:#fff">1. `preCommands` and `postCommands`</span>](#prePostCommands)   
+&emsp; &emsp; [1. `preCommands` and `postCommands`](#precommands-and-postcommands)   
 
-&emsp; &emsp; [<span style="color:#fff">2. `enableWarningDialog` Setting</span>](#contributed-setting)  
+&emsp; &emsp; [2. `enableWarningDialog` Setting](#contributed-setting)  
 
-&emsp; &emsp; [<span style="color:#fff">3. Using Newlines</span>](#using-newlines)  
+&emsp; &emsp; [3. Using Newlines](#using-newlines)  
 
-&emsp; &emsp; [<span style="color:#fff">4. `findInCurrentFile` Arguments</span>](#findInCurrentFile-args)  
+&emsp; &emsp; [4. `findInCurrentFile` Arguments](#what-arguments-can-a-findincurrentfile-setting-or-keybinding-use)  
 
-&emsp; &emsp; [<span style="color:#fff">1. Using numbered capture groups in a `find`</span>](#findReplaceCaptureGroups)
+&emsp; &emsp; [5. Using numbered capture groups in a `find`](#using-numbered-capture-groups-in-a-find)
 
-&emsp; &emsp; [<span style="color:#fff">5. How to Insert a value at the Cursor</span>](#insert-at-cursor)  
+&emsp; &emsp; [6. How to Insert a value at the Cursor](#how-to-insert-a-value-at-the-cursor)  
 
-&emsp; &emsp; [<span style="color:#fff">6. Running Multiple finds or replaces</span>](#multiple-finds)  
+&emsp; &emsp; [7. Running Multiple finds or replaces](#running-multiple-finds-and-replaces-with-a-single-keybinding-or-setting)  
 
-&emsp; &emsp; [<span style="color:#fff">7. Running Javascript Code in a Replacement</span>](#js-operations)  
+&emsp; &emsp; [8. Running Javascript Code in a Replacement](#running-javacript-code-in-a-replacement)  
 
-&emsp; &emsp; &emsp; [<span style="color:#fff">a. Math Operations in Replacements </span>](#math-operations)  
-&emsp; &emsp; &emsp; [<span style="color:#fff">b. String Operations in Replacements</span>](#string-operations)  
-&emsp; &emsp; &emsp; [<span style="color:#fff">c. More Operations in Replacements</span>](#other-javascript-operations)  
+&emsp; &emsp; &emsp; [a. Math Operations in Replacements](#doing-math-on-replacements)  
+&emsp; &emsp; &emsp; [b. String Operations in Replacements](#doing-string-operations-on-replacements)  
+&emsp; &emsp; &emsp; [c. More Operations in Replacements](#doing-other-javascript-operations-on-replacements)  
 
-&emsp; &emsp; [<span style="color:#fff">8. Variables</span>](#special-variables)  
+&emsp; &emsp; [9. Special Variables](#special-variables)  
 
-&emsp; &emsp; &emsp; [<span style="color:#fff">a. Path Variables: Launch or Task-like Variables</span>](#path-variables)  
-&emsp; &emsp; &emsp; [<span style="color:#fff">b. Snippet Variables: Snippet-like Variables</span>](#snippet-variables)  
-&emsp; &emsp; &emsp; [<span style="color:#fff">c. Case Modifiers: `\\U$1`</span>](#case-modifier-transforms)  
-&emsp; &emsp; &emsp; [<span style="color:#fff">d. Conditional Replacements: `${1:+add this text}`</span>](#conditional-replacements)  
-&emsp; &emsp; &emsp; [<span style="color:#fff">e. Snippet Transforms: `${3:/capitalize}`</span>](#snippet-transforms)  
-&emsp; &emsp; &emsp; [<span style="color:#fff">f. More Examples of Variable Transforms</span>](#more-examples-of-transforms)   
+&emsp; &emsp; &emsp; [a. Path Variables: Launch or Task-like Variables](#launch-or-task-variables-path-variables)  
+&emsp; &emsp; &emsp; [b. Snippet Variables: Snippet-like Variables](#snippet-variables)  
+&emsp; &emsp; &emsp; [c. Case Modifiers: `\\U$1`](#case-modifier-transforms)  
+&emsp; &emsp; &emsp; [d. Conditional Replacements: `${1:+add this text`](#conditional-replacements-in-findincurrentfile-commands-or-keybindings)  
+&emsp; &emsp; &emsp; [e. Snippet Transforms: `${3:/capitalize}`](#snippet-like-transforms-replacements-in-findincurrentfile-commands-or-keybindings)  
+&emsp; &emsp; &emsp; [f. More Examples of Variable Transforms](#examples)   
 
-&emsp; &emsp; [<span style="color:#fff">9. Using `restrictFind` and `cursorMoveSelect`</span>](#restrictFind-cursorMoveSelect)  
+&emsp; &emsp; [10. Using `restrictFind` and `cursorMoveSelect`](#details-on-the-restrictfind-and-cursormoveselect-arguments)  
 
-&emsp; &emsp; &emsp; [<span style="color:#fff">a. Some `"restrictFind": "next...` option examples</span>](#restrictFind-next)  
+&emsp; &emsp; &emsp; [a. Some `"restrictFind": "next...` option examples](#some-restrictfind-next-option-examples)  
 
-&emsp; &emsp; [<span style="color:#fff">10. Settings Examples</span>](#settings-examples)  
+&emsp; &emsp; [11. Settings Examples](#sample-settings)  
 
-&emsp; &emsp; [<span style="color:#fff">11. Keybinding Examples</span>](#keybinding-examples)  
+&emsp; &emsp; [12. Keybinding Examples](#sample-keybindings)  
 
-&emsp; &emsp; &emsp; [<span style="color:#fff">a. `lineNumber` and `lineIndex`</span>](#lineNumber-Index)  
+&emsp; &emsp; &emsp; [a. `lineNumber` and `lineIndex`](#using-linenumber-or-lineindex-in-the-find)  
+&emsp; &emsp; &emsp; [b. Nearest Words at Cursors](#nearest-words-at-cursors)  
+&emsp; &emsp; &emsp; [c. simple find and replace](#find-and-replace-keys-with-no-restrictfind)  
+&emsp; &emsp; &emsp; [d. restrictFind: selections](#find-and-replace-with-restrictfind-selections)    
+&emsp; &emsp; &emsp; [e. find argument but no replace](#find-but-no-replace-key)  
+&emsp; &emsp; &emsp; &emsp; [i. find, no replace, restrictFind: selections](#find-and-no-replace-with-restrictfind-selections)    
+&emsp; &emsp; &emsp; [f. no find argument but with a replace](#with-a-replace-key-but-no-find-key)   
 
-&emsp; &emsp; &emsp; [<span style="color:#fff">b. Nearest Words at Cursors</span>](#nearest-words)  
+&emsp; &emsp; [13. Demonstrating `cursorMoveSelect` after replacement](#demonstrating-cursormoveselect-after-replacement)   
 
-&emsp; &emsp; &emsp; [<span style="color:#fff">c. find and replace example</span>](#find-replace)  
-&emsp; &emsp; &emsp; &emsp; &emsp; [<span style="color:#fff">i. restrictFind: selections example</span>](#find-replace-restrictFind-selections)  
-  
-&emsp; &emsp; &emsp; [<span style="color:#fff">d. find argument but no replace example</span>](#find-no-replace)  
-&emsp; &emsp; &emsp; &emsp; &emsp; [<span style="color:#fff">i. find, no replace, restrictFind: selections example</span>](#find-no-replace-restrictFind-selections)    
-
-&emsp; &emsp; &emsp; [<span style="color:#fff">e. no find argument but with a replace example</span>](#no-find-replace)   
-
-&emsp; &emsp; [<span style="color:#fff">12. Demonstrating `cursorMoveSelect` after replacement</span>](#cursorMoveSelect)   
-
-&emsp; &emsp; [<span style="color:#fff">13. `matchNumber` and `matchIndex`</span>](#matchNumber-Index) 
+&emsp; &emsp; [14. `matchNumber` and `matchIndex`](#matchnumber-and-matchindex) 
 
 <br/>
  
 -----------------
 
-## preCommands and postCommands : PREVIEW status as of v2.4.0  <a id='prePostCommands'></a>
+## preCommands and postCommands
 
 ```jsonc
 {
@@ -167,7 +163,7 @@ Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command
 
 <br/>
 
-## Contributed Setting    <a id='contributed-setting'></a>
+## Contributed Setting
 
 This extension contributes one setting relevant to the `findInCurrentFile` settings and keybindings:  
 
@@ -197,7 +193,7 @@ If the `enableWarningDialog` is set to true, errors will be presented in a notif
 The dialogs are modal for the keybindings, and non-modal for the settings.  The command can then be run or aborted.  
 
 ------------------  
-## Using newlines  <a id='using-newlines'></a>
+## Using newlines
 
 * Find: Use `\r?\n` with `isRegex` set to true is probably the safest across operating systems.     
 * Replace: `\n` is probably sufficient, if not, try `\r\n`.  
@@ -209,7 +205,7 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 -----------------  
 
-## What arguments can a &nbsp; `findInCurrentFile` &nbsp; setting or keybinding use:  <a id='findInCurrentFile-args'></a>
+## What arguments can a `findInCurrentFile` setting or keybinding use:
 
 ```jsonc
 {                                     // in keybindings.json 
@@ -259,7 +255,7 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 -----------
 
-##  Using numbered capture groups in a `find`  <a id='findReplaceCaptureGroups'></a>  
+##  Using numbered capture groups in a `find`  
 <br/>  
 
 ### &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;  &emsp; &emsp; Example : `"find": "\\$1(\\d+)"`  
@@ -344,7 +340,7 @@ And then those settings' commands can be triggered by the Command Palette or by 
 
 --------------------
 
-## How to insert a value at the cursor    <a id='insert-at-cursor'></a>
+## How to insert a value at the cursor
 
 If you do not want to find something and replace it but just want to insert some value at the cursor use a keybinding or setting liek the following:
 
@@ -377,7 +373,7 @@ Explanation:  In the first case, the cursor is placed on `Chapter`, so that is t
 
 <br/>
 
-## Running multiple finds and replaces with a single keybinding or setting      <a id='multiple-finds'></a>
+## Running multiple finds and replaces with a single keybinding or setting
 
 The `find` and `replace` fields can either be a string of one find or an array of strings.  Examples:  
 
@@ -467,9 +463,9 @@ On the first pass above, "someWord" will be replaced with "SOMEWORD".  On the se
 
 <br/>
 
-## Running Javacript Code in a Replacement      <a id='js-operations'></a>
+## Running Javacript Code in a Replacement
 
-### Doing math on replacements        <a id='math-operations'></a>
+### Doing math on replacements
 
 <br/> 
 
@@ -510,7 +506,7 @@ Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everyth
 
 <br/>  
 
-### Doing string operations on replacements       <a id='string-operations'></a>
+### Doing string operations on replacements
 
 <br/> 
 
@@ -589,7 +585,7 @@ that capture group will be from the `replace/replaceAll` as you would expect.  O
 
 <br/> 
 
-### Doing other javascript operations on replacements      <a id='other-javascript-operations'></a>
+### Doing other javascript operations on replacements
 
 <br/> 
 
@@ -684,11 +680,11 @@ Explanation: Find `>` and add `class="uppercased filename">` to it.
 
 ------------------  
 
-## Special variables      <a id='special-variables'></a>
+## Special variables
 
 <br/>
 
-* ### Launch/task-like variables (or path variables)        <a id='path-variables'></a>
+* ### Launch or task variables: path variables
 
 These can be used in the `find` or `replace` fields of the `findInCurrentFile` command or in the `find`, `replace`, and perhaps most importantly, the `filesToInclude` and `filesToExclude` fields of the `runInSearchPanel` command:
 
@@ -730,7 +726,7 @@ These variables should have the same resolved values as found at &nbsp; [vscode'
 
 <br/>
 
-* ### Snippet variables       <a id='snippet-variables'></a>
+* ### Snippet variables
 
 ```
 ${TM_CURRENT_LINE}               The text of the current line for each selection.
@@ -772,7 +768,7 @@ Note that vscode can do fancy things with snippet comment variables like `${LINE
 
 <br/>
 
-* ### Case modifier transforms       <a id='case-modifier-transforms'></a>
+* ### Case modifier transforms
 
 <br/>
 
@@ -820,7 +816,7 @@ Example:
 
 <br/>
 
-* ### Conditional replacements in `findInCurrentFile` commands or keybindings       <a id='conditional-replacements'></a>
+* ### Conditional replacements in `findInCurrentFile` commands or keybindings
 
 <br/>
 
@@ -870,7 +866,7 @@ Examples:
 
 <br/>
 
-* ### Snippet-like transforms: replacements in `findInCurrentFile` commands or keybindings       <a id='snippet-transforms'></a>
+* ### Snippet-like transforms: replacements in `findInCurrentFile` commands or keybindings
 
 <br/>
 
@@ -888,7 +884,7 @@ ${1:/camelcase}   if capture group 1, transform it to camelcase
     (`first_second_third` => `firstSecondThird` or `first second third` => `firstSecondThird`)   
 ```  
 
-### Examples:      <a id='more-examples-of-transforms'></a>
+### Examples:
 
 If you wanted to find multiple items and then transform each in its own way **one match at a time**:  
 
@@ -945,7 +941,7 @@ You would effectively be replacing the match `trouble` with nothing, so all matc
 
 <br/>
 
-## Details on the `restrictFind` and `cursorMoveSelect` arguments       <a id='restrictFind-cursorMoveSelect'></a>
+## Details on the `restrictFind` and `cursorMoveSelect` arguments
 
 Example keybinding:  
 
@@ -1052,7 +1048,7 @@ Explanation: Very simple keybinding uses the selected text, either a word actual
 
 --------  
 
-### Some `"restrictFind": "next...` option examples      <a id='restrictFind-next'></a>
+### Some `"restrictFind": "next...` option examples
 
 <br/>
 
@@ -1127,7 +1123,7 @@ Explanation: Find the end of non-empty lines and append '-' and that line number
 
 -------------------
 
-## Sample Settings      <a id='settings-examples'></a>
+## Sample Settings
 
 > Note: commands that you create in the settings can be removed by deleting or commenting out the associated settings and re-saving the `settings.json` file and reloading VS Code.   
 
@@ -1178,7 +1174,7 @@ In your `settings.json`:
 
 -------------------
 
-## Sample Keybindings      <a id='keybinding-examples'></a>
+## Sample Keybindings
 
 Examples of possible keybindings (in your `keybindings.json`):  
 
@@ -1215,7 +1211,7 @@ Examples of possible keybindings (in your `keybindings.json`):
 }
 ```  
 
-* Using `${lineNumber}` or `${lineIndex}` in the `find`:  <a id='lineNumber-Index'></a>
+### Using `${lineNumber}` or `${lineIndex}` in the `find`:
 
 ```jsonc
 {                                         
@@ -1292,7 +1288,7 @@ The downside to this method is that these `findInCurrentFile` keybinding-only ve
 
 --------------------  
 
-### `"nearest words at cursors"`      <a id='nearest-words'></a>
+### `"nearest words at cursors"`
 <br/>  
 
 >  Important:  &nbsp; What are &nbsp; **`"nearest words at cursors"`**? &nbsp; In VS Code, a cursor immediately next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a `findInCurrentFile` command with no `find` arg it will treat any and all "nearest words at cursors" as if you were asking to find those words.  Actual selections and "nearest words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  It appears that a word at a cursor is defined generally as this: `\b[a-zA-Z0-9_]\b` (consult the word separators for your given language) although some languages may define it differently.   
@@ -1345,7 +1341,7 @@ The above will repeatedly select the next matching word under the cursor (the 'm
 
 <br/>  
 
-### `findInCurrentFile` command in `keybindings.json` only, with `find` and `replace` keys        <a id='find-replace'></a>
+### `find` and `replace` keys with no `restrictFind`
 
 ```jsonc
 {
@@ -1367,7 +1363,7 @@ Explanation: Find using its value in `args` and replace each with its value in t
 
 <br/>  
 
-### `find` and `replace` with `"restrictFind": "selections"`      <a id='find-replace-restrictFind-selections'></a> 
+### `find` and `replace` with `"restrictFind": "selections"`
 
 ```jsonc
 {
@@ -1417,7 +1413,7 @@ except that a **reload of vscode is required** prior to using the generated comm
 
 --------------------
 
-### `run` command in `keybindings.json` only, with `find` but no `replace` key      <a id='find-no-replace'></a>
+### `find` but no `replace` key
 *   
 
 ```jsonc
@@ -1437,7 +1433,7 @@ Explanation: Will find according to the `find` value and select all those matche
 
 -------------
 
-### `find` and no `replace` with `"restrictFind": "selections"`      <a id='find-no-replace-restrictFind-selections'></a>
+### `find` and no `replace` with `"restrictFind": "selections"
 
 ```jsonc
 {
@@ -1463,7 +1459,7 @@ If you have set `"restrictFind": "document"` any actual selections in the file w
 
 <br/>  
 
-### `findInCurrentFile` command in `keybindings.json` only, with a `replace` key but NO `find` key      <a id='no-find-replace'></a>
+### with a `replace` key but NO `find` key
 
 ```jsonc
 {
@@ -1487,7 +1483,7 @@ Explanation: With no `find` value find all the words at the cursors or selection
 
 <br/>  
 
-## Demonstrating `cursorMoveSelect` after replacement      <a id='cursorMoveSelect'></a>
+## Demonstrating `cursorMoveSelect` after replacement
 
 ```jsonc
 "findInCurrentFile": {              // in settings.json
@@ -1528,7 +1524,7 @@ Explanation: Find the first `>` within selection(s) and replace them with ` clas
 
 ---------------------- 
 
-## `${matchNumber}` and `${matchIndex}`      <a id='matchNumber-Index'></a>
+## `${matchNumber}` and `${matchIndex}`
 
 These variables can be used in the `replace` and/or `cursorMoveSelect` positions.  You cannot use them in `find`.  
 

@@ -1,4 +1,20 @@
 {
+ "id": "ArturoDent.find-and-transform",
+ "identifier": {
+  "value": "ArturoDent.find-and-transform",
+  "_lower": "arturodent.find-and-transform"
+ },
+ "isBuiltin": false,
+ "isUserBuiltin": false,
+ "isUnderDevelopment": true,
+ "extensionLocation": {
+  "$mid": 1,
+  "fsPath": "c:\\Users\\Mark\\find-and-transform",
+  "_sep": 1,
+  "path": "/c:/Users/Mark/find-and-transform",
+  "scheme": "file"
+ },
+ "targetPlatform": "undefined",
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
@@ -30,7 +46,9 @@
   "path variable"
  ],
  "activationEvents": [
-  "onStartupFinished"
+  "onStartupFinished",
+  "onCommand:findInCurrentFile.addClassToElement",
+  "onCommand:findInCurrentFile.double"
  ],
  "contributes": {
   "menus": {
@@ -96,6 +114,16 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.addClassToElement",
+    "title": "Add Class to Html Element",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.double",
+    "title": "Double",
     "category": "Find-Transform"
    }
   ],

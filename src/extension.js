@@ -7,7 +7,7 @@ const codeActions = require('./codeActions');
 const utilities = require('./utilities');
 
 /** @type { Array<vscode.Disposable> } */
-let disposables = [];
+let _disposables = [];
 
 let enableWarningDialog = false;
 
@@ -18,7 +18,7 @@ async function activate(context) {
    
 	let firstRun = true;
 
-  await _loadSettingsAsCommands(context, disposables, firstRun);
+  await _loadSettingsAsCommands(context, _disposables, firstRun);
 
 	providers.makeKeybindingsCompletionProvider(context);
 	providers.makeSettingsCompletionProvider(context);
@@ -93,8 +93,9 @@ async function activate(context) {
     else args = {};
 
     args.triggerSearch = true;
-    args.filesToInclude = await utilities.getSearchResultsFiles();
+    args.filesToInclude = await utilities.getSearchResultsFiles();  // isn't this done in useSearchPanel()
 
+    // pre/postCommands?  TODO
 		await searchCommands.useSearchPanel(args);
 	});
 
@@ -110,9 +111,7 @@ async function activate(context) {
     // TODO warn if fewer capture groups in the find than used in the replace ? or did you mean isRegex
     let continueRun = true;
     
-    if (args.preCommands) {
-      await commands.runPrePostCommands(args.preCommands);
-    }
+    if (args.preCommands) await commands.runPrePostCommands(args.preCommands);
     
     // call a function that looks for all jsOp's $${...}$$ in args.replace
     if (Array.isArray(args.replace) && args.replace.find(el => el === "$${"))
@@ -131,9 +130,7 @@ async function activate(context) {
 			await parseCommands.splitFindCommands(editor, edit, args);
     }
     
-    if (args.postCommands) {
-      await commands.runPrePostCommands(args.postCommands);
-    }
+    if (args.postCommands) await commands.runPrePostCommands(args.postCommands);
 	});
 
 	context.subscriptions.push(runDisposable);
@@ -145,6 +142,10 @@ async function activate(context) {
 
 		let continueRun = true;
 
+		if (args.preCommands) {
+      await commands.runPrePostCommands(args.preCommands);
+    }
+
 		if (args && enableWarningDialog) {
 			const argsBadObject = await utilities.checkArgs(args, "searchBinding");
 			// boolean modal or not
@@ -154,8 +155,10 @@ async function activate(context) {
 		if (continueRun) {
       if (!args) args = { title: "Keybinding for generic command run"};
       else if (!args.title) args.title = "Keybinding for generic command run";
-      searchCommands.useSearchPanel(args);
+      searchCommands.runAllSearches(args);
 		}
+		
+    if (args.postCommands) await commands.runPrePostCommands(args.postCommands);
 	});
 
 	context.subscriptions.push(runInSearchPanelDisposable);
@@ -214,12 +217,12 @@ async function activate(context) {
 			enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
 
       // easier to just dispose of them all and re-enable them all
-			for (let disposable of disposables) {
+			for (let disposable of _disposables) {
 				await disposable.dispose();
 			}
       
 			// reload
-			await _loadSettingsAsCommands(context, disposables, false);
+			await _loadSettingsAsCommands(context, _disposables, false);
 
 			await providers.makeKeybindingsCompletionProvider(context);
 			await providers.makeSettingsCompletionProvider(context);
@@ -240,10 +243,10 @@ async function activate(context) {
 /**
  * 
  * @param {vscode.ExtensionContext} context 
- * @param {Array<vscode.Disposable>} disposables
+ * @param {Array<vscode.Disposable>} _disposables
  * @param {boolean} firstRun 
  */
-async function _loadSettingsAsCommands(context, disposables, firstRun) {
+async function _loadSettingsAsCommands(context, _disposables, firstRun) {
 
 	const findSettings = await commands.getSettings("findInCurrentFile");
 	const searchSettings = await commands.getSettings("runInSearchPanel");
@@ -255,12 +258,12 @@ async function _loadSettingsAsCommands(context, disposables, firstRun) {
 	if (firstRun) enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
 
 	if (findSettings.length) {
-		await commands.registerFindCommands(findSettings, context, disposables, enableWarningDialog);
+		await commands.registerFindCommands(findSettings, context, _disposables, enableWarningDialog);
 		await codeActions.makeCodeActionProvider(context, findSettings);
 	}
 
 	if (searchSettings.length) {
-		await commands.registerSearchCommands(searchSettings, context, disposables, enableWarningDialog);
+		await commands.registerSearchCommands(searchSettings, context, _disposables, enableWarningDialog);
 	}
 }
 
