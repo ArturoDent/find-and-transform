@@ -95,6 +95,10 @@ async function _buildSearchArgs(args, index)  {
     indexedArgs.find = await variables.replaceFindCaptureGroups(indexedArgs.find);
   }
 
+  // add args.filesToInclude === "${resultsFiles} if index > 0 (i.e., search > 1)
+  // notify message?, can be overridden by specifying some filesToInclude
+  if (index > 0 && !indexedArgs.filesToInclude) indexedArgs.filesToInclude = "${resultsFiles}";
+
   // check for '${...}' some variable
   let re = /\$\{.+\}/g;
   if (indexedArgs.find.search(re) !== -1) {
@@ -114,16 +118,15 @@ async function _buildSearchArgs(args, index)  {
   // at least one more find/replace than this index
   const numSearches = args.find.length;
   if (numSearches > index+1) indexedArgs.triggerSearch = true;
-  else if (numSearches === index+1 && args.filesToInclude[index] === "${resultsFiles}") 
+  else if (numSearches === index+1 && args.filesToInclude === "${resultsFiles}") 
     indexedArgs.triggerSearch = true;
-  // else indexedArgs.triggerSearch = false;
 
-	// let replaceValue = indexedArgs.replace;
   // so triggerReplaceAll is true for the last search only no matter the setting
-  // if (numSearches === index + 1 && (replaceValue || replaceValue === "")) 
-  //   indexedArgs.triggerReplaceAll = indexedArgs.triggerReplaceAll;
-  // else indexedArgs.triggerReplaceAll = false;
   if (numSearches > index + 1) indexedArgs.triggerReplaceAll = false;
+
+  // find: "" is okay, can triggerReplaceAll; 
+  // but if no find at all don't triggerReplaceAll (as that is a replace with nothing)
+  if (numSearches === index + 1 && (indexedArgs.replace !== ""  && !indexedArgs.replace)) indexedArgs.triggerReplaceAll = false;
 
   // add a delay if trigger a search now and there is another find later
   if (!indexedArgs.delay && indexedArgs.triggerSearch && (numSearches > index+1) )
@@ -145,7 +148,7 @@ async function _buildSearchArgs(args, index)  {
  */
 async function _expandArgs(args, numFindArgs, numReplaceArgs) {
 
-  const expandedArgs = {};expandedArgs
+  const expandedArgs = {};
   let keys = module.exports.getKeys();
 
   let most = (numFindArgs >= numReplaceArgs) ? numFindArgs : numReplaceArgs;
@@ -154,12 +157,13 @@ async function _expandArgs(args, numFindArgs, numReplaceArgs) {
 
   for (const key of keys) {
 
-    if (args[key] || args[key] === "") expandedArgs[key] = [];
+    if (args[key] || args[key] === "") expandedArgs[key] = new Array();
 
     for (let index = 0; index < most; index++) { 
 
       if (key === "find") {
 
+        if (!args.find && index === 0) expandedArgs[key] = new Array();
         // set find = "", if numReplaceArgs > numFindArgs
         if (Array.isArray(args[key]) && args[key].length <= index) expandedArgs[key].push("");
         else if (Array.isArray(args[key])) expandedArgs[key].push(args[key][index]);
@@ -167,7 +171,7 @@ async function _expandArgs(args, numFindArgs, numReplaceArgs) {
         else expandedArgs[key].push(args[key]);
       }
 
-      else if (args[key]) {  // (key !== "find")
+      else if (args[key] || args[key] === "") {  // (key !== "find")
         // uses the last one if less than array.length, not true for find though
         if (Array.isArray(args[key]) && args[key].length <= index) expandedArgs[key].push(args[key][args[key].length-1]);
         else if (Array.isArray(args[key])) expandedArgs[key].push(args[key][index]);

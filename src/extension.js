@@ -155,7 +155,7 @@ async function activate(context) {
 		if (continueRun) {
       if (!args) args = { title: "Keybinding for generic command run"};
       else if (!args.title) args.title = "Keybinding for generic command run";
-      searchCommands.runAllSearches(args);
+      await searchCommands.runAllSearches(args);
 		}
 		
     if (args.postCommands) await commands.runPrePostCommands(args.postCommands);
@@ -187,7 +187,7 @@ async function activate(context) {
 
 	// ---------------------------------------------------------------------------------------------------------------------
   
-  // select the 'operation' in completionItems like '$${operation}$$'
+  // select 'operation' in completionItems like '$${operation}$$'
 	// not exposed in package.json
   let selectOperationInCompletion = vscode.commands.registerCommand('find-and-transform.selectOperationInCompletion', async (completionText, completionRange) => {
 

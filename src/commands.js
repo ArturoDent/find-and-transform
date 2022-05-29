@@ -346,7 +346,7 @@ exports.registerSearchCommands = async function (argArray, context, disposables,
 			if (continueRun) {
 				let argsArray = [];
 				if (temp) argsArray = await searchCommands.getObjectFromArgs(temp);
-				await searchCommands.useSearchPanel(argsArray);
+				await searchCommands.runAllSearches(argsArray);
       }
       
       if (argArray[elem][1].postCommands) {

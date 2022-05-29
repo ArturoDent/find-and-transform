@@ -46,9 +46,7 @@
   "path variable"
  ],
  "activationEvents": [
-  "onStartupFinished",
-  "onCommand:findInCurrentFile.addClassToElement",
-  "onCommand:findInCurrentFile.double"
+  "onStartupFinished"
  ],
  "contributes": {
   "menus": {
@@ -114,16 +112,6 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.addClassToElement",
-    "title": "Add Class to Html Element",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.double",
-    "title": "Double",
     "category": "Find-Transform"
    }
   ],
