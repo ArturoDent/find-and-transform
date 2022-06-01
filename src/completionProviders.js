@@ -247,7 +247,10 @@ function _completeArgs(linePrefix, position, find, search, arg) {
     // } 
     
     else if (search && linePrefix.endsWith('$'))
-      return _completePathVariables(position, '$', search);
+      return _completePathVariables(position, '$', search).concat(_completeSnippetVariables(position, '$'));
+
+		else if (search && linePrefix.endsWith('${'))
+      return _completePathVariables(position, '${}', search).concat(_completeSnippetVariables(position, '${'));
   }
 
 // -------------------  cursorMoveSelect  ----------------------

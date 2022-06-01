@@ -5,15 +5,16 @@
 1. &nbsp; Find and transform text in a single file with many kinds of transforms.  
 2. &nbsp; Search across files with pre-defined options.
 3. &nbsp; Do a series of find and replaces in the current file.
-4. &nbsp; Execute javascript code, like math or string operations, on replacements.
-5. &nbsp; Supports using path variables in the Search Panel or the Find in File Widget fields.
-6. &nbsp; Save named settings or keybindings for finds or searches.
-7. &nbsp; After replacing some text, optionally move the cursor to a next designated location with `cursorMoveSelect`.
-8. &nbsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See &nbsp;[running commands on save](codeActions.md).
-9. &nbsp; Do a second search using only the files found in a previous search. See `${resultsFiles}` in [Search using the Panel](searchInPanel.md).
-10. &nbsp; Insert any resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.
-11. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.  
-12. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#using-numbered-capture-groups-in-a-find).  
+3. &nbsp; Do a series of finds and a replace across files, using only the results files from previous searches. See [Multiple searches across files.](searchInPanel.md#multiple-searches).  TODO check
+5. &nbsp; Execute javascript code, like math or string operations, on replacements.
+6. &nbsp; Supports using path or snippet variables in the Search Panel or the Find in File Widget fields.
+7. &nbsp; Save named settings or keybindings for finds or searches.
+8. &nbsp; After replacing some text, optionally move the cursor to a next designated location with `cursorMoveSelect`.
+9. &nbsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See &nbsp;[running commands on save](codeActions.md).
+10. &nbsp; Do a second (or third, fourth, etc.) search using only the files found in a previous search. See `${resultsFiles}` in [Search using the Panel](searchInPanel.md).
+11. &nbsp; Insert any resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.
+12. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.  
+13. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#using-numbered-capture-groups-in-a-find).  
 
 
 -------------
@@ -1645,7 +1646,11 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 
 * 2.4.0  Use capture groups in `find`.   
 &emsp;&emsp;2.4.2 Restrict number of capture groups to 9.  
-&emsp;&emsp;2.4.3 Fixed `cursorMoveSelect` and once/line.  Added ignore langID's.     
+&emsp;&emsp;2.4.3 Fixed `cursorMoveSelect` and once/line.  Added ignore langID's.  
+
+* 3.0.0  Enable multiple searches in `runInSearchPanel`.   
+&emsp;&emsp; Added snippet variable resolution to  `runInSearchPanel`.  
+&emsp;&emsp; Added a `delay` arg to `runInSearchPanel`.  
 
 <br/> 
 

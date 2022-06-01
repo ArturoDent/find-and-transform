@@ -230,7 +230,7 @@ exports.useSearchPanel = async function (args) {
  */
 exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "matchCase"
   return ["title", "preCommands", "find", "replace", "delay", "postCommands", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude",  
-		"preserveCase", "useExcludeSettingsAndIgnoreFiles", "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors"];
+		"preserveCase", "useExcludeSettingsAndIgnoreFiles", "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors", "clipText"];
 }
 
 /**

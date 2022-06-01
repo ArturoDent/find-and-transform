@@ -1,5 +1,6 @@
 ## Using the `runInSearchPanel` command  
 
+For multiple successive searches, see **Multiple Searches** below.  
 At the end of this file, see how to use the **context menus** to run a search.  
 
 --------------------  
@@ -35,34 +36,36 @@ This extension will generate a command for each of the settings, they will appea
 ```jsonc
 "title": "<some string>",        // can have spaces, will be shown in the Command Palette: "Find-Transform:My Title"
 
-"find": "<string or regexp>",    // if no find key or empty value, will use the selected text (as vscode does natively)
+"find": <string or regexp or array[strings]>,    // if no find key or empty value, will use the selected text (as vscode does natively)
 
-"replace": "<string>",
+"replace": <string or array[strings]>,
 
-"triggerSearch": <boolean>,      // searches and shows the results
+"triggerSearch": <boolean or array[booleans]>,      // searches and shows the results
 
-"triggerReplaceAll": <boolean>,  // same as the "Replace All" button, confirmation box will still open
+"delay": <number in milliseconds or array<milliseconds>,  // see Multiple Searches below for explanation
 
-"isRegex": <boolean>,
+"triggerReplaceAll": <boolean or array[booleans]>,  // same as the "Replace All" button, confirmation box will still open
 
-"filesToInclude": "<paths or variables>",     // default is "" = current workspace
+"isRegex": <boolean or array[booleans]>,
+
+"filesToInclude": <paths or variables or array[strings]>,     // default is "" = current workspace
 // "filesToInclude": "",             // using the empty string `""` as the value for `filesToInclude` 
                                      // will clear any prior value from the "files to include" input
 
-"filesToExclude": "<paths or variables>",
+"filesToExclude": <paths or variables or array[strings]>,
 // "filesToExclude": "",            // using the empty string `""` as the value for `filesToExclude`
                                     // will clear any prior value from the "files to exclude" input
 
-"preserveCase": <boolean>,
+"preserveCase": <boolean or array[booleans]>,
 
-"useExcludeSettingsAndIgnoreFiles": <boolean>,
+"useExcludeSettingsAndIgnoreFiles": <boolean or array[booleans]>,
 
       // "isCaseSensitive" is the built-in key, but using 'matchCase' to be consistent with Find and hovers
-"matchCase": <boolean>,
+"matchCase": <boolean or array[booleans]>,
 
-"matchWholeWord": <boolean>,
+"matchWholeWord": <boolean or array[booleans]>,
 
-"onlyOpenEditors": <boolean>        // available in Insiders v1.59 now and Stable v1.59 early August, 2021
+"onlyOpenEditors": <boolean or array[booleans]>        // available in Insiders v1.59 now and Stable v1.59 early August, 2021
 ```
 
 You will get intellisense presenting these arguments.   And the completions will be filtered to remove any options arlready used in that setting or keybinding.  
@@ -79,9 +82,9 @@ You will get intellisense presenting these arguments.   And the completions will
 
 <br/>
 
-> `"onlyOpenEditors"` support is in vscode Stable v1.59.  Having this option enabled is just like clicking the little book icon in the Search Panel ("Search Only in Open Editors").  This option too will be remembered by vscode so you may want to get into the habit of always using this argument option and intentionally setting to it to `true` or `false`.
+> `"onlyOpenEditors"` Having this option enabled is just like clicking the little book icon in the Search Panel ("Search Only in Open Editors").  This option too will be remembered by vscode so you may want to get into the habit of always using this argument option and intentionally setting to it to `true` or `false`.
 
-> There is a limitation in vscode that `"onlyOpenEditors"` will not include `settings.json` or `keybindings.json` although they may be opened.  They will be ignored. This is a vscode issue, not this extension.  
+> There is a limitation in vscode that `"onlyOpenEditors"` will not include `settings.json` or `keybindings.json` although they may be opened.  They will be ignored. This is a vscode issue, not of this extension.  
 
 If you use **both** `"onlyOpenEditors"` and `"filesToInclude"` arguments, the `"filesToInclude"` value will limit the scope of `"onlyOpenEditors"` to that include value.  So if you had a file to include value of same file not currently open, **no** files would be searched  even with the `"onlyOpenEditors"` set to true.  Only those files both open and included in the `"filesToInclude"` value will be searched.  
 
@@ -104,12 +107,100 @@ Explanation: no `find` value, use the word at the **first** cursor to do a searc
 
 <br/>
 
+## Multiple searches
+
+You can run a series of searches across files.  All the arguments can take one or more values.  For example:
+
+```jsonc
+{
+  "key": "alt+b",
+  "command": "runInSearchPanel",
+  "args": {
+    "preCommands": "search.action.clearSearchResults",  // usually a good idea to have this
+
+    "find": ["(first\\d+)", "(second\\d+)"],
+    "replace": ["\\U$1", "\\u$1"],    // the first replace is not used although it is shown briefly during the delay
+
+    "find": ["(first\\d+)", "(second\\d+)"],
+    "replace": "*** new text ***",
+    "filesToInclude": "${resultsFiles}",    // see explanation below 
+
+    // "replace": "$${ `\\U$1` + ${matchNumber} }",  TODO
+    // "replace": "$${ `\\U$1 ` + ${matchNumber}*$2 }",
+
+    // "replace": ["\\U$1", "\\u$1", "\\U$1"],
+    // "replace": ["replaced", "howdy"],
+
+    "isRegex": true,
+
+    // so first search is across all files in workspace, 
+    // second search uses only those files with a match in the first search, i.e., ${resultsFiles}
+    "filesToInclude": ["", "${resultsFiles}"],
+
+    // do 3 searches in a row, narrowing the results files each time
+    "find": ["(first\\d+)", "(second\\d+)", "third"],
+    "replace": "new text after the third find",
+    "filesToInclude": ["", "${resultsFiles}", "${resultsFiles}"],
+
+    "delay": 2000,                              //  2000 msecs = 2 seconds; will be added if necessary
+    "triggerSearch": true,                      // will be added bewteen searches
+    "triggerReplaceAll": true
+  }
+}
+```
+
+There is really no point in having multiple replaces as there is no api for stopping the process to wait for the first search and replace to finish before going on to the next.  Therefore, use as many `find`'s as you want and only one replace - which will be used for that final search and replace.  Use `${resultsFiles}` to progressively narrrow down the searches to those files with the previous `find`'s.  Likewise, you only need one `"filesToInclude": "${resultsFiles}"` to accomplish this.
+
+You can clear any existing search results - which would populate `${resultsFiles}` for the **first** find, which you may not want to have, in two ways:
+
+1.  Use a preCommand like `"preCommands": "search.action.clearSearchResults",` or   
+2.  Use `"filesToInclude": ["", "${resultsFiles}"]` with as many `"${resultsFiles}"` as you need.  That first empty string `""` will serve to clear the `filesToInclude` field so you would start searching the entire workspace.  If you wish to start at some other point give `"filesToInclude": ["", "${resultsFiles}"]` some intial value like 
+
+`"filesToInclude": ["${fileDirname}", "${resultsFiles}"],`
+
+-----------
+
+### Using `"delay"` : 
+
+If you have multiple searches, you need a `delay` between them to allow the first `find` to finish and populate the results.  The `${resultsFiles}` are constructed from the results.  The length of the delay depends on how many files you are searching.  `delay` is in milliseconds so `2000` = 2 seconds.
+
+The delay will also be used if you use `"triggerReplaceAll": true` which again needs the time to finish the search before prompting to replace.
+
+If you include no `delay` field and you are using multiple successive searches, a default `delay` of `2000` will be used.  You will probably need a longer delay for searching most collections of files.
+
+
+--------
+
+### Other defaults
+
+1.  If you use `"triggerReplaceAll": true` or `"triggerReplaceAll": [true, true]` for example, `triggerReplace` will only run on the **last search** when doing multiple searches.  
+
+2.  If `triggerReplaceAll` is about to run, `"triggerSearch": true,` will be set so that the search is run first, then the `delay`, then the `triggerReplaceAll` is run. 
+
+3.  If you have no `replace` field, `triggerReplaceAll` will be set to `false`.  VSCode treats the lack of of a `replace` field the same as replacing with the empty string, that is, replacing with nothing.  If that is what you want to do, replace all your find matches with nothing (which is the same as removing the find matches) either explicitly set `"replace": ""` (the empty string) or trigger replace all yourself.   
+
+4.  If you are running multiple searches and haven't specifically set `filesToInclude`, then `"filesToInclude": "${resultsFiles}"` will be set.  There is no point in running multiple searches if you aren't using the results of earlier searches in later searches.  You can override this by setting a `filesToInclude` value yourself.
+
+5.  Just like finds within a file, if you have no `find` field in a search across files of `"find": ""`, the find query will be constructed from any selections you may have in the active editor.  Like: `"find": "(selection One|selection Two)"`.  
+
+6.  If you have no `find` and the cursor is on an empty line or not at a word boundary, then no search will be performed.  In a `findInCurrentFile` the replacement would be inserted at that empty selection, but in a `runInSearchPanel` nothing will happen.  
+
+
+-------
+
+### Variables resolved based on current file only
+
+There is no way to avoid this with the present api.  If you use any variables in the various args, like `${LINE_COMMENT}` or `${relativeFile}`, their values will be resolved based on the current editor.  So, for example, `${LINE_COMMENT}` will be how line comments appear in the current editor only.  
+
+-------
+
+</br>
 
 ### <u>Clear the `"filesToInclude/filesToExclude"` values</u>  
 
 <br/>
 
-Specifically for the `"filesToInclude/filesToExclude"` settings an empty string (`"filesToInclude": ""`) will **clear** the old value for the `filesToInclude/filesToExclude` input boxes in the Search Panel.  So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:   
+Specifically for the `"filesToInclude/filesToExclude"` settings an empty string (`"filesToInclude": ""`) will **clear** the old value for the `filesToInclude/filesToExclude` input boxes in the Search Panel.  TODO So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:   
 
 ```jsonc
 {
@@ -160,7 +251,7 @@ With those keybindings, the default <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd
 }
 ```
 
-* `filesToInclude` and `filesToExclude` can take multiple, comma-separated, file or folder entries.  For example:  
+* All fields can take multiple, comma-separated, entries.  For example:  
 
 ```jsonc
 "filesToInclude": "zip/new.html, ${relativeFile}, ${relativeFileDirname}" // or any combination and order
@@ -215,7 +306,7 @@ Explanation: The `runInSearchPanel` command will do a search using the Search Pa
 
 <br/>
 
-The `runInSearchPanel` settings commands can be used in keybindings just like the `findInCurrentFile` commands discussed elsewhere.  The above `removeDigits` command could be used in a keybinding like this:  
+The `runInSearchPanel` settings commands can be used in keybindings just like the `findInCurrentFile` commands discussed elsewhere.  The above `removeDigits` setting could be used in a keybinding like this:  
 
 ```jsonc
 {
@@ -228,7 +319,7 @@ Just like with `findInCurrentFile` keybindings if you add arguments to a command
 ```jsonc
 {
   "key": "alt+z",
-  "command": "runInSearchPanel.removeDigits",     // assume this exists in settings
+  "command": "runInSearchPanel.removeDigits",     // assume this already exists in settings
   
   "args": {                          // then all args are ignored, the settings args are applied instead
     "find": "(?<=Arturo)\\d+",
@@ -287,7 +378,7 @@ Explanation: Creating a Search Panel command in the keybindings only.  In this c
 
 <br/>
 
-> `triggerSearch` is a built-in vscode search across files option.  It triggers the search, and thus shows the results, but does not trigger a replace or replace all.  I would think in most cases you would want `"triggerSearch": true` to see your results right away.  But if you know you will be modifying the search in some way, you may not want to `triggerSearch`.  
+> `triggerSearch` is a built-in vscode search across files option.  It triggers the search, and thus shows the results, but does not trigger any actual replacement.  I would think in most cases you would want `"triggerSearch": true` to see your results right away.  But if you know you will be modifying the search in some way, you may not want to `triggerSearch`.  
 
 > `triggerReplaceAll` is an option added solely by this extension.  Its action is the same as clicking the &nbsp; <kbd>Replace All</kbd> &nbsp; icon in the search results.  VS Code will always pop up a confirmation dialog before actually performing the replacement, so you will still have to confirm the replacement.  `triggerReplaceAll` must have results shown in order to work, that is why if you want `triggerReplaceAll` then you must also have `triggerSearch` set to `true`. If you do not have  "`triggerSearch": "true"` it will automatically be added for you.   
 
@@ -346,7 +437,7 @@ but the same keybinding in `runInSearchPanel` **will error and not run**:
 
 If there is no `"find"` entry for a `runInSearchPanel` command, this extension will create a `find` query using  either the first fully selected word or the first "nearest word" (to an empty selection) if there are multiple "selections".  It will even choose an nearest word empty selection if it was made before a fully selected word.  
 
-This behavior is different from `findInCurrentFile` which will use **ALL** selections and nearest words at cursors as the `find` values.  In `runInSearchPanel` commands, only the **FIRST** selection/current word for the search query.  
+This behavior is the same as in `findInCurrentFile` which will use **ALL** selections and nearest words at cursors as the `find` values. It will create a search query like `(first|second|third)` if you had those three words selected.  
 
 In the demo below, text with a ***blue background*** is selected:  
 
@@ -354,13 +445,13 @@ In the demo below, text with a ***blue background*** is selected:
 
 <br/>
 
-> Note: With no `find` entry and searching in other files, the current selection will be used to search in those other files!  This can be a fast way to search for a current word in other files and also works for the context menu searches (see below).  
+> Note: With no `find` entry and searching in other files, the current selection(s) will be used to search in those other files!  This can be a fast way to search for a current word in other files and also works for the context menu searches (see below).  
  
 
 ------------  
 <br/>
 
-The `filesToInclude`, `filesToExclude`, `find` and `replace` arguments in the `runInSearchPanel` support these variables:  
+The `filesToInclude`, `filesToExclude`, `find` and `replace` arguments in the `runInSearchPanel` support these **path** variables:  
 
 ```
 ${file}
@@ -383,13 +474,69 @@ ${lineNumber}
 ${resultsFiles}        // added by this extension
 ```
 
+In addition, the`find` and `replace` arguments in the `runInSearchPanel` also support these **snippet** variables:
+
+```
+${TM_CURRENT_LINE}
+${TM_CURRENT_WORD} 
+
+${CURRENT_YEAR}
+${CURRENT_YEAR_SHORT}
+${CURRENT_MONTH}
+${CURRENT_MONTH_NAME}
+${CURRENT_MONTH_NAME_SHORT}
+${CURRENT_DATE}
+${CURRENT_DAY_NAME}
+${CURRENT_DAY_NAME_SHORT}
+${CURRENT_HOUR}
+${CURRENT_MINUTE}
+${CURRENT_SECOND}
+${CURRENT_SECONDS_UNIX}
+
+${RANDOM}
+${RANDOM_HEX}
+
+${BLOCK_COMMENT_START}
+${BLOCK_COMMENT_END}
+${LINE_COMMENT}
+```
+
 <br/>
 
-These variables should have the same resolved values as found at &nbsp; [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   These resolved variables are automatically escaped so they can be used in regular expressions.   
+These variables should have the same resolved values as found at &nbsp; [vscode's pre-defined launch or task variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables) and .  &nbsp; [vscode's pre-defined snippet variables documentation](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_variables) These resolved variables are automatically escaped so they can be used in regular expressions.   
 
 <br/>
+
+*IMPORTANT* : These variables are resolved using the current file only, not all the files you may be searching.  There isn't a vscode api that allows to get values resolved for each search file yet unfortunately.  
 
 The `replace` arguments in the `runInSearchPanel` also supports case modifiers like `\\U$n`, `\\u$n`, `\\L$n` and `\\l$n`.  
+TODO find too?
+
+-----------
+
+Like the `findInCurrentFile` keybindings or settings, you can use capture groups and case modifiers in the `find` or `replace`:
+
+```jsonc
+"find": "(\\$1\\s+\\d+)",  // the capture group MUST be double-escaped in a find
+"replace": "\\U$1",    // don't escape capture group in replace
+"matchCase": true
+```
+Explanation: find `someSelectedText 1234`, replace with `SOMESELECTEDTEXT 1234`
+ 
+```jsonc
+"find": "(\\U\\$1)",   // the capture group MUST be double-escaped in a find
+"replace": "\\L$1",    // don't escape capture group in replace
+"matchCase": true      // need this here to get ONLY the upper-cased versions of the selections
+```
+Explanation: find the uppercased version of the selection(s).  So if you select (or the cursor is on) the word `hello` or `Hello`, etc. - this would search for `HELLO` and replace with `hello`.
+
+```jsonc
+"find": "\\U\\$1-\\L\\$2",
+"replace": "\\L$1-\\U$2",
+"matchCase": true
+``` 
+
+Explanation: find the uppercased version of the first selection and the lower-cased version of the second selection and swap their cases.  
 
 <br/>
 

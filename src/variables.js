@@ -16,7 +16,6 @@ exports.replaceFindCaptureGroups = async function (findValue) {
   // findValue = findValue.replace(/\\\$(\d+)/g, (match, p1) => {
   findValue = findValue.replace(/(\\[UuLl])?\\\$(\d+)/g, (match, p1, p2) => {
     
-    console.log(p2);
     // if no selection[n] in document, but in findValue
     // if (p1 > editor.selections.length) return "";
     if (p2 > editor.selections.length) return "";
