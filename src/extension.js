@@ -15,7 +15,7 @@ let enableWarningDialog = false;
  * @param {vscode.ExtensionContext} context
  */
 async function activate(context) {
-   
+  
 	let firstRun = true;
 
   await _loadSettingsAsCommands(context, _disposables, firstRun);

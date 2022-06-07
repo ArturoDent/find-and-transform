@@ -14,7 +14,7 @@ exports.buildJSOperationsFromArgs = async function (arg) {
   
   if (!Array.isArray(arg)) return arg;
   
-  // find the starting $${ and the }ending }$$, 
+  // find the starting $${ and the ending }$$, 
   // make their content into one operation and splice that into arg
   
   for (let index = 0; index < arg.length; index++) {
@@ -22,8 +22,8 @@ exports.buildJSOperationsFromArgs = async function (arg) {
     const end = arg.findIndex(element => element === '}$$');
     if (start !== -1 && end !== -1) {
       // below makes the semicolons optional, 2 in a row is okay
-      const operation = arg.slice(start, end + 1).join(';');
-      // const operation = arg.slice(start, end + 1).join('');
+      const operation = arg.slice(start, end + 1).join('; ');
+      //const operation = arg.slice(start, end + 1).join(' ');
       
       arg.splice(start, end+1 - start, operation);
       index = start;
@@ -33,6 +33,8 @@ exports.buildJSOperationsFromArgs = async function (arg) {
 
   return arg;
 }
+
+//"  let re = /(import)/;  return 'import { Foo, Bar as BarBar } from '@substance-ux/glyphs';'.replace(re, 'howdy'); "
 
 
 /**

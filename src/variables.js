@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const path = require('path');        
 const os = require('os');     
 const utilities = require('./utilities');     
+const outputChannel = vscode.window.createOutputChannel("find-and-transform");
 
 
 /**
@@ -258,10 +259,11 @@ exports.resolveLineVariable = function (variableToResolve, index) {
       break;
    }
 
-	// escape .*{}[]?^$ if using in a find  TODO
+	// escape .*{}[]?^$+|/ if using in a find
   if (!args.isRegex && caller === "find") return resolved.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
   else if (!args.isRegex && caller === "findSearch") return resolved.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-
+  // in case use " let re = /${selectedText}/" and selectedText, etc. has a / in it, then 
+  else if (caller === "replace") return resolved.replaceAll(/([\\/])/g, "\\$1");
   else if (caller === "filesToInclude" && resolved === ".") return  "./";
   
   else return resolved;
@@ -399,6 +401,7 @@ exports.resolveLineVariable = function (variableToResolve, index) {
 };
 
 
+
 /**
  * Build the replaceString by updating the setting 'replaceValue' to
  * account for case modifiers, capture groups and conditionals
@@ -491,7 +494,7 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
  * @returns {string} - the resolved string
  */
 exports.buildReplace = function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
-
+  
   let replaceValue;
   
   if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
@@ -588,13 +591,18 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     
     
     // -------------------  jsOp ------------------------------------------------------------------
-    // can only have multiple $${...}$$ in a replace
+    // can have multiple $${...}$$ in a replace
     re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
-    
-    resolved = resolved.replaceAll(re, function (match, p1, operation) {
-      // checking for capture groups, etc. is not necessary, already done above
-      return Function(`"use strict";  ${operation}`)();
-    });
+    try {
+      resolved = resolved.replaceAll(re, function (match, p1, operation) {
+        // checking for capture groups and variables already done above
+        return Function(`"use strict";  ${operation}`)();
+      });
+    }
+    catch (error) {
+      outputChannel.appendLine(`\n${error.stack}\n`);
+      vscode.window.showWarningMessage("There was an error in the `$${<operations>}$$` part of the replace value.  See the Output channel: `find-and-transform` for more.")
+    }
     // -------------------  jsOp ------------------------------------------------------------------
   }
   

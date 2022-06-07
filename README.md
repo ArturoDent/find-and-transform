@@ -464,11 +464,15 @@ On the first pass above, "someWord" will be replaced with "SOMEWORD".  On the se
 
 <br/>
 
-## Running Javacript Code in a Replacement
+## Running Javacript Code in a Replacement  
 
-### Doing math on replacements
+It is difficult to debug errors in javascript code you write in a replacement as below.  If your keybinding or setting generates an error, you will get a warning message notifying you of the failure.  And if you check your `Output` tab, and chose `find-and-transform` from the dropdown menu, you may get some helpful information on the nature of the error.  
+
+You can put `console.log(...)` statements into the replacement code.  It wil lbe logged to your `Help/Toggle Developer Tools/Console`.  
 
 <br/> 
+
+### Doing math on replacements
 
 Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations, e.g., string operations (see below).  [This does not use the `eval()` function.]  Examples:   
 
@@ -491,7 +495,7 @@ Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everyth
     "replace": "$${const date = new Date(Date.UTC(2020, 11, 20, 3, 23, 16, 738)); return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(date)}",
                                                    // insert: Saturday, 19 December 2020 at 20:23:16 GMT-7
                                                    
-    "replace": [                                   // same as the above
+    "replace": [                                   // same output as above
       "$${",                                       // opening "wrapper" on its own line
       "const date = new Date(Date.UTC(2020, 11, 20, 3, 23, 16, 738));",
       "return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(date)",
@@ -514,12 +518,13 @@ Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everyth
 You can also do string operations inside the special syntax ` $${<operations>}$$ ` as well.  But you will need to ***"cast"*** the string in bacticks, single quotes or escaped double quotes like so:   
 
 ```
-$${ return \`$1\`.substring(3) }$$  use backticks or  
+$${ return `$1`.substring(3) }$$  use backticks (I recommend backticks) or  
 
 $${ return '$1'.substring(3) }$$  or  use single quotes
 
 $${ return \\"$1\\".includes('tro') }$$  escape the double quotes
 ```  
+> You **must** backticks if the value, like a capture group or some variable, could contain newlines.  
 
 > Any term that you wish to be interpreted as a string must be enclosed in ticks or quotes.  So in the first example below to replace the match with the string `howdy` I used backticks.  This is only necessary within the operations syntax `$${<operations>}$$` otherwise it is interpreted as an unknown variable by javascript.  
 
@@ -566,6 +571,7 @@ $${ return \\"$1\\".includes('tro') }$$  escape the double quotes
   
   "if (`${fileBasenameNoExtension}`.includes('-')) {",
   "  let groovy = `${fileBasenameNoExtension}`.replace(/(-)/g, \"*$1*\");",  // $1 here
+  "  console.log(groovy);",          // check the value in Toggle Developer Tools/Console
   "  return groovy[0].toUpperCase() + groovy.substring(1).toLowerCase();",
   "}",
   "else {",
@@ -1627,30 +1633,31 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 0.9.8 Added more `lineNumber/Index` support.  Added `matchNumber/Index` variable. 	
 
 * 1.0.0 Added ability to do math and string operations on `findInCurrentFile` replacements.  
-&emsp;&emsp;Can do multiple finds and replaces in a single keybinding or setting.  
+&emsp;&emsp; Can do multiple finds and replaces in a single keybinding or setting.  
 
 * 1.1.0 Work on ` $${<operation>} `, adding `return`.  **Breaking change**. 
  
 * 2.0.0 Work on ` $${<operation>}$$ `, adding `$$` to the end for parsing.  **Breaking change**.   
-&emsp;&emsp;Added snippet-like cursor replacements.  
-&emsp;&emsp;Added ability to have an **array of code** for jsOp `replace`.  
-&emsp;&emsp;Added snippet variables like `${CURRENT_HOUR}`, `${LINE_COMMENT}`, `${TM_CURRENT_LINE}`, etc.   
+&emsp;&emsp; Added snippet-like cursor replacements.  
+&emsp;&emsp; Added ability to have an **array of code** for jsOp `replace`.  
+&emsp;&emsp; Added snippet variables like `${CURRENT_HOUR}`, `${LINE_COMMENT}`, `${TM_CURRENT_LINE}`, etc.   
 
 * 2.1.0 Added intellisense for `find` snippet variables.  
 &emsp;&emsp;Fixed `find` `${TM_CURRENT_LINE}` resolution.   
 
 * 2.2.0  Added the ability to run vscode commands **before** performing the find.   
-&emsp;&emsp;Improved `^` and `$` regex line delimiter handling in `cursorMoveSelect`.    
+&emsp;&emsp; Improved `^` and `$` regex line delimiter handling in `cursorMoveSelect`.    
 
 * 2.3.0  Can now execute vscode commands with arguments.   
 
 * 2.4.0  Use capture groups in `find`.   
-&emsp;&emsp;2.4.2 Restrict number of capture groups to 9.  
-&emsp;&emsp;2.4.3 Fixed `cursorMoveSelect` and once/line.  Added ignore langID's.  
+&emsp;&emsp; 2.4.2 Restrict number of capture groups to 9.  
+&emsp;&emsp; 2.4.3 Fixed `cursorMoveSelect` and once/line.  Added ignore langID's.  
 
 * 3.0.0  Enable multiple searches in `runInSearchPanel`.   
 &emsp;&emsp; Added snippet variable resolution to  `runInSearchPanel`.  
 &emsp;&emsp; Added a `delay` arg to `runInSearchPanel`.  
+&emsp;&emsp; 3.1.0 Escape /'s in a replace.  Added outputChannel.    
 
 <br/> 
 
