@@ -8,7 +8,7 @@ const variables = require('./variables');
  * @param {vscode.window.activeTextEditor} editor
  */
 exports.addEmptySelectionMatches = function (editor) {
-
+  
 	editor.selections.forEach(selection => {
 
 		const emptySelections = [];
@@ -41,7 +41,7 @@ exports.findAndSelect = function (editor, args) {
 
   const foundSelections = [];
   const document = vscode.window.activeTextEditor.document;
-
+  
   if (args.restrictFind === "document") {
     
     let docRange;

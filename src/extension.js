@@ -173,7 +173,8 @@ async function activate(context) {
 		// if completionText startsWith '\\U$n' or '${n'
 		let keyLength;
 		if (completionText?.startsWith("${n")) keyLength = 3;
-		else if (completionText?.search(/^\\\\[UuLl]\$n/m) === 0) keyLength = 5;
+    else if (completionText?.search(/^\\\\[UuLl]\$n/m) === 0) keyLength = 5;
+    else if (completionText?.search(/^\$\{getLineText:n\}/m) === 0) keyLength = 15;
 		else return;
 
 		if (completionRange?.start) {

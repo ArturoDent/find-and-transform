@@ -44,7 +44,6 @@ exports.getRelativeFolderPath = function (filePath) {
 	return vscode.workspace.asRelativePath(dirname);
 }
 
-
 /**
  * Get the language configuration comments object for  the current file
  * @returns {Promise<object|undefined>} comments object

@@ -193,21 +193,26 @@ function _completeArgs(linePrefix, position, find, search, arg) {
 
   if (arg === 'filesToInclude' || arg === 'filesToExclude') {
     if (linePrefix.endsWith('${'))
-      return _completePathVariables(position, "${", search);
+      // return _completePathVariables(position, "${");
+      return [..._completePathVariables(position, "${"), ..._completeExtensionDefinedVariables(position, "${", search)];
     
     else if (linePrefix.endsWith('$'))
-      return _completePathVariables(position, '$', search);
+      // return _completePathVariables(position, '$');
+      return [..._completePathVariables(position, "$"), ..._completeExtensionDefinedVariables(position, "$", search)];
+      
   }
 
  // ---------------------  find  ------------------------
 
   if (arg === 'find') {
     if (linePrefix.endsWith('$'))
-      // return _completePathVariables(position, '$');  // other variables?  jsOp?
-      return _completePathVariables(position, '$', search).concat(_completeSnippetVariables(position, '$'));  // other variables?  jsOp?
-    
+      // return _completePathVariables(position, '$', search).concat(_completeSnippetVariables(position, '$'));  // other variables?  jsOp?
+      return [..._completePathVariables(position, '$'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '$')];
+      
     else if (linePrefix.endsWith('${'))
-      return _completePathVariables(position, '${', search).concat(_completeSnippetVariables(position, '${'));
+      // return _completePathVariables(position, '${', search).concat(_completeSnippetVariables(position, '${'));
+      return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '${')];
+      
     
     else if (linePrefix.endsWith('\\\\'))
       return _completeFindCaseTransforms(position, '\\\\');
@@ -247,10 +252,13 @@ function _completeArgs(linePrefix, position, find, search, arg) {
     // } 
     
     else if (search && linePrefix.endsWith('$'))
-      return _completePathVariables(position, '$', search).concat(_completeSnippetVariables(position, '$'));
+      // return _completePathVariables(position, '$', search).concat(_completeSnippetVariables(position, '$'));
+      return [..._completePathVariables(position, '$'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '$')];
+      
 
 		else if (search && linePrefix.endsWith('${'))
-      return _completePathVariables(position, '${}', search).concat(_completeSnippetVariables(position, '${'));
+      // return _completePathVariables(position, '${', search).concat(_completeSnippetVariables(position, '${'));
+      return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '${')];
   }
 
 // -------------------  cursorMoveSelect  ----------------------
@@ -377,17 +385,51 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
  * @param   {string} trigger - triggered by '$' so include its range
  * @returns {Array<vscode.CompletionItem>}
  */
-function _completePathVariables(position, trigger, search) {
+function _completeExtensionDefinedVariables(position, trigger, search) {
 
 	// triggered by 1 '$', so include it to complete w/o two '$${file}'
 	let replaceRange;
-	let addResultFiles = undefined;
+  let addResultFiles = undefined;
+  
+  const text = `
+		
+Replace ***n*** with some number 0-n.
+
+`;
 
 	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
 	else replaceRange = new vscode.Range(position, position);
 
 	if (search)
-		addResultFiles = _makeCompletionItem("${resultsFiles}", replaceRange, "", "052", "A comma-separated list of the files in the current search results.");
+		addResultFiles = _makeCompletionItem("${resultsFiles}", replaceRange, "", "052", `A comma-separated list of the files in the current search results.`);
+
+	const completionItems =  [
+		_makeCompletionItem("${getDocumentText}", replaceRange, "", "053", `The complete text of the current document.`),
+		_makeCompletionItem("${getLineText:n}", replaceRange, "", "054", `The text on line 'n', which is 0-baseed. ${ text }`),
+	];
+
+	if (search) return completionItems.concat(addResultFiles);
+	else return completionItems;
+}
+
+/**
+ * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
+ * 
+ * @param   {vscode.Position} position
+ * @param   {string} trigger - triggered by '$' so include its range
+ * @returns {Array<vscode.CompletionItem>}
+ */
+function _completePathVariables(position, trigger) {
+
+	// triggered by 1 '$', so include it to complete w/o two '$${file}'
+	let replaceRange;
+	// let addResultFiles = undefined;
+
+	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
+	else replaceRange = new vscode.Range(position, position);
+
+	// if (search)
+	// 	addResultFiles = _makeCompletionItem("${resultsFiles}", replaceRange, "", "052", "A comma-separated list of the files in the current search results.");
 
 	const completionItems =  [
 		_makeCompletionItem("${file}", replaceRange, "", "01", "The full path (`/home/UserName/myProject/folder/test.txt`) of the current editor."),
@@ -413,8 +455,8 @@ function _completePathVariables(position, trigger, search) {
     _makeCompletionItem("${matchNumber}", replaceRange, "", "051", "The 1-based find match index. Is this the first, second, etc. match?"),
 	];
 
-	if (search) return completionItems.concat(addResultFiles);
-	else return completionItems;
+	// if (search) return completionItems.concat(addResultFiles);
+	return completionItems;
 }
 
 /**
@@ -492,16 +534,26 @@ function _completeReplaceFindVariables(position, trigger) {
 
 	// triggered by 1 '$' or '$${' or '${'
 
-  const pathVariableArray = _completePathVariables(position, trigger, false);
-  const conditionalsArray = _completeFindConditionalTransforms(position, trigger);
-  const snippetVariableArray = _completeSnippetVariables(position, trigger);  
-  const jsOperation = _completeReplaceJSOperation(position, trigger);
+  // const pathVariableArray = _completePathVariables(position, trigger);
+  // // search? arg TODO
+  // const extensionDefinedArray = _completeExtensionDefinedVariables(position, trigger);
+  // const conditionalsArray = _completeFindConditionalTransforms(position, trigger);
+  // const snippetVariableArray = _completeSnippetVariables(position, trigger);  
+  // const jsOperation = _completeReplaceJSOperation(position, trigger);
 
-	return [
-    ...pathVariableArray,  // or just ..._completePathVariables(position, trigger); ?
-    ...conditionalsArray,
-    ...jsOperation,
-    ...snippetVariableArray
+	// return [
+  //   ...pathVariableArray,  // or just ..._completePathVariables(position, trigger); ?
+  //   ...extensionDefinedArray,
+  //   ...conditionalsArray,
+  //   ...jsOperation,
+  //   ...snippetVariableArray
+  // ];
+  	return [
+    ..._completePathVariables(position, trigger),
+    ..._completeExtensionDefinedVariables(position, trigger),
+    ..._completeFindConditionalTransforms(position, trigger),
+    ..._completeReplaceJSOperation(position, trigger),
+    ..._completeSnippetVariables(position, trigger)
   ];
 }
 
@@ -699,6 +751,13 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 		item.command = newCommand;
 	}
 	else if (key.search(/^\\\\[UuLl]\$n/m) !== -1) {
+		let newCommand = {};
+		newCommand.command = "find-and-transform.selectDigitInCompletion";
+		newCommand.title = "Select the digit 'n' in completionItem";
+		newCommand.arguments = [key, replaceRange];
+		item.command = newCommand;
+  }
+  else if (key.search(/^\$\{getLineText:n\}/m) !== -1) {
 		let newCommand = {};
 		newCommand.command = "find-and-transform.selectDigitInCompletion";
 		newCommand.title = "Select the digit 'n' in completionItem";

@@ -1,0 +1,6 @@
+asdasd asdasd asdasd
+
+Reactive Patterns with RxJS.
+A practical guide.
+
+asdasd asdasd

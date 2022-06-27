@@ -75,6 +75,55 @@ exports.replaceFindCaptureGroups = async function (findValue) {
   return resolvedCaptureGroup;
 }
 
+
+/**
+ * If the "filesToInclude/find/replace" entry uses a path variable(s) return the resolved value  
+ * 
+ * @param {string} variableToResolve - the "filesToInclude/find/replace" value 
+ * @param {Object} args -  keybinding/settings args
+ * @param {string} caller - if called from a find.parseVariables() or replace or filesToInclude 
+ * @returns {string} - the resolved path variable
+ */
+function _resolveExtensionDefinedVariables (variableToResolve, args, caller) {
+
+  if (typeof variableToResolve !== 'string') return variableToResolve;
+    
+  const document = vscode.window.activeTextEditor.document;
+  let resolved = variableToResolve;
+  
+  const lineTextMatch = variableToResolve.match(/\$\{getLineText:(?<lineNumber>\d+)\}/);
+   
+    if (lineTextMatch?.groups) {
+      resolved = document.lineAt(Number(lineTextMatch.groups.lineNumber)).text;
+    }
+    else {
+   
+      const namedGroups = resolved.match(/(?<varCaseModifier>\\[UuLl])?(?<definedVars>\$\{\s*.*?\s*\})/).groups;
+
+      switch (namedGroups.definedVars) {
+      
+        case "${getDocumentText}": case "${ getDocumentText }":
+          resolved = document.getText();
+          break;
+    
+        case "${resultsFiles}": case "${ resultsFiles }":
+          resolved = args.resultsFiles;
+          break;
+    
+        default:
+          break;
+      }
+    }
+
+	// escape .*{}[]?^$ if using in a find or findSearch
+  if (!args.isRegex && caller === "find") return resolved.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+  else if (!args.isRegex && caller === "findSearch") return resolved.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+
+  else if (caller === "filesToInclude" && resolved === ".") return  "./";
+  
+  else return resolved;
+};
+
 /**
  * Resolve the matchIndex/Number variable.
  * 
@@ -125,7 +174,7 @@ exports.resolveLineVariable = function (variableToResolve, index) {
  * 
  * @returns {string} - the resolved path variable
  */
- function _resolvePathVariables (variableToResolve, args, caller, selection, match, selectionStartIndex, matchIndex) {
+function _resolvePathVariables (variableToResolve, args, caller, selection, match, selectionStartIndex, matchIndex) {
 
   if (typeof variableToResolve !== 'string') return variableToResolve;
 
@@ -142,17 +191,17 @@ exports.resolveLineVariable = function (variableToResolve, index) {
   let resolved = variableToResolve;
   const namedGroups = resolved.match(/(?<pathCaseModifier>\\[UuLl])?(?<path>\$\{\s*.*?\s*\})/).groups;
 
-   switch (namedGroups.path) {
+  switch (namedGroups.path) {
 
     case "${file}":  case "${ file }":
       if (os.type() === "Windows_NT") resolved = filePath.substring(4);
       else resolved = filePath;
       break;
-  
+
     case "${relativeFile}":	 case "${ relativeFile }":
       resolved = vscode.workspace.asRelativePath(vscode.window.activeTextEditor.document.uri, false);
       break;
-  
+
     case "${fileBasename}": case "${ fileBasename }":
       resolved = path.basename(relativePath);
       break;
@@ -160,11 +209,11 @@ exports.resolveLineVariable = function (variableToResolve, index) {
     case "${fileBasenameNoExtension}": case "${ fileBasenameNoExtension }":
       resolved = path.basename(relativePath, path.extname(relativePath))
       break;
-     
+      
     case "${fileExtname}": case "${ fileExtname }":   // includes the `.` unfortunately
       resolved = path.extname(relativePath);
       break;
-     
+      
     case "${fileDirname}": case "${ fileDirname }":
       resolved = path.dirname(filePath);
       break;
@@ -173,7 +222,7 @@ exports.resolveLineVariable = function (variableToResolve, index) {
       resolved = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.path;
       break;
      
-     case "${workspaceFolder}": case "${ workspaceFolder }":
+    case "${workspaceFolder}": case "${ workspaceFolder }":
       resolved = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri).uri.path;
       break;
 
@@ -251,9 +300,9 @@ exports.resolveLineVariable = function (variableToResolve, index) {
       resolved = args.clipText;
       break;
 
-    case "${resultsFiles}": case "${ resultsFiles }":
-      resolved = args.resultsFiles;
-      break;
+    // case "${resultsFiles}": case "${ resultsFiles }":
+    //   resolved = args.resultsFiles;
+    //   break;
      
     default:
       break;
@@ -280,7 +329,7 @@ exports.resolveLineVariable = function (variableToResolve, index) {
  * @param {Object} groups - the current match
  * @returns {string} - the resolved path variable
  */
- function _resolveSnippetVariables (variableToResolve, args, caller, selection, groups) {
+function _resolveSnippetVariables (variableToResolve, args, caller, selection, groups) {
 
   if (typeof variableToResolve !== 'string') return variableToResolve;
 
@@ -473,9 +522,7 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
   
     resolved = replaceValue.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
       
-      // const variableToResolve = _resolveSnippetVariables(match, args, caller, selection, groups);
       const variableToResolve =  _resolveSnippetVariables(match, args, caller, selection, undefined);
-      // return _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, variableToResolve);
       return _applyCaseModifier(match, p1, p2, offset, string, namedGroups, undefined, variableToResolve);
     });
   };
@@ -507,9 +554,20 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
 
   let resolved = replaceValue;
   let re;
+  
+   // --------------------  extension-defined variables -------------------------------------------
+  let vars = _getExtensionDefinedVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+  re = new RegExp(`(?<varCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
+
+  resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
+    
+    const variableToResolve = _resolveExtensionDefinedVariables(match, args, caller);
+    return _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, variableToResolve);
+  });
+  // --------------------  extension-defined variables ----------------------------------------------
 
   // --------------------  path variables -----------------------------------------------------------
-  let vars = _getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+  vars = _getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
   re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
 
   resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
@@ -543,6 +601,7 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
   // https://regex101.com/r/dTTHi7/1
   
   // if (caller !== "find" && !args.isRegex) {
+  // TODO if caller = findSearch
   if (caller !== "find") {
   
     // --------------------  caseModifier/capGroup --------------------------------------------------
@@ -589,6 +648,24 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     });
     // --------------------  capGroupOnly ----------------------------------------------------------
     
+       
+    // -------------------  vscode API -------------------------------------------------------------
+      // just eval the whole string here? avoid jsOp?
+    // re = new RegExp("(?<vscodeAPI>\\$\\{\\s*(vscode\..*?)\\s*\\})", "gm");
+    re = new RegExp("(?<vscodeAPI>\\$\{\\s*((new)?\\s*vscode\..*?)\\s*\\})", "gm");   // new
+    // "const fullText = `${vscode.window.activeTextEditor.document.getText()}`;",
+    
+    try {
+      resolved = resolved.replaceAll(re, function (match, p1, api) {
+        // checking for capture groups and variables already done above
+        return eval(api);
+      });
+    }
+    catch (error) {
+      outputChannel.appendLine(`\n${error.stack}\n`);
+      vscode.window.showWarningMessage("There was an error in the `$${<operations>}$$` part of the replace value.  See the Output channel: `find-and-transform` for more.")
+    }
+    // -------------------  vscode API -------------------------------------------------------------
     
     // -------------------  jsOp ------------------------------------------------------------------
     // can have multiple $${...}$$ in a replace
@@ -596,7 +673,7 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     try {
       resolved = resolved.replaceAll(re, function (match, p1, operation) {
         // checking for capture groups and variables already done above
-        return Function(`"use strict";  ${operation}`)();
+        return Function(`"use strict"; ${operation}`)();
       });
     }
     catch (error) {
@@ -683,6 +760,8 @@ function _applyCaseTransform(match, p1, p2, p3, p4, offset, string, namedGroups,
   
   let resolved = groups[p2];
 
+  if (!resolved) return undefined;
+  
   switch (p3) {
 
     case "upcase":
@@ -779,6 +858,14 @@ function _checkForCaptureGroupsInConditionalReplacement(replacement, groups) {
   return replacement;
 }
 
+/**
+ * @returns {Array} - all the available variables defined by this extension
+ */
+function _getExtensionDefinedVariables() {
+
+  return [ "${getDocumentText}", "${getLineText:\\d+}", "${resultsFiles}" ];
+}
+
 
 /**
  * @returns {Array} - all the available path variables
@@ -788,7 +875,8 @@ function _getPathVariables() {
   return [
     "${file}", "${relativeFile}", "${fileBasename}", "${fileBasenameNoExtension}", "${fileExtname}", "${fileDirname}",
     "${fileWorkspaceFolder}", "${workspaceFolder}", "${relativeFileDirname}", "${workspaceFolderBasename}", 
-    "${selectedText}", "${pathSeparator}", "${lineIndex}", "${lineNumber}", "${CLIPBOARD}", "${resultsFiles}",
+    // "${selectedText}", "${pathSeparator}", "${lineIndex}", "${lineNumber}", "${CLIPBOARD}", "${resultsFiles}",
+    "${selectedText}", "${pathSeparator}", "${lineIndex}", "${lineNumber}", "${CLIPBOARD}",     
     "${matchIndex}", "${matchNumber}"
   ];
 }

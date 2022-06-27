@@ -15,6 +15,7 @@
 11. &nbsp; Insert any resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.
 12. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.  
 13. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#using-numbered-capture-groups-in-a-find).  
+14. `${getDocumentText}` and `${getLineText:n}` to get text anywhere in the document to use for replacement terms.  
 
 
 -------------
@@ -691,6 +692,53 @@ Explanation: Find `>` and add `class="uppercased filename">` to it.
 
 <br/>
 
+* ### Variables defined by this extension for use in args  
+
+```
+${resultsFiles}            ** explained below **
+${getDocumentText}         get the entire text of the current document  
+${getLineText:n}           get the text of a line, 'n' is 0-based, so ${getLineText:1} gets the second line of the file
+```
+
+You will get intellisense in the keybinding or setting showing where the variables can be used.  
+
+> ` ${resultsFiles}` is a specially created variable that will scope the next search to those files in the previous search's results. In this way you can run successive searches narrowing the scope each time to the previous search results files.  See &nbsp;  [Search using the Panel](searchInPanel.md).
+
+Here is an example using `${getDocumentText}`:  
+
+```jsonc
+{
+  "key": "alt+e",
+  "command": "findInCurrentFile",
+  "args": {
+
+    "replace": [
+      "$${",
+        // note the variables should be wrapped in backticks, so they are interpreted as strings
+        "const fullText = `${getDocumentText}`;",
+        // "const fullText = `${vscode.window.activeTextEditor.document.getText()}`;",  // same as above, also works
+        // "const fullText = `${getLineText:3}`;",   // if you knew which line you wanted to get
+         
+        "let foundClass = '';",      
+        "const match = fullText.match(/class ([^\\s]+) extends/);",
+        "if (match?.length) foundClass = match[1];",
+        
+        "return `export default connect(mapStateToProps, mapDispatchToProps)(${foundClass})`;",
+        
+      "}$$"
+    ],
+    
+    "postCommands": "cancelSelection"
+  },
+},
+```
+
+Notice there is no `find`, so that the result of the `replace` will be inserted at the cursor(s).  In this case, the `replace` will get the entire text and then `match` it looking for a certain class name as a capture group.  If found, it will be added to a value that is returned.  See this [Stack Overflow question](https://stackoverflow.com/questions/55281939/snippets-in-vs-code-that-use-text-found-in-the-file-with-a-regular-expression/55291542#55291542) to see this in action. 
+
+The `${getDocumentText}` variable allows to look anywhere in a document for any text or groups of text that you can find with a regex.  You are not limited  to the current line or the clipboard or selection for example.  
+  
+<br/>
+
 * ### Launch or task variables: path variables
 
 These can be used in the `find` or `replace` fields of the `findInCurrentFile` command or in the `find`, `replace`, and perhaps most importantly, the `filesToInclude` and `filesToExclude` fields of the `runInSearchPanel` command:
@@ -713,8 +761,6 @@ ${pathSeparator}
 ${selectedText}            can be used in the find/replace/cursorMoveSelect fields  
 ${CLIPBOARD}
 
-${resultsFiles}            ** explained below **
-
 ${lineIndex}               line index starts at 0
 ${lineNumber}              line number start at 1
 
@@ -723,9 +769,7 @@ ${matchNumber}             1-based, replace with the find match number
 
 ```
 
-These variables should have the same resolved values as found at &nbsp; [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).   
-
-> ` ${resultsFiles}` is a specially created variable that will scope the next search to those files in the previous search's results. In this way you can run successive searches narrowing the scope each time to the previous search results files.  See &nbsp;  [Search using the Panel](searchInPanel.md). 
+These variables should have the same resolved values as found at &nbsp; [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).    
 
 > These path variables can also be used in a conditional like `${1:+${relativeFile}}`.  If capture group 1, insert the relativeFileName.     
 
@@ -1657,7 +1701,9 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 3.0.0  Enable multiple searches in `runInSearchPanel`.   
 &emsp;&emsp; Added snippet variable resolution to  `runInSearchPanel`.  
 &emsp;&emsp; Added a `delay` arg to `runInSearchPanel`.  
-&emsp;&emsp; 3.1.0 Escape /'s in a replace.  Added outputChannel.    
+&emsp;&emsp; 3.1.0 Escape /'s in a replace.  Added outputChannel.  
+
+* 3.1.0  Added the variables `${getDocumentText}` and `${getLineText:n}`.   
 
 <br/> 
 
