@@ -1703,7 +1703,7 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 &emsp;&emsp; Added a `delay` arg to `runInSearchPanel`.  
 &emsp;&emsp; 3.1.0 Escape /'s in a replace.  Added outputChannel.  
 
-* 3.1.0  Added the variables `${getDocumentText}` and `${getLineText:n}`.   
+* 3.2.0  Added the variables `${getDocumentText}` and `${getLineText:n}`.   
 
 <br/> 
 
