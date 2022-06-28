@@ -91,29 +91,48 @@ function _resolveExtensionDefinedVariables (variableToResolve, args, caller) {
   const document = vscode.window.activeTextEditor.document;
   let resolved = variableToResolve;
   
-  const lineTextMatch = variableToResolve.match(/\$\{getLineText:(?<lineNumber>\d+)\}/);
+  let testLineRE = /\$\{getTextLines:(?<lineNumber>\d+)\}/;
+  let lineTextMatch = variableToResolve.match(testLineRE);
    
+  if (lineTextMatch?.groups) {
+    resolved = document.lineAt(Number(lineTextMatch.groups.lineNumber)).text;
+  }
+  else {
+    testLineRE = /\$\{getTextLines:(?<From>\d+)-(?<To>\d+)\}/;
+    lineTextMatch = variableToResolve.match(testLineRE);
     if (lineTextMatch?.groups) {
-      resolved = document.lineAt(Number(lineTextMatch.groups.lineNumber)).text;
+      const lastChar = document.lineAt(Number(lineTextMatch.groups.To)).range.end.character;
+      resolved = document.getText(new vscode.Range(Number(lineTextMatch.groups.From), 0, Number(lineTextMatch.groups.To), lastChar));
     }
     else {
-   
-      const namedGroups = resolved.match(/(?<varCaseModifier>\\[UuLl])?(?<definedVars>\$\{\s*.*?\s*\})/).groups;
-
-      switch (namedGroups.definedVars) {
-      
-        case "${getDocumentText}": case "${ getDocumentText }":
-          resolved = document.getText();
-          break;
-    
-        case "${resultsFiles}": case "${ resultsFiles }":
-          resolved = args.resultsFiles;
-          break;
-    
-        default:
-          break;
-      }
+      testLineRE = /\$\{getTextLines:(?<startL>\d+),(?<startCh>\d+),(?<endL>\d+),(?<endCh>\d+)\}/;
+      lineTextMatch = variableToResolve.match(testLineRE);
+      if (lineTextMatch?.groups)
+        resolved = document.getText(new vscode.Range(Number(lineTextMatch.groups.startL), Number(lineTextMatch.groups.startCh),
+          Number(lineTextMatch.groups.endL), Number(lineTextMatch.groups.endCh)));
     }
+  }
+
+  if (!lineTextMatch?.groups) {
+
+  // else {
+  
+    const namedGroups = resolved.match(/(?<varCaseModifier>\\[UuLl])?(?<definedVars>\$\{\s*.*?\s*\})/).groups;
+
+    switch (namedGroups.definedVars) {
+    
+      case "${getDocumentText}": case "${ getDocumentText }":
+        resolved = document.getText();
+        break;
+  
+      case "${resultsFiles}": case "${ resultsFiles }":
+        resolved = args.resultsFiles;
+        break;
+  
+      default:
+        break;
+    }
+  }
 
 	// escape .*{}[]?^$ if using in a find or findSearch
   if (!args.isRegex && caller === "find") return resolved.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
@@ -863,7 +882,8 @@ function _checkForCaptureGroupsInConditionalReplacement(replacement, groups) {
  */
 function _getExtensionDefinedVariables() {
 
-  return [ "${getDocumentText}", "${getLineText:\\d+}", "${resultsFiles}" ];
+  return ["${getDocumentText}", "${getTextLines:\\d+}", "${getTextLines:\\d+-\\d+}",
+    "${getTextLines:\\d+,\\d+,\\d+,\\d+}", "${resultsFiles}"];
 }
 
 

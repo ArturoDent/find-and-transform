@@ -15,7 +15,7 @@
 11. &nbsp; Insert any resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.
 12. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.  
 13. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#using-numbered-capture-groups-in-a-find).  
-14. `${getDocumentText}` and `${getLineText:n}` to get text anywhere in the document to use for replacement terms.  
+14. `${getDocumentText}` and `${getTextLines:n}` to get text anywhere in the document to use for replacement terms.  
 
 
 -------------
@@ -696,8 +696,13 @@ Explanation: Find `>` and add `class="uppercased filename">` to it.
 
 ```
 ${resultsFiles}            ** explained below **
-${getDocumentText}         get the entire text of the current document  
-${getLineText:n}           get the text of a line, 'n' is 0-based, so ${getLineText:1} gets the second line of the file
+${getDocumentText}         get the entire text of the current document
+  
+${getTextLines:n}          get the text of a line, 'n' is 0-based, so ${getLineText:1} gets the second line of the file
+${getTextLines:n-p}        get the text of a lines n through p inclusive, example  ${getTextLines:2-4} 
+
+// to get the text from line `n`, character `p` through line `q`, character `r`
+${getTextLines:n,p,q,r}    get the text of a lines n through q inclusive, from characters p to r, example  ${getTextLines:2,0,4,15}      
 ```
 
 You will get intellisense in the keybinding or setting showing where the variables can be used.  
@@ -735,7 +740,7 @@ Here is an example using `${getDocumentText}`:
 
 Notice there is no `find`, so that the result of the `replace` will be inserted at the cursor(s).  In this case, the `replace` will get the entire text and then `match` it looking for a certain class name as a capture group.  If found, it will be added to a value that is returned.  See this [Stack Overflow question](https://stackoverflow.com/questions/55281939/snippets-in-vs-code-that-use-text-found-in-the-file-with-a-regular-expression/55291542#55291542) to see this in action. 
 
-The `${getDocumentText}` variable allows to look anywhere in a document for any text or groups of text that you can find with a regex.  You are not limited  to the current line or the clipboard or selection for example.  
+The `${getDocumentText}` variable allows you to look anywhere in a document for any text or groups of text that you can find with a regex.  You are not limited  to the current line or the clipboard or selection for example.  
   
 <br/>
 
@@ -1703,7 +1708,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 &emsp;&emsp; Added a `delay` arg to `runInSearchPanel`.  
 &emsp;&emsp; 3.1.0 Escape /'s in a replace.  Added outputChannel.  
 
-* 3.2.0  Added the variables `${getDocumentText}` and `${getLineText:n}`.   
+* 3.2.0  Added the variables `${getDocumentText}` and `${getLineText:n}`.  
+&emsp;&emsp; 3.2.5 Rename `${getLineText:n}` and add `${getLineText:n-p}` and `${getLineText:n,o,p,q}`.    
 
 <br/> 
 

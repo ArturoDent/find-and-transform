@@ -387,13 +387,20 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
  */
 function _completeExtensionDefinedVariables(position, trigger, search) {
 
-	// triggered by 1 '$', so include it to complete w/o two '$${file}'
-	let replaceRange;
+  // triggered by 1 '$', so include it to complete w/o two '$${file}'
+  let replaceRange;
   let addResultFiles = undefined;
   
   const text = `
-		
-Replace ***n*** with some number 0-n.
+  
+	Three possible forms:
+    
+    \${getTextLines:n}  get line n text
+    \${getTextLines:n-p} text lines n through p
+    \${getTextLines:n,o,p,q} text from line n, character o 
+                            through line p, character q
+
+Replace ***n, o, p, q*** with some number 0-x.
 
 `;
 
@@ -405,7 +412,9 @@ Replace ***n*** with some number 0-n.
 
 	const completionItems =  [
 		_makeCompletionItem("${getDocumentText}", replaceRange, "", "053", `The complete text of the current document.`),
-		_makeCompletionItem("${getLineText:n}", replaceRange, "", "054", `The text on line 'n', which is 0-baseed. ${ text }`),
+    _makeCompletionItem("${getTextLines:n}", replaceRange, "", "0541", `Line and character numbers are 0-based. ${ text }`),
+    _makeCompletionItem("${getTextLines:n-p}", replaceRange, "", "0542", `Line and character numbers are 0-based. ${ text }`),
+    _makeCompletionItem("${getTextLines:n,o,p,q}", replaceRange, "", "0543", `Line and character numbers are 0-based. ${ text }`),
 	];
 
 	if (search) return completionItems.concat(addResultFiles);
@@ -757,7 +766,7 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 		newCommand.arguments = [key, replaceRange];
 		item.command = newCommand;
   }
-  else if (key.search(/^\$\{getLineText:n\}/m) !== -1) {
+  else if (key.search(/^\$\{getTextLines:n/m) !== -1) {
 		let newCommand = {};
 		newCommand.command = "find-and-transform.selectDigitInCompletion";
 		newCommand.title = "Select the digit 'n' in completionItem";

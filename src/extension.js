@@ -174,7 +174,7 @@ async function activate(context) {
 		let keyLength;
 		if (completionText?.startsWith("${n")) keyLength = 3;
     else if (completionText?.search(/^\\\\[UuLl]\$n/m) === 0) keyLength = 5;
-    else if (completionText?.search(/^\$\{getLineText:n\}/m) === 0) keyLength = 15;
+    else if (completionText?.search(/^\$\{getTextLines:n/m) === 0) keyLength = 16;
 		else return;
 
 		if (completionRange?.start) {
