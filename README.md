@@ -1710,6 +1710,7 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 
 * 3.2.0  Added the variables `${getDocumentText}` and `${getLineText:n}`.  
 &emsp;&emsp; 3.2.5 Rename `${getLineText:n}` and add `${getLineText:n-p}` and `${getLineText:n,o,p,q}`.    
+&emsp;&emsp; 3.2.6 Fix setting `filesToInclude` to  resolved `${resultsFiles}`.    
 
 <br/> 
 

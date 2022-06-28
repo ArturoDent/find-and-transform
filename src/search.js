@@ -134,6 +134,7 @@ async function _buildSearchArgs(args, index)  {
   if (!indexedArgs.delay && indexedArgs.triggerReplaceAll) indexedArgs.delay = 2000;
 
   indexedArgs.query = indexedArgs.find;
+  if (indexedArgs?.filesToInclude == "${resultsFiles}") indexedArgs.filesToInclude = indexedArgs.resultsFiles;
 	return indexedArgs;
 }
 
