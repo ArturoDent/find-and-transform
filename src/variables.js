@@ -669,7 +669,8 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     
        
     // -------------------  vscode API -------------------------------------------------------------
-      // just eval the whole string here? avoid jsOp?
+    
+    // just eval the whole string here? avoid jsOp?
     // re = new RegExp("(?<vscodeAPI>\\$\\{\\s*(vscode\..*?)\\s*\\})", "gm");
     re = new RegExp("(?<vscodeAPI>\\$\{\\s*((new)?\\s*vscode\..*?)\\s*\\})", "gm");   // new
     // "const fullText = `${vscode.window.activeTextEditor.document.getText()}`;",
@@ -677,7 +678,7 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     try {
       resolved = resolved.replaceAll(re, function (match, p1, api) {
         // checking for capture groups and variables already done above
-        return eval(api);
+        return  eval(api);
       });
     }
     catch (error) {

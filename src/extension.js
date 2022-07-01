@@ -114,6 +114,8 @@ async function activate(context) {
     if (args.preCommands) await commands.runPrePostCommands(args.preCommands);
     
     // call a function that looks for all jsOp's $${...}$$ in args.replace
+    // TODO write a validate function here
+    // could be an array of 1 : ["$${ return 'howdy', }$$"] or ["howdy $${ return 'pardner', }$$"]
     if (Array.isArray(args.replace) && args.replace.find(el => el === "$${"))
       args.replace = await parseCommands.buildJSOperationsFromArgs(args.replace);
 

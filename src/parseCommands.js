@@ -18,10 +18,12 @@ exports.buildJSOperationsFromArgs = async function (arg) {
   // make their content into one operation and splice that into arg
   
   for (let index = 0; index < arg.length; index++) {
+    // move this outside the loop
     const start = arg.findIndex(el => el === "$${");
     const end = arg.findIndex(element => element === '}$$');
     if (start !== -1 && end !== -1) {
       // below makes the semicolons optional, 2 in a row is okay
+      // if line.endsWith(";") don't add another
       const operation = arg.slice(start, end + 1).join('; ');
       //const operation = arg.slice(start, end + 1).join(' ');
       

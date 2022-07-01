@@ -23,6 +23,8 @@ const utilities = require('./utilities');
  */
 exports.runPrePostCommands = async function (commands) {
   
+  // TODO resolve variables here (but not capture groups - except in a choice), fill choices with array items, e.g.
+  
   if (typeof commands === 'string') await vscode.commands.executeCommand(commands); 
   else if (typeof commands === 'object' && !Array.isArray(commands))
     await vscode.commands.executeCommand(commands.command, commands.args);

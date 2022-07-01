@@ -111,7 +111,7 @@ Above is an example of the `preCommands` and the `postCommands` arguments.  This
 
 `postCommands` are run after the find and replace has occurred. 
 
-Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command ID` - the same command ID's you would use in a keybinding.  And the same for of `args` for each of those commands - see the `type` example above.  
+Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command ID` - the same command ID's you would use in a keybinding.  And the same for the `args` of each of those commands - see the `type` example above.  
 
 `preCommands` are particularly useful when you want to move the cursor to a different word or **insertion point** (like moving the cursor to the beginning of the line and then insert something) before doing anything else or programmatically selecting something without having to remember to do that manually each time before you run the keybinding or command.  
 
