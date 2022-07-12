@@ -105,15 +105,15 @@ Below you will find information on using the `findInCurrentFile` command - which
   }
 }    
 ```
-Above is an example of the `preCommands` and the `postCommands` arguments.  This functionality is in preview as of v2.3.0, particularly the `postCommands` as a lot of asynchronous code runs after the `preCommands` have finished.  So be very cautious with the `postCommands` for now.      
+Above is an example of the `preCommands` and `postCommands` arguments.  This functionality is in preview as of v2.3.0, particularly the `postCommands` as a lot of asynchronous code runs after the `preCommands` have finished.  So be very cautious with the `postCommands` for now.      
 
 `preCommands` are run before any `find` or `replace` occurs.  It can be a single string or an object or an array of strings/objects.  The arguments `preCommands` and `postCommands` can appear anywhere in the arguments.  All the arguments can be in any order.  
 
-`postCommands` are run after the find and replace has occurred. 
+`postCommands` are run after the find and replace has occurred.  And will only run **if** there has been a successful find match.  So if there is no find match, no `postCommand` will run.  
 
 Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command ID` - the same command ID's you would use in a keybinding.  And the same for the `args` of each of those commands - see the `type` example above.  
 
-`preCommands` are particularly useful when you want to move the cursor to a different word or **insertion point** (like moving the cursor to the beginning of the line and then insert something) before doing anything else or programmatically selecting something without having to remember to do that manually each time before you run the keybinding or command.  
+`preCommands` are particularly useful when you want to move the cursor to a different word or **insertion point** (like moving the cursor to the beginning of the line and then insert something) before doing anything else.    
 
  For example, some replacements are much easier to do when the current line is selected first.  That way, when the replacement occurs it replaces the entire line.  Otherwise you would first have to select that line and then run the keybinding.  The following example only works if the current line is selected first.  
  
@@ -137,19 +137,19 @@ Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command
     "replace": [
       "$${",                      // run these math and string operations to create the replacement
       
-      "const ch = '/';",
-      "const spacer = 3;",                                  // spaces around the text at the center
-      "const textLength = '${TM_CURRENT_LINE}'.length;",
-      "const isOdd = textLength % 2;",
-      "const surround = Math.floor((80 - (2 * spacer) - textLength) / 2);",
-      
-      "let result = ch.padEnd(80, ch) + '\\n';",
-      "result += ch.padEnd(surround, ch) + ''.padEnd(spacer, ' ');",
-      "result += '${TM_CURRENT_LINE}'.padEnd(textLength + spacer, ' ') + ch.padEnd(surround, ch);",
-      
-      "if (isOdd) result += ch;",                          // add one if textLength is odd
-      "result += '\\n' + ch.padEnd(80, ch);",
-      "return result;",
+        "const ch = '/';",
+        "const spacer = 3;",                                  // spaces around the text at the center
+        "const textLength = '${TM_CURRENT_LINE}'.length;",
+        "const isOdd = textLength % 2;",
+        "const surround = Math.floor((80 - (2 * spacer) - textLength) / 2);",
+        
+        "let result = ch.padEnd(80, ch) + '\\n';",
+        "result += ch.padEnd(surround, ch) + ''.padEnd(spacer, ' ');",
+        "result += '${TM_CURRENT_LINE}'.padEnd(textLength + spacer, ' ') + ch.padEnd(surround, ch);",
+        
+        "if (isOdd) result += ch;",                          // add one if textLength is odd
+        "result += '\\n' + ch.padEnd(80, ch);",
+        "return result;",
       
       "}$$"
     ],
@@ -469,7 +469,7 @@ On the first pass above, "someWord" will be replaced with "SOMEWORD".  On the se
 
 It is difficult to debug errors in javascript code you write in a replacement as below.  If your keybinding or setting generates an error, you will get a warning message notifying you of the failure.  And if you check your `Output` tab, and chose `find-and-transform` from the dropdown menu, you may get some helpful information on the nature of the error.  
 
-You can put `console.log(...)` statements into the replacement code.  It wil lbe logged to your `Help/Toggle Developer Tools/Console`.  
+You can put `console.log(...)` statements into the replacement code.  It wil lbe logged to your `Help/Toggle Developer Tools/Console`. 
 
 <br/> 
 
@@ -497,16 +497,48 @@ Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everyth
                                                    // insert: Saturday, 19 December 2020 at 20:23:16 GMT-7
                                                    
     "replace": [                                   // same output as above
-      "$${",                                       // opening "wrapper" on its own line
-      "const date = new Date(Date.UTC(2020, 11, 20, 3, 23, 16, 738));",
-      "return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(date)",
-      "}$$"                                        // closing "wrapper" on its own line
+      "$${",                                       // put opening "wrapper" on its own line!
+        "const date = new Date(Date.UTC(2020, 11, 20, 3, 23, 16, 738));",
+        "return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(date)",
+      "}$$"                                        // put closing "wrapper" on its own line!
     ],     
 
     "isRegex": true  
   }
 }
 ```  
+
+### A `jsOperation` written as an array of statements:   
+
+<br/>
+
+ &nbsp; &nbsp; &nbsp; If you use the expanded form of replacement with a `jsOperation` written as an array (as in the last example immediately above), that entire array will be transformed into a single long array item like `$${ <multiple statements> }$$` and so it will then become a single replace array item.  So this replacement:
+ 
+ ```jsonc
+"replace":  [
+  "$${",
+    "let a = 10;",
+    ...
+    "return 'howdy';",
+  "}$$",
+  
+  "$${",
+    "let v = 12;",
+    ...
+    "return 'pardner';",
+  "}$$"
+]
+ ```
+ 
+ will become 
+ 
+ ```jsonc
+"replace":  [
+  "$${ let a = 10; ... return 'howdy'; }$$",
+  "$${ let v = 12; ... return 'pardner'; }$$"
+]
+```
+The above is 2 `replace`'s.  The first one will be applied to the first `find`.  And the second `replace` will be applied to the second `find`.  
 
 -------------  
 
@@ -568,20 +600,20 @@ $${ return \\"$1\\".includes('tro') }$$  escape the double quotes
 
 ```jsonc
 "replace": [
-  "$${",
+  "$${",           // put opening jsOperation wrapper on its own line
   
   "if (`${fileBasenameNoExtension}`.includes('-')) {",
-  "  let groovy = `${fileBasenameNoExtension}`.replace(/(-)/g, \"*$1*\");",  // $1 here
-  "  console.log(groovy);",          // check the value in Toggle Developer Tools/Console
-  "  return groovy[0].toUpperCase() + groovy.substring(1).toLowerCase();",
+    "let groovy = `${fileBasenameNoExtension}`.replace(/(-)/g, \"*$1*\");",  // $1 here
+    "console.log(groovy);",          // check the value in Toggle Developer Tools/Console
+    "return groovy[0].toUpperCase() + groovy.substring(1).toLowerCase();",
   "}",
   "else {",
-  "  let groovy = `${fileBasename}`.split('.');",
-  "  groovy = groovy.map(word => word[0].toUpperCase() + word.substring(1).toLowerCase());",
-  "  return groovy.join(' ');",
+    "let groovy = `${fileBasename}`.split('.');",
+    "groovy = groovy.map(word => word[0].toUpperCase() + word.substring(1).toLowerCase());",
+    "return groovy.join(' ');",
   "}",
   
-  "}$$"
+  "}$$"           // put closing jsOperation wrapper on its own line
 ],
 ```
 
@@ -642,26 +674,27 @@ that capture group will be from the `replace/replaceAll` as you would expect.  O
   "$${",                                                  // opening wrapper on its own line
   "if (`${fileBasenameNoExtension}`.includes('-')) {",
                                                           // must use let or const for variables
-  "  let groovy = `${fileBasenameNoExtension}`.replace(/-/g, \" \");",
-  "  return groovy[0].toUpperCase() + groovy.substring(1).toLowerCase();",
+    "let groovy = `${fileBasenameNoExtension}`.replace(/-/g, \" \");",
+    "return groovy[0].toUpperCase() + groovy.substring(1).toLowerCase();",
   "}",
                                               // blank lines have no effect, indentation is irrelevant
   "else {",
-  "  let groovy = `${fileBasename}`.split('.');",
-  "  groovy = groovy.map(word => word[0].toUpperCase() + word.substring(1).toLowerCase());",
-  "  return groovy.join(' ');",
-  "}",  
+    "let groovy = `${fileBasename}`.split('.');",
+    "groovy = groovy.map(word => word[0].toUpperCase() + word.substring(1).toLowerCase());",
+    "return groovy.join(' ');",
+  "}", 
+   
   "}$$",                                                 // closing wrapper on its own line
   
-  "$${return 'second replacement'}$$",
+  "$${return 'second replacement'}$$",                   // 2nd replacement
   
-  "\\U$1"                       
+  "\\U$1"                                                // 3rd replacement
   ```  
   
   All the code between each set of opening and closing wrappers will be treated as a single javascript replacement.  You can also put it all on one line if you want, like the `"$${return 'second task'}$$"` above.  The above `replace` will be treated as:
   
   ```jsonc
-  "replace": ["a long first replacement", "a second replacement", "\\U$1"]
+  "replace": ["a long first replacement", "2nd replacement", "3rd replacement"]
   ```
 
 As long as you properly wrap your blocks of code, you can intermix single replacements or other code blocks.  You can have as many as you need.  See the discussion above about running multiple finds and replaces in a series.
@@ -701,8 +734,8 @@ ${getDocumentText}         get the entire text of the current document
 ${getTextLines:n}          get the text of a line, 'n' is 0-based, so ${getLineText:1} gets the second line of the file
 ${getTextLines:n-p}        get the text of a lines n through p inclusive, example  ${getTextLines:2-4} 
 
-// to get the text from line `n`, character `p` through line `q`, character `r`
-${getTextLines:n,p,q,r}    get the text of a lines n through q inclusive, from characters p to r, example  ${getTextLines:2,0,4,15}      
+// to get the text from line `n`, column `p` through line `q`, column `r`
+${getTextLines:n,p,q,r}    get the text of a lines n through q inclusive, from columns p to r, example  ${getTextLines:2,0,4,15}      
 ```
 
 You will get intellisense in the keybinding or setting showing where the variables can be used.  
@@ -806,7 +839,7 @@ ${BLOCK_COMMENT_END}             Example output: in PHP `*/` or in HTML `-->`.
 ${LINE_COMMENT}                  Example output: in PHP `//`.
 ```
 
-These snippet variables are used just like the path variables mentioned above.   With `\\U$${CURRENT_MONTH_NAME}` to uppercase the current month name for example.   
+These snippet variables are used just like the path variables mentioned above.   With `\\U${CURRENT_MONTH_NAME}` to uppercase the current month name for example.   
 
 ```jsonc
 {
@@ -1032,7 +1065,7 @@ You can use the `cursorMoveSelect` option with the below `restrictFind` options.
 6. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
 7. `"restrictFind": "selections"` make all replacements in the selections only. 
 
-The `cursorMoveSelect` option takes any text as its value.  That text, which can a result of a prior replacement, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp.  `matchCase` and `matchWholeWord` settings will be honored for both the `cursorMoveSelect` and `find` text.  
+The `cursorMoveSelect` option takes any text as its value, including anything that resolves to text, like `$` or any variable.  That text, which can be a result of a prior replacement, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp.  `matchCase` and `matchWholeWord` settings will be honored for both the `cursorMoveSelect` and `find` text.  
 
 If, for example you use these args:
 
@@ -1069,7 +1102,7 @@ Note `^` and `$` work for `restrictFind` selections/line/once/document.
 
 2. `cursorMoveSelect` will select the first `cursorMoveSelect` match using `restrictFind` : `once` **only** if there was a match on the same line before a `cursorMoveSelect` match.  So a `find` match first and then a `cursorMoveSelect` match after that on the same line.  
 
-3. `cursorMoveSelect` will select matches in the `document` **only** if there was a match on the same line!!   
+3. `cursorMoveSelect` will select all `cursorMoveSelect` matches in the `document` **only** if there was a find match and only within the range of the find match!!  This may seem like a limitation but it makes possible some nice funtionality using `postCommands`.   
 
 4. `cursorMoveSelect` will select all matches on a line using `restrictFind` : `line` **only** if there was a match on the same line.  
 
@@ -1279,8 +1312,8 @@ Examples of possible keybindings (in your `keybindings.json`):
                                         // so find a 1 on line 1, find a 20 on line 20
     
     "replace": "$${ return `found ` + ($1*10) }$$",
-                                        // a 1 on line 1 => found 10
-                                        // a 20 on line 20 => found 200
+                                        // a 1 on line 1 => 'found 10'
+                                        // a 20 on line 20 => 'found 200'
                                         
                                         // demo below
     "replace": "$${ if ($1 <= 5) return $1/2; else return $1*2; }$$",
@@ -1710,7 +1743,10 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 
 * 3.2.0  Added the variables `${getDocumentText}` and `${getLineText:n}`.  
 &emsp;&emsp; 3.2.5 Rename `${getLineText:n}` and add `${getLineText:n-p}` and `${getLineText:n,o,p,q}`.    
-&emsp;&emsp; 3.2.6 Fix setting `filesToInclude` to  resolved `${resultsFiles}`.    
+&emsp;&emsp; 3.2.6 Fix setting `filesToInclude` to  resolved `${resultsFiles}`.  
+
+* 3.3.0  Move `postCommands` into individual transform functions.  Run them only if a find match.    
+&emsp;&emsp; `cursorMoveSelect` in whole document restricted to find match ranges.  
 
 <br/> 
 

@@ -1,4 +1,5 @@
 const vscode = require('vscode');
+const commands = require('./commands');
 const variables = require('./variables');
 
 
@@ -37,7 +38,7 @@ exports.addEmptySelectionMatches = function (editor) {
  * @param {vscode.TextEditor} editor
  * @param {Object} args - keybinding/settings args
  */
-exports.findAndSelect = function (editor, args) {
+exports.findAndSelect = async function (editor, args) {
 
   const foundSelections = [];
   const document = vscode.window.activeTextEditor.document;
@@ -191,7 +192,8 @@ exports.findAndSelect = function (editor, args) {
       }
 		});
     if (foundSelections.length) editor.selections = foundSelections; // TODO this will not? remove all the original selections
-	}
+  }
+  if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands); 
 }
 
 /**
@@ -237,7 +239,7 @@ exports.replaceInLine = function (editor, edit, args) {
             matches.push(match);
         }
 		        
-        matches?.forEach((match) => {
+        matches?.forEach(match => {
 
           lineIndex = editor.document.offsetAt(new vscode.Position(selection.active.line, 0));
 
@@ -252,7 +254,7 @@ exports.replaceInLine = function (editor, edit, args) {
           // should these select? or clear all selections?
         });
       })
-    }).then(success => {
+    }).then(async success => {
       if (!success) {
         return;
       }
@@ -287,6 +289,7 @@ exports.replaceInLine = function (editor, edit, args) {
         }
       }
       if (foundSelections.length) editor.selections = foundSelections;
+      if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands); 
     });
 	}
 
@@ -344,7 +347,7 @@ exports.replaceInLine = function (editor, edit, args) {
           // should these select? else get weird effect where vscode tries to maintain the selection size if a wordAtCursor
         }
       });
-    }).then(success => {
+    }).then(async success => {
       if (!success) {
         return;
       }
@@ -384,6 +387,7 @@ exports.replaceInLine = function (editor, edit, args) {
         }
       }
       if (foundSelections.length) editor.selections = foundSelections;
+      if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
     });
 	}
 }
@@ -480,7 +484,7 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
 			const matchRange = new vscode.Range(startPos, endPos)
       edit.replace(matchRange, resolvedReplace);
 		}
-	}).then(success => {
+	}).then(async success => {
 		if (!success) {
 			return;
 		}
@@ -506,6 +510,7 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
     }
       
     else if (args.restrictFind === "nextDontMoveCursor") { }   // do nothing, edit already made
+    if (matches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
 	});
 }
 
@@ -555,7 +560,7 @@ function _buildLineNumberMatches(find, range) {
  * @param {vscode.TextEditorEdit} edit
  * @param {Object} args - keybinding/settings args
  */
-exports.replaceInWholeDocument = function (editor, edit, args) {
+exports.replaceInWholeDocument = async function (editor, edit, args) {
 
   const document = editor.document;
   let docRange;
@@ -605,12 +610,14 @@ exports.replaceInWholeDocument = function (editor, edit, args) {
 			const matchEndPos = document.positionAt(match.index + match[0].length);
       const matchRange = new vscode.Range(matchStartPos, matchEndPos);
       editBuilder.replace(matchRange, resolvedReplace);
-      matches[index++].line = matchStartPos.line;
+      matches[index++].range = matchRange;
 		}
-	}).then(success => {
+	}).then(async success => {
 		if (!success) {
 			return;
-		}
+    }
+    // select the replacement if no cursorMoveSelect? TODO
+    // if (!args.cursorMoveSelect) args.cursorMoveSelect = args.replace;
     if (args.cursorMoveSelect) {
       
       const foundSelections = [];
@@ -621,7 +628,7 @@ exports.replaceInWholeDocument = function (editor, edit, args) {
 
         let cursorMoveSelect = variables.buildReplace(args, "cursorMoveSelect", match, editor.selection, match.index, index);
         if (cursorMoveSelect === "") return;
-        index++;
+        // index++;
         
         if (args.isRegex) cursorMoveSelect = cursorMoveSelect.replace(/(?<!\r)\n/g, "\r\n");
 
@@ -636,25 +643,27 @@ exports.replaceInWholeDocument = function (editor, edit, args) {
         if (args.matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;
 
         const re = new RegExp(cursorMoveSelect, args.regexOptions);
-        const line = document.lineAt(match.line);
-        const lineText = document.getText(line.rangeIncludingLineBreak);
-        const lineIndex = document.offsetAt(line.range.start);
-        
-        const cmsMatches = [...lineText.matchAll(re)];
+        // since the match can extend over different lines
+        const textOfMatch = document.getText(match.range);  
 
-        for (const match of cmsMatches) {
-          const startPos = document.positionAt(lineIndex + match.index);
-          const endPos = document.positionAt(lineIndex + match.index + match[0].length);
+        const cmsMatches = [...textOfMatch.matchAll(re)];
+
+        for (const cmsMatch of cmsMatches) {
+          const startPos = document.positionAt(document.offsetAt(match.range.start) + cmsMatch.index);
+          const endPos = document.positionAt(document.offsetAt(match.range.start) + cmsMatch.index + cmsMatch[0].length);
           foundSelections.push(new vscode.Selection(startPos, endPos));
         }
       }
       if (foundSelections.length) editor.selections = foundSelections;
-      if (foundSelections.length) editor.revealRange(new vscode.Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
+      if (foundSelections.length) editor.revealRange(new vscode.Range(foundSelections[0].start, foundSelections[0].end), 2);
+      index++; 
     }
+    if (matches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
+    
     // if no cursorMoveSelect match and first match is not in viewport, then reveal?
     // if (foundSelections.length) editor.revealRange(new vscode.Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
     // else vscode.commands.executeCommand('revealLine', { lineNumber: document.positionAt(matches[0].index).line, at: "bottom" });
-	});
+  });
 }
 
 /**
@@ -671,6 +680,7 @@ exports.replaceInSelections = function (editor, edit, args) {
   let resolvedFind;
   let resolvedReplace;
   let matches;
+  let allMatches = [];
   let matchesPerSelection = [];
 
   editor.edit(function (edit) {
@@ -717,10 +727,11 @@ exports.replaceInSelections = function (editor, edit, args) {
         else editor.selections = editor.selections.filter(otherSelection => otherSelection !== selection);
 
         selectionsWithMatches.push(selection);
+        allMatches.push(match);
       }
       if (matches.length) matchesPerSelection.push(matches.length);
     })
-	}).then(success => {
+	}).then( async success => {
 		if (!success) {
 			return;
 		}
@@ -730,7 +741,10 @@ exports.replaceInSelections = function (editor, edit, args) {
 
       selectionsWithMatches.forEach(selection => {
         
-        let cursorMoveSelect = variables.buildReplace(args, "cursorMoveSelect", selection.active.line, selection, null, index);
+        // variables.buildReplace(args, caller, groups, selection, selectionStartIndex, matchIndex)
+        // let cursorMoveSelect = variables.buildReplace(args, "cursorMoveSelect", selection.active.line, selection, null, index);
+        let cursorMoveSelect = variables.buildReplace(args, "cursorMoveSelect", allMatches[index], selection, null, index);
+        
         // line/match variables? resolve
 
         if (cursorMoveSelect.length) {  // don't if cursorMoveSelect === ""
@@ -758,9 +772,9 @@ exports.replaceInSelections = function (editor, edit, args) {
           else {
             const selectedRange = new vscode.Range(selection.start, selection.end);
             const selectionText = editor.document.getText(selectedRange);
-            const matches = [...selectionText.matchAll(new RegExp(cursorMoveSelect, args.regexOptions))];
+            const cmsMatches = [...selectionText.matchAll(new RegExp(cursorMoveSelect, args.regexOptions))];
 
-            for (const match of matches) {
+            for (const match of cmsMatches) {
               const startPos = editor.document.positionAt(selectionIndex + match.index);
               const endPos = editor.document.positionAt(selectionIndex + match.index + match[0].length);
               foundSelections.push(new vscode.Selection(startPos, endPos));
@@ -771,7 +785,8 @@ exports.replaceInSelections = function (editor, edit, args) {
 			});
       if (foundSelections.length) editor.selections = foundSelections;
       if (foundSelections.length) editor.revealRange(new vscode.Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
-		}
+    }
+    if (args.postCommands && selectionsWithMatches.length) await commands.runPrePostCommands(args.postCommands);
 	})
 }
 

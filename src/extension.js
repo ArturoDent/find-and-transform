@@ -113,11 +113,13 @@ async function activate(context) {
     
     if (args.preCommands) await commands.runPrePostCommands(args.preCommands);
     
-    // call a function that looks for all jsOp's $${...}$$ in args.replace
-    // TODO write a validate function here
     // could be an array of 1 : ["$${ return 'howdy', }$$"] or ["howdy $${ return 'pardner', }$$"]
-    if (Array.isArray(args.replace) && args.replace.find(el => el === "$${"))
+    // call a function that looks for all jsOp's $${...}$$ in args.replace
+    if (Array.isArray(args.replace) && args.replace.find(el => el.search(/^\s*\$\$\{\s*(?!vsapi:)/m) !== -1))
       args.replace = await parseCommands.buildJSOperationsFromArgs(args.replace);
+      
+    if (Array.isArray(args.replace) && args.replace.find(el => el.search(/^\$\$\{\s*vsapi:/m) !== -1))
+      args.replace = await parseCommands.buildVSCodeOpsFromArgs(args.replace);
 
 		if (args && enableWarningDialog) {
 			const argsBadObject = await utilities.checkArgs(args, "findBinding");
@@ -132,7 +134,7 @@ async function activate(context) {
 			await parseCommands.splitFindCommands(editor, edit, args);
     }
     
-    if (args.postCommands) await commands.runPrePostCommands(args.postCommands);
+    // if (args.postCommands) await commands.runPrePostCommands(args.postCommands);
 	});
 
 	context.subscriptions.push(runDisposable);

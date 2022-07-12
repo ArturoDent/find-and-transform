@@ -667,33 +667,38 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     });
     // --------------------  capGroupOnly ----------------------------------------------------------
     
-       
+    // ${vsapi: ... } here  
+    
     // -------------------  vscode API -------------------------------------------------------------
     
     // just eval the whole string here? avoid jsOp?
     // re = new RegExp("(?<vscodeAPI>\\$\\{\\s*(vscode\..*?)\\s*\\})", "gm");
-    re = new RegExp("(?<vscodeAPI>\\$\{\\s*((new)?\\s*vscode\..*?)\\s*\\})", "gm");   // new
-    // "const fullText = `${vscode.window.activeTextEditor.document.getText()}`;",
+    // re = new RegExp("(?<vscodeAPI>\\$\\{\\s*((new)?\\s*vscode\..*?)\\s*\\})", "gm");   // new
+    // re = new RegExp("(?<vscodeAPI>\\$\\$\\{\s*vsapi:\s*([\\S\\s]*?)\\}\\$\\$)", "gm");   // new
     
-    try {
-      resolved = resolved.replaceAll(re, function (match, p1, api) {
-        // checking for capture groups and variables already done above
-        return  eval(api);
-      });
-    }
-    catch (error) {
-      outputChannel.appendLine(`\n${error.stack}\n`);
-      vscode.window.showWarningMessage("There was an error in the `$${<operations>}$$` part of the replace value.  See the Output channel: `find-and-transform` for more.")
-    }
+    // // "const fullText = `${vscode.window.activeTextEditor.document.getText()}`;",
+    
+    // try {
+    //   resolved = resolved.replaceAll(re, function (match, p1, api) {
+    //     // checking for capture groups and variables already done above
+    //     return  eval(api);
+    //   });
+    // }
+    // catch (error) {
+    //   outputChannel.appendLine(`\n${error.stack}\n`);
+    //   vscode.window.showWarningMessage("There was an error in the `$${<operations>}$$` part of the replace value.  See the Output channel: `find-and-transform` for more.")
+    // }
     // -------------------  vscode API -------------------------------------------------------------
     
     // -------------------  jsOp ------------------------------------------------------------------
     // can have multiple $${...}$$ in a replace
     re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
     try {
-      resolved = resolved.replaceAll(re, function (match, p1, operation) {
+      resolved = resolved.replaceAll(re, async function (match, p1, operation) {
         // checking for capture groups and variables already done above
-        return Function(`"use strict"; ${operation}`)();
+        // return Function(`"use strict"; ${operation}`)();
+        return await Function(`${operation}`)(vscode);
+        
       });
     }
     catch (error) {

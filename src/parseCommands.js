@@ -13,30 +13,59 @@ const utilities = require('./utilities');
 exports.buildJSOperationsFromArgs = async function (arg) {
   
   if (!Array.isArray(arg)) return arg;
-  
-  // find the starting $${ and the ending }$$, 
-  // make their content into one operation and splice that into arg
+  else if (Array.isArray(arg) && arg.length === 1)
+	  return arg[0].replaceAll(/\$\$\{\s*(?<semicolon>;)/g, '$$${');
   
   for (let index = 0; index < arg.length; index++) {
-    // move this outside the loop
-    const start = arg.findIndex(el => el === "$${");
-    const end = arg.findIndex(element => element === '}$$');
+    
+    let start = arg.indexOf('$${', index);
+    if (start === -1) start = arg.indexOf('$${;', index);
+    let end = arg.indexOf('}$$', index);
+    if (end === -1) end = arg.indexOf(';}$$;', index);
+
     if (start !== -1 && end !== -1) {
-      // below makes the semicolons optional, 2 in a row is okay
-      // if line.endsWith(";") don't add another
-      const operation = arg.slice(start, end + 1).join('; ');
-      //const operation = arg.slice(start, end + 1).join(' ');
-      
+      for (let j = start; j < end; j++) {
+        arg[j] = arg[j].replace(/;+$/m, '');
+      }
+      const operation = arg.slice(start, end+1).join('; ');
       arg.splice(start, end+1 - start, operation);
-      index = start;
     }
-    else return arg;    
+    arg[index] = arg[index].replace(/\$\$\{;/g, '$$${');
   }
 
   return arg;
 }
 
-//"  let re = /(import)/;  return 'import { Foo, Bar as BarBar } from '@substance-ux/glyphs';'.replace(re, 'howdy'); "
+/**
+ * Reduce any vscapi:'s in args.replace to single entries.
+ * @param {string[]} arg - args.replace
+ * @returns {Promise<string[] | string>}
+ */
+exports.buildVSCodeOpsFromArgs = async function (arg) {
+  
+  if (!Array.isArray(arg)) return arg;
+  // else if (Array.isArray(arg) && arg.length === 1)
+	//   return arg[0].replaceAll(/\$\$\{\s*(;)\s*vsapi/g, '$$${vsapi');
+  
+  for (let index = 0; index < arg.length; index++) {
+    
+    let start = arg.indexOf('$${vsapi:', index);
+    let end = arg.indexOf('}$$', index);
+
+    if (start !== -1 && end !== -1) {
+      for (let j = start; j < end; j++) {
+        arg[j] = arg[j].replace(/;+$/m, '');
+      }
+      // const operation = arg.slice(start, end + 1).join('; ');
+      const operation = arg.slice(start, end + 1).join(' ');
+      
+      arg.splice(start, end+1 - start, operation);
+    }
+    arg[index] = arg[index].replace(/\$\$\{vsapi:;/g, '$$${vsapi:');
+  }
+
+  return arg;
+}
 
 
 /**
@@ -88,7 +117,7 @@ exports.splitFindCommands = async function (editor, edit, args) {
 
     // find and replace, restrictFind = document/default
     else if (splitArgs.replace !== undefined) {
-      findCommands.replaceInWholeDocument(editor, edit, splitArgs);
+      await findCommands.replaceInWholeDocument(editor, edit, splitArgs);
     }
 
     else findCommands.findAndSelect(editor, splitArgs);   // find but no replace
