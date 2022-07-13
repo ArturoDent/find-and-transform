@@ -694,10 +694,10 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     // can have multiple $${...}$$ in a replace
     re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
     try {
-      resolved = resolved.replaceAll(re, async function (match, p1, operation) {
+      resolved = resolved.replaceAll(re, function (match, p1, operation) {
         // checking for capture groups and variables already done above
-        // return Function(`"use strict"; ${operation}`)();
-        return await Function(`${operation}`)(vscode);
+        return Function(`"use strict"; ${operation}`)();
+        // return await Function(`${operation}`)(vscode);
         
       });
     }
