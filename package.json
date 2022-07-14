@@ -1,25 +1,9 @@
 {
  "id": "ArturoDent.find-and-transform",
- "identifier": {
-  "value": "ArturoDent.find-and-transform",
-  "_lower": "arturodent.find-and-transform"
- },
- "isBuiltin": false,
- "isUserBuiltin": false,
- "isUnderDevelopment": true,
- "extensionLocation": {
-  "$mid": 1,
-  "fsPath": "c:\\Users\\Mark\\find-and-transform",
-  "_sep": 1,
-  "external": "file:///c%3A/Users/Mark/find-and-transform",
-  "path": "/c:/Users/Mark/find-and-transform",
-  "scheme": "file"
- },
- "targetPlatform": "undefined",
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "3.3.1",
+ "version": "3.3.2",
  "engines": {
   "vscode": "^1.56.0"
  },
