@@ -316,7 +316,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
     "preCommands": "011",
     "find": "012",
     "delay": "0121",
-		"replace": "013",
+    "replace": "013",
     "isRegex": "014",
     "postCommands": "015",
 
@@ -345,7 +345,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
     "find": "Query to find or search.  Can be a regexp or plain text.",
     "delay": "Pause, in millisceonds, between searches when you have defined an array of searches.  Usually needed to allow the prior search to complete and populate the search results if you want to use those results files in a subsequent search with: .",
 		"replace": "Replacement text.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
-		"isRegex": "Is the find query a regexp.",
+    "isRegex": "Is the find query a regexp.",
     "postCommands": "A single command, as a string, or an array of commands to run after any replace occurs.",
     
 		"isCaseSensitive": "Do you want the search to be case-senstive.",

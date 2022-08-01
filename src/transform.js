@@ -407,7 +407,6 @@ exports.replaceNextInWholeDocument = function (editor, edit, args) {
   let resolvedReplace;
   let matchEndPos;
   let documentBeforeCursor;
-
   
   let matches;
   let match;
@@ -658,6 +657,7 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
       if (foundSelections.length) editor.revealRange(new vscode.Range(foundSelections[0].start, foundSelections[0].end), 2);
       index++; 
     }
+    // TODO run for each snippet/match of matches?
     if (matches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
     
     // if no cursorMoveSelect match and first match is not in viewport, then reveal?
@@ -811,7 +811,7 @@ function _adjustFindValue(findValue, isRegex, matchWholeWord, madeFind) {
 	if (matchWholeWord && !madeFind) findValue = `\\b${ findValue }\\b`;
 
   // since all \n are replaced by \r?\n by vscode
-  if (isRegex) findValue = findValue.replace(/\n/g, "\r?\n");
+  if (isRegex) findValue = findValue.replaceAll(/\n/g, "\r?\n");
   
   if (isRegex) {
     if (findValue === "^") findValue = "^(?!\n)";
@@ -828,7 +828,8 @@ function _adjustFindValue(findValue, isRegex, matchWholeWord, madeFind) {
  */
 exports.getKeys = function () {
 	// preserveCase ?
-	return ["title", "preCommands", "find", "replace", "isRegex", "postCommands", "matchCase", "matchWholeWord", "restrictFind", "cursorMoveSelect"];
+  return ["title", "preCommands", "find", "replace", "isRegex", "postCommands",
+    "matchCase", "matchWholeWord", "restrictFind", "cursorMoveSelect"];
 }
 
 

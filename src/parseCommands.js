@@ -1,71 +1,83 @@
 const vscode = require('vscode');
 const findCommands = require('./transform');
 const variables = require('./variables');
-// const languageConfigs = require('./getLanguageConfig');
 const utilities = require('./utilities');
 
 
 /**
- * Reduce any jsOp's in args.replace to single entries.
+ * Reduce any jsOp's in args.replace to single array elelments.
  * @param {string[]} arg - args.replace
  * @returns {Promise<string[] | string>}
  */
 exports.buildJSOperationsFromArgs = async function (arg) {
   
   if (!Array.isArray(arg)) return arg;
-  else if (Array.isArray(arg) && arg.length === 1)
-	  return arg[0].replaceAll(/\$\$\{\s*(?<semicolon>;)/g, '$$${');
   
+  let start = -1;
+  let end = -1;
+  
+  const isjsOpStart = (element) => element.toString().search(/^\s*\$\$\{[\s;]*/m) !== -1;
+  const isjsOpEnd = (element) => element.toString().search(/^[\s;]*\}\$\$[\s;]*/m) !== -1;
+  start = arg.findIndex(isjsOpStart);
+  end = arg.findIndex(isjsOpEnd);
+  
+  if (start !== -1 && end !== -1)
+    arg = arg.map(elem => {
+      return elem.replace(/^\s*\$\$\{[\s;]*/m, '$$${').replace(/^[\s;]*\}\$\$[\s;]*/m, '}$$$');
+    });
+  
+  if (Array.isArray(arg) && arg.length === 1)  return arg;  
+
   for (let index = 0; index < arg.length; index++) {
     
     let start = arg.indexOf('$${', index);
-    if (start === -1) start = arg.indexOf('$${;', index);
     let end = arg.indexOf('}$$', index);
-    if (end === -1) end = arg.indexOf(';}$$;', index);
-
-    if (start !== -1 && end !== -1) {
-      for (let j = start; j < end; j++) {
-        arg[j] = arg[j].replace(/;+$/m, '');
-      }
-      const operation = arg.slice(start, end+1).join('; ');
-      arg.splice(start, end+1 - start, operation);
-    }
-    arg[index] = arg[index].replace(/\$\$\{;/g, '$$${');
-  }
-
-  return arg;
-}
-
-/**
- * Reduce any vscapi:'s in args.replace to single entries.
- * @param {string[]} arg - args.replace
- * @returns {Promise<string[] | string>}
- */
-exports.buildVSCodeOpsFromArgs = async function (arg) {
-  
-  if (!Array.isArray(arg)) return arg;
-  // else if (Array.isArray(arg) && arg.length === 1)
-	//   return arg[0].replaceAll(/\$\$\{\s*(;)\s*vsapi/g, '$$${vsapi');
-  
-  for (let index = 0; index < arg.length; index++) {
     
-    let start = arg.indexOf('$${vsapi:', index);
-    let end = arg.indexOf('}$$', index);
-
     if (start !== -1 && end !== -1) {
+      // remove consecutive semicolons at the end of each array element
       for (let j = start; j < end; j++) {
-        arg[j] = arg[j].replace(/;+$/m, '');
+        arg[j] = arg[j].replace(/;{2,}$/m, ';');
       }
-      // const operation = arg.slice(start, end + 1).join('; ');
-      const operation = arg.slice(start, end + 1).join(' ');
-      
+      // operation = one entire jsOperation; add a space between elements
+      const operation = arg.slice(start, end+1).join(' ');
+      // replace all the elements that made up a jsOperation with the single long operation as one element
       arg.splice(start, end+1 - start, operation);
     }
-    arg[index] = arg[index].replace(/\$\$\{vsapi:;/g, '$$${vsapi:');
+    arg[index] = arg[index].replace(/\$\$\{\s*;/g, '$$${');
   }
-
   return arg;
 }
+
+// /**
+//  * Reduce any vscapi:'s in args.replace to single entries.
+//  * @param {string[]} arg - args.replace
+//  * @returns {Promise<string[] | string>}
+//  */
+// exports.buildVSCodeOpsFromArgs = async function (arg) {
+  
+//   if (!Array.isArray(arg)) return arg;
+//   // else if (Array.isArray(arg) && arg.length === 1)
+// 	//   return arg[0].replaceAll(/\$\$\{\s*(;)\s*vsapi/g, '$$${vsapi');
+  
+//   for (let index = 0; index < arg.length; index++) {
+    
+//     let start = arg.indexOf('$${vsapi:', index);
+//     let end = arg.indexOf('}$$', index);
+
+//     if (start !== -1 && end !== -1) {
+//       for (let j = start; j < end; j++) {
+//         arg[j] = arg[j].replace(/;+$/m, '');
+//       }
+//       // const operation = arg.slice(start, end + 1).join('; ');
+//       const operation = arg.slice(start, end + 1).join(' ');
+      
+//       arg.splice(start, end+1 - start, operation);
+//     }
+//     arg[index] = arg[index].replace(/\$\$\{vsapi:;/g, '$$${vsapi:');
+//   }
+
+//   return arg;
+// }
 
 
 /**

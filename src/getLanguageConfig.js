@@ -9,7 +9,7 @@ const path = require('path');
  * @returns {string[]} 
  */
 function _getLanguagesToSkip  () {
-  return ['log', 'Log', 'search-result', 'plaintext', 'scminput', 'properties', 'csv', 'tsv', 'excel'];
+    return ['code-text-binary', 'bibtex', 'log', 'Log', 'search-result', 'plaintext', 'juliamarkdown', 'scminput', 'properties', 'csv', 'tsv', 'excel'];
 }
 
 /**
@@ -24,7 +24,8 @@ function _getLanguagesToSkip  () {
 exports.get = async function (langID, config) {
   
   if (_getLanguagesToSkip().includes(langID)) return null;
-
+  else if (langID.startsWith('csv')) return null;
+  
 	let configArg;
 
 	if (config && config.includes('.')) configArg = config.split('.');

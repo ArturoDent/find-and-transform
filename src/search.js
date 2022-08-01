@@ -1,7 +1,6 @@
 const vscode = require('vscode');
 const utilities = require('./utilities');
 const variables = require('./variables');
-
 // const delay = require('node:timers/promises');
 
 /**
@@ -88,7 +87,7 @@ async function _buildSearchArgs(args, index)  {
 
   indexedArgs.currentLanguageConfig = await utilities.getlanguageConfigComments(indexedArgs);
 
-  //  "find": "(\\$1 \\$2)" if find has (double-escaped) capture groups 
+  // "find": "(\\$1 \\$2)" if find has (double-escaped) capture groups 
   // "find": "(\\U\\$1)"  TODO not in find either
   if (indexedArgs.find && /\\\$(\d+)/.test(indexedArgs.find)) {
     // replaceFindCaptureGroups also does case modifiers

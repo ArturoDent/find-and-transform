@@ -49,7 +49,7 @@ exports.getRelativeFolderPath = function (filePath) {
  * @returns {Promise<object|undefined>} comments object
  */
  exports.getlanguageConfigComments = async function (args) {
-  // do only if $LINE_COMMENT, $BLOCK_COMMENT_START, $BLOCK_COMMENT_END
+  // do only if $LINE_COMMENT, $BLOCK_COMMENT_START, $BLOCK_COMMENT_END in find or replace
   let re = /\$\{LINE_COMMENT\}|\$\{BLOCK_COMMENT_START\}|\$\{BLOCK_COMMENT_END\}/;
   if (args.find?.search(re) !== -1 || args.replace?.search(re) !== -1) {
     const documentLanguageId = vscode.window.activeTextEditor.document.languageId;

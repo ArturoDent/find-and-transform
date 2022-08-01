@@ -3,20 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const parseCommands = require('./parseCommands');
 const searchCommands = require('./search');
+const variables = require('./variables');
 const utilities = require('./utilities');
 
 
-
-              // "preCommands": [
-              //   "cursorHome",
-              //   {
-              //     "command": "type",
-              //     "args": {
-              //       "text": "howdy "
-              //     }
-              //   },
-              //   "cursorEndSelect"
-              // ],
 /**
  * Execute the pre/post commands, which are vscode commands and may have args
  * @param {string | string[] | object} commands 
@@ -26,8 +16,16 @@ exports.runPrePostCommands = async function (commands) {
   // TODO resolve variables here (but not capture groups - except in a choice), fill choices with array items, e.g.
   
   if (typeof commands === 'string') await vscode.commands.executeCommand(commands); 
-  else if (typeof commands === 'object' && !Array.isArray(commands))
+    
+  // does this handle multiple commands/args TODO
+  else if (typeof commands === 'object' && !Array.isArray(commands)) {
+    // pass in find capture groups if any
+    // lopp through all commands.args (.snippet, .text, etc.)
+    if (commands.args?.snippet?.search(/\$[\{\d]/) !== -1) {
+      commands.args.snippet = variables.buildReplace(commands.args, "snippet", null, null, null, null);
+    }
     await vscode.commands.executeCommand(commands.command, commands.args);
+  }
   
   else if (Array.isArray(commands) && commands.length) {
     for (const command of commands) {
@@ -214,10 +212,10 @@ function _makeCommandsFromPackageCommands() {
  */
 function _makeSettingsEventsFromSettingsCommands (settingsCommands) {
 
-				// "activationEvents": [
-				//   "onStartupFinished",
-				//   "onCommand:find-and-transform.findInCurrentFile.upcaseKeywords",
-				// ],
+  // "activationEvents": [
+  //   "onStartupFinished",
+  //   "onCommand:find-and-transform.findInCurrentFile.upcaseKeywords",
+  // ],
 
   let settingsJSON = [];
   settingsJSON.push("onStartupFinished");

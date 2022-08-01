@@ -12,27 +12,20 @@ const outputChannel = vscode.window.createOutputChannel("find-and-transform");
  */
 exports.replaceFindCaptureGroups = async function (findValue) {
 
-
   const editor = vscode.window.activeTextEditor;
-  // findValue = findValue.replace(/\\\$(\d+)/g, (match, p1) => {
+  
   findValue = findValue.replace(/(\\[UuLl])?\\\$(\d+)/g, (match, p1, p2) => {
     
     // if no selection[n] in document, but in findValue
-    // if (p1 > editor.selections.length) return "";
     if (p2 > editor.selections.length) return "";
     
     // if selection.isEmpty get wordRangeAtCursor
-    // else if (editor.selections[p1 - 1].isEmpty) {
     else if (editor.selections[p2 - 1].isEmpty) {
-      // const pos = editor.selections[p1 - 1].active;
       const pos = editor.selections[p2 - 1].active;
       const range = editor.document.getWordRangeAtPosition(pos);
-      // return editor.document.getText(range);
       return _modifyCaseOfFindCaptureGroup(p1, editor.document.getText(range));
     }
     // escape regex characters above and below
-    // else return editor.document.getText(editor.selections[p1 - 1]);
-    // else return editor.document.getText(editor.selections[p2 - 1]);
     else return _modifyCaseOfFindCaptureGroup(p1, editor.document.getText(editor.selections[p2 - 1]));
   });
   
@@ -319,10 +312,6 @@ function _resolvePathVariables (variableToResolve, args, caller, selection, matc
       resolved = args.clipText;
       break;
 
-    // case "${resultsFiles}": case "${ resultsFiles }":
-    //   resolved = args.resultsFiles;
-    //   break;
-     
     default:
       break;
    }
@@ -355,8 +344,6 @@ function _resolveSnippetVariables (variableToResolve, args, caller, selection, g
   const _date = new Date();
   const document = vscode.window.activeTextEditor.document;
   let blockCommentConfig = {};
-  // const documentLanguageId = document.languageId;
-  // const currentLanguageConfig = await languageConfigs.get(documentLanguageId, 'comments');
 
   let resolved = variableToResolve;
   const namedGroups = resolved.match(/(?<pathCaseModifier>\\[UuLl])?(?<snippetVars>\$\{\s*.*?\s*\})/).groups;
@@ -506,7 +493,7 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
     if (identifier.groups.path) {
       resolved = _resolvePathVariables(identifier.groups.path, args, caller, selection, null, null, null);
       if (identifier.groups.pathCaseModifier)
-        resolved = _applyCaseModifier(identifier.groups.pathCaseModifier, identifier[1], identifier[2], null, "", identifier.groups, identifiers, resolved);
+        resolved = _applyCaseModifier(identifier.groups, identifiers, resolved);
     }
 
     replaceValue = replaceValue.replace(identifier[0], resolved);
@@ -542,7 +529,7 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
     resolved = replaceValue.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
       
       const variableToResolve =  _resolveSnippetVariables(match, args, caller, selection, undefined);
-      return _applyCaseModifier(match, p1, p2, offset, string, namedGroups, undefined, variableToResolve);
+      return _applyCaseModifier(namedGroups, undefined, variableToResolve);
     });
   };
   return resolved;
@@ -566,7 +553,8 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
   if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
   else if (caller === "replace") replaceValue = args?.replace;
   else if (caller === "cursorMoveSelect") replaceValue = args?.cursorMoveSelect;
-  
+  // else if (caller === "snippet") replaceValue = args?.snippet;
+    
   if (!replaceValue) return replaceValue;
   const specialVariable = new RegExp('\\$[\\{\\d]');
   if (replaceValue.search(specialVariable) === -1) return replaceValue;  // doesn't contain '${' or '$\d'
@@ -574,25 +562,14 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
   let resolved = replaceValue;
   let re;
   
-   // --------------------  extension-defined variables -------------------------------------------
-  let vars = _getExtensionDefinedVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-  re = new RegExp(`(?<varCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
-
-  resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
-    
-    const variableToResolve = _resolveExtensionDefinedVariables(match, args, caller);
-    return _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, variableToResolve);
-  });
-  // --------------------  extension-defined variables ----------------------------------------------
-
   // --------------------  path variables -----------------------------------------------------------
-  vars = _getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+  let vars = _getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
   re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
 
   resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
     
     const variableToResolve = _resolvePathVariables(match, args, caller, selection, groups, selectionStartIndex, matchIndex);
-    return _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, variableToResolve);
+    return _applyCaseModifier(namedGroups, groups, variableToResolve);
   });
   // --------------------  path variables -----------------------------------------------------------
   
@@ -603,21 +580,21 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
   resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
     
     const variableToResolve = _resolveSnippetVariables(match, args, caller, selection, groups);
-    return _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, variableToResolve);
+    return _applyCaseModifier(namedGroups, groups, variableToResolve);
   });
   // --------------------  snippet variables -----------------------------------------------------------
+  
+  // --------------------  extension-defined variables -------------------------------------------
+  vars = _getExtensionDefinedVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+  re = new RegExp(`(?<varCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
 
-  // https://regex101.com/r/zwuKpM/1 for full regex
-  // (?<pathCaseModifier>\\\\[UuLl])?(?<path>\${\s*file\s*}|\${\s*relativeFile\s*}|\${\s*fileBasename\s*}|
-  // \${ \s * fileBasenameNoExtension\s *}|\${ \s * fileExtname\s *}|\${ \s * fileDirname\s *}|\${ \s * fileWorkspaceFolder\s *}|
-  // \${ \s * workspaceFolder\s *}|\${ \s * relativeFileDirname\s *}|\${ \s * workspaceFolderBasename\s *}|
-  // \${ \s * selectedText\s *}|\${ \s * pathSeparator\s *}|\${ \s * lineIndex\s *}|\${ \s * lineNumber\s *}|
-  // \${ \s * CLIPBOARD\s *}|\${ \s * resultsFiles\s *})| (? <caseModifier>\\\\[UuLl])(?<capGroup>\$\{?\d\d?\}?)|
-  // (? <caseTransform>\$\{(\d\d?):\/((up|down|pascal|camel)case|capitalize)\})|(?<conditional>\$\{\d\d?:[-+?]?(.*?)(?<!\\)\})|
-  // (? <capGroupOnly>\$\{?\d\d?\}?)|(?<jsOp>\$\$\{(.*)\}\$\$)
+  resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
+    
+    const variableToResolve = _resolveExtensionDefinedVariables(match, args, caller);
+    return _applyCaseModifier(namedGroups, groups, variableToResolve);
+  });
+  // --------------------  extension-defined variables ----------------------------------------------
 
-  // (?<=\.replaceAll\(|replace\()\s*\/([^\/]+)\/[gmi]\s*,\s*["'`]([^"'`]*)["'`]\s*\)
-  // https://regex101.com/r/dTTHi7/1
   
   // if (caller !== "find" && !args.isRegex) {
   // TODO if caller = findSearch
@@ -627,24 +604,26 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     re = new RegExp("(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d\\}?)", "g");
       
     resolved = resolved.replaceAll(re, (match, p1, p2, offset, string, namedGroups) =>
-      _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, ""));
+      _applyCaseModifier(namedGroups, groups, ""));
     // --------------------  caseModifier/capGroup --------------------------------------------------
       
     // --------------------  caseTransform ----------------------------------------------------------
     re = new RegExp("(?<caseTransform>\\$\\{(\\d):\\/((up|down|pascal|camel)case|capitalize)\\})", "g");
 
-    resolved = resolved.replaceAll(re, (match, p1, p2, p3, p4, offset, string, namedGroups) =>
-      _applyCaseTransform(match, p1, p2, p3, p4, offset, string, namedGroups, groups));
+    resolved = resolved.replaceAll(re, (match, p1, p2, p3) =>
+      _applyCaseTransform(p2, p3, groups));
     // --------------------  caseTransform ----------------------------------------------------------
     
     // --------------------  conditional ------------------------------------------------------------
+    // if (caller !== "snippet") {  // because you can ahve a conditional like '${2:else}' which is a good snippet
     re = new RegExp("(?<conditional>\\$\\{(\\d):([-+?]?)(.*?)\\})", "g");
-    
+  
     // // if a '}' in a replacement? => '\\}' must be escaped
     // // ${1:+${2}}  ?  => ${1:+`$2`} or ${1:+`$2`} note the backticks or ${1:+$1 pardner}
     //  will check for capture groups inside _applyConditionalTransform
-    resolved = resolved.replaceAll(re, (match, p1, p2, p3, p4, offset, string, namedGroups) =>
-      _applyConditionalTransform(match, p1, p2, p3, p4, offset, string, namedGroups, groups));
+    resolved = resolved.replaceAll(re, (match, p1, p2, p3, p4) =>
+      _applyConditionalTransform(match, p2, p3, p4, groups));
+    // }
     // --------------------  conditional -----------------------------------------------------------
     
     // --------------------  capGroupOnly ----------------------------------------------------------
@@ -697,8 +676,6 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
       resolved = resolved.replaceAll(re, function (match, p1, operation) {
         // checking for capture groups and variables already done above
         return Function(`"use strict"; ${operation}`)();
-        // return await Function(`${operation}`)(vscode);
-        
       });
     }
     catch (error) {
@@ -708,25 +685,23 @@ exports.buildReplace = function (args, caller, groups, selection, selectionStart
     // -------------------  jsOp ------------------------------------------------------------------
   }
   
+  // if still have a '${` or `$n` re-resolve
+  if (caller !== "snippet" && resolved.search(/\$[\{\d]/) !== -1) {  // could this be replaced with a while loop up top?
+    args.replace = resolved;
+    resolved = this.buildReplace(args, "replace");
+  }
   return resolved;
 };
 
 
 /**
  * Apply case modifier, like '\\U' to capture groups $1, etc..
- * 
- * @param {string} match
- * @param {string} p1 - capture group 1
- * @param {string} p2 - capture group 2
- * @param {number} offset - offset index of this match
- * @param {string} string - the entire matched string
  * @param {Object} namedGroups
  * @param {Object} groups
  * @param {string} resolvedPathVariable
- * 
  * @returns {string} - case-modified text
  */
-function _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, resolvedPathVariable) {
+function _applyCaseModifier(namedGroups, groups, resolvedPathVariable) {
 
   let resolved = resolvedPathVariable;
   
@@ -769,19 +744,12 @@ function _applyCaseModifier(match, p1, p2, offset, string, namedGroups, groups, 
 
 /**
  * Apply case transform, like '${1:/upcase}' to text.
- * 
- * @param   {string} match 
- * @param   {string} p1 - capture group 1
  * @param   {string} p2 - capture group 2
  * @param   {string} p3 - capture group 3
- * @param   {string} p4 - capture group 4
- * @param   {number} offset - offset index of this match
- * @param   {string} string - entire matched string
- * @param   {Object} namedGroups
  * @param   {Object} groups
  * @returns {string} - modified text
  */
-function _applyCaseTransform(match, p1, p2, p3, p4, offset, string, namedGroups, groups) {
+function _applyCaseTransform(p2, p3, groups) {
   
   let resolved = groups[p2];
 
@@ -817,17 +785,13 @@ function _applyCaseTransform(match, p1, p2, p3, p4, offset, string, namedGroups,
  * Apply conditional transform, like '${1:+ add text }' to text.
  * 
  * @param   {string} match 
- * @param   {string} p1 - capture group 1
  * @param   {string} p2 - capture group 2
  * @param   {string} p3 - capture group 3
  * @param   {string} p4 - capture group 4
- * @param   {number} offset - offset index of this match
- * @param   {string} string - entire matched string
- * @param   {Object} namedGroups
  * @param   {Object} groups
  * @returns {string} - modified text
  */
-function _applyConditionalTransform(match, p1, p2, p3, p4, offset, string, namedGroups, groups) {
+function _applyConditionalTransform(match, p2, p3, p4, groups) {
   
   let resolved = match;
 

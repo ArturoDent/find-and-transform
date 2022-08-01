@@ -108,18 +108,18 @@ async function activate(context) {
 
     // get this from keybinding:  { find: "(document)", replace: "\\U$1" }
 
-    // TODO warn if fewer capture groups in the find than used in the replace ? or did you mean isRegex
     let continueRun = true;
     
-    if (args.preCommands) await commands.runPrePostCommands(args.preCommands);
+    if (args?.preCommands) await commands.runPrePostCommands(args.preCommands);
     
     // could be an array of 1 : ["$${ return 'howdy', }$$"] or ["howdy $${ return 'pardner', }$$"]
     // call a function that looks for all jsOp's $${...}$$ in args.replace
-    if (Array.isArray(args.replace) && args.replace.find(el => el.search(/^\s*\$\$\{\s*(?!vsapi:)/m) !== -1))
+    if (args && Array.isArray(args.replace) && args.replace.find(el => el.search(/^\s*\$\$\{\s*/m) !== -1))
       args.replace = await parseCommands.buildJSOperationsFromArgs(args.replace);
+    
       
-    if (Array.isArray(args.replace) && args.replace.find(el => el.search(/^\$\$\{\s*vsapi:/m) !== -1))
-      args.replace = await parseCommands.buildVSCodeOpsFromArgs(args.replace);
+    // if (Array.isArray(args.replace) && args.replace.find(el => el.search(/^\$\$\{\s*vsapi:/m) !== -1))
+    //   args.replace = await parseCommands.buildVSCodeOpsFromArgs(args.replace);
 
 		if (args && enableWarningDialog) {
 			const argsBadObject = await utilities.checkArgs(args, "findBinding");
@@ -133,8 +133,6 @@ async function activate(context) {
 
 			await parseCommands.splitFindCommands(editor, edit, args);
     }
-    
-    // if (args.postCommands) await commands.runPrePostCommands(args.postCommands);
 	});
 
 	context.subscriptions.push(runDisposable);
@@ -146,7 +144,7 @@ async function activate(context) {
 
 		let continueRun = true;
 
-		if (args.preCommands) {
+		if (args?.preCommands) {
       await commands.runPrePostCommands(args.preCommands);
     }
 
@@ -162,7 +160,7 @@ async function activate(context) {
       await searchCommands.runAllSearches(args);
 		}
 		
-    if (args.postCommands) await commands.runPrePostCommands(args.postCommands);
+    if (args?.postCommands) await commands.runPrePostCommands(args.postCommands);
 	});
 
 	context.subscriptions.push(runInSearchPanelDisposable);

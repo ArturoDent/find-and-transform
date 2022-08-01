@@ -475,7 +475,7 @@ You can put `console.log(...)` statements into the replacement code.  It wil lbe
 
 ### Doing math on replacements
 
-Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations, e.g., string operations (see below).  [This does not use the `eval()` function.]  Examples:   
+Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations, e.g., string operations (see below).  [This does **not** use the `eval()` function.]  Examples:   
 
 ```jsonc
 {
@@ -507,6 +507,12 @@ Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everyth
   }
 }
 ```  
+
+<br/>
+
+> **IMPORTANT**: you must use semicolons at the end of statements - except for the final `return` statement (or if the only statement is a `return something`).  Anything with multiple statements must use semicolons.  The operations will be loaded into a `Function` which uses `"use strict"` which requires semicolons.  
+
+<br/>
 
 ### A `jsOperation` written as an array of statements:   
 
@@ -548,7 +554,7 @@ The above is 2 `replace`'s.  The first one will be applied to the first `find`. 
 
 <br/> 
 
-You can also do string operations inside the special syntax ` $${<operations>}$$ ` as well.  But you will need to ***"cast"*** the string in bacticks, single quotes or escaped double quotes like so:   
+You can also do string operations inside the special syntax ` $${<operations>}$$ `.  But you will need to ***"cast"*** the string in bacticks, single quotes or escaped double quotes like so:   
 
 ```
 $${ return `$1`.substring(3) }$$  use backticks (I recommend backticks) or  
@@ -557,9 +563,9 @@ $${ return '$1'.substring(3) }$$  or  use single quotes
 
 $${ return \\"$1\\".includes('tro') }$$  escape the double quotes
 ```  
-> You **must** backticks if the value, like a capture group or some variable, could contain newlines.  
+> You **must** use one of the above if the value, like a capture group or some variable, could contain newlines.  
 
-> Any term that you wish to be interpreted as a string must be enclosed in ticks or quotes.  So in the first example below to replace the match with the string `howdy` I used backticks.  This is only necessary within the operations syntax `$${<operations>}$$` otherwise it is interpreted as an unknown variable by javascript.  
+> Any term that you wish to be interpreted **as a string** must be enclosed in ticks or quotes.  So in the first example below to replace the match with the string `howdy` I used backticks.  This is only necessary within the operations syntax `$${<operations>}$$`, otherwise it is interpreted as an unknown variable by javascript.  
 
 ```jsonc
 {
@@ -691,7 +697,7 @@ that capture group will be from the `replace/replaceAll` as you would expect.  O
   "\\U$1"                                                // 3rd replacement
   ```  
   
-  All the code between each set of opening and closing wrappers will be treated as a single javascript replacement.  You can also put it all on one line if you want, like the `"$${return 'second task'}$$"` above.  The above `replace` will be treated as:
+  All the code between each set of opening and closing wrappers will be treated as a single javascript replacement.  You can also put it all on one line if you want, like the `"$${return 'second replacement'}$$"` above.  The above `replace` will be treated as:
   
   ```jsonc
   "replace": ["a long first replacement", "2nd replacement", "3rd replacement"]
