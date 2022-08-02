@@ -79,7 +79,7 @@ exports.findAndSelect = async function (editor, args) {
 			foundSelections[index] = new vscode.Selection(startPos, endPos);
 		});
     if (foundSelections.length) editor.selections = foundSelections; // this will not? remove all the original selections
-    if (foundSelections.length) editor.revealRange(new vscode.Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
+    // if (foundSelections.length) editor.revealRange(new vscode.Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
 	}
 
 	else {  // restrictFind === "selections/once/line"

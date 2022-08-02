@@ -59,8 +59,8 @@ exports.getRelativeFolderPath = function (filePath) {
 }
 
 /**
- * Get the language configuration comments object for  the current file
- * @returns {Promise<string>} comments object
+ * Get the relative paths of the current search results 
+ * @returns {Promise<string>} object
  */
 exports.getResultsFiles = async function (args) {
 
@@ -85,18 +85,17 @@ exports.getResultsFiles = async function (args) {
 			}
 		});
 		return "";
-
 }
-
 
 /**
  * Get the relative paths of the current search results 
  * for the next `runInSearchPanel` call  
- * 
- * @returns array of paths or undefined  
+ * @param {string} clipText - the previous clipboard text
+ * @returns {Promise<string>} comma-joined string of paths or empty string
  */
-exports.getSearchResultsFiles = async function () {
+exports.getSearchResultsFiles = async function (clipText) {
 
+  // restore clipboard TODO
 	await vscode.commands.executeCommand('search.action.copyAll');
 	let results = await vscode.env.clipboard.readText();
 
@@ -112,6 +111,7 @@ exports.getSearchResultsFiles = async function () {
 	}
 	else {
 		// notifyMessage?
+    await vscode.env.clipboard.writeText(clipText);
 		return "";
 	}
 } 

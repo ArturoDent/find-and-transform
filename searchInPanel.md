@@ -607,7 +607,7 @@ These can also be used in a keybinding (but not currently in a setting) like so:
 
 ## Contributed Setting  
 
-Showing the context keys can be disabled (the **default** is to show them) with this setting:
+Showing the context menu commands can be disabled (the **default** is to show them) with this setting:
 
 * `Find-and-transform: Enable Context Keys` in the Settings UI    
 

@@ -74,7 +74,7 @@ async function _buildSearchArgs(args, index)  {
   const splitArgs = await _returnArgsByIndex(args, index);
 	Object.assign(indexedArgs, splitArgs);
 
-  indexedArgs.resultsFiles = await utilities.getSearchResultsFiles();
+  indexedArgs.resultsFiles = await utilities.getSearchResultsFiles(args.clipText);
 
   // find = "" is allowable and does a makeFind
   if (!indexedArgs.find) {
@@ -149,11 +149,12 @@ async function _buildSearchArgs(args, index)  {
 async function _expandArgs(args, numFindArgs, numReplaceArgs) {
 
   const expandedArgs = {};
+  if (args?.clipText) expandedArgs.clipText = args.clipText;
   let keys = module.exports.getKeys();
 
   let most = (numFindArgs >= numReplaceArgs) ? numFindArgs : numReplaceArgs;
   if (most === 0) most = 1;
-  keys = keys.filter(key => !(key.match(/title|preCommands|postCommands/)));
+  keys = keys.filter(key => !(key.match(/title|preCommands|postCommands|clipText/)));
 
   for (const key of keys) {
 
@@ -192,7 +193,9 @@ async function _returnArgsByIndex(args, index) {
 
   const indexedArgs = {};
   let keys = module.exports.getKeys();
-  keys = keys.filter(key => !(key.match(/title|preCommands|postCommands/)));
+  
+  keys = keys.filter(key => !(key.match(/title|preCommands|postCommands|clipText/)));
+  if (args?.clipText) indexedArgs.clipText = args.clipText;
 
   for (const key of keys) {
     if (args[key]) indexedArgs[key] = args[key][index];

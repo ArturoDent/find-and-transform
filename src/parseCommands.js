@@ -219,7 +219,7 @@ exports.parseArgs = async function (commandArgs, resourceType) {
   if (resourceType === "folder") getRelativePath = utilities.getRelativeFolderPath;
   else getRelativePath = utilities.getRelativeFilePath;              // resourceType === "file"
   
-  if (!commandArgs.length) return getRelativePath(editorPath);       // from Command Palette or keybinding with no args
+  if (!commandArgs.length) return getRelativePath(editorPath);      // from Command Palette or keybinding with no args
 
   else if (commandArgs?.length === 1) {                              // keybindings and editor/context
     return getRelativePath(editorPath);
@@ -238,4 +238,4 @@ exports.parseArgs = async function (commandArgs, resourceType) {
       return resources;
     }
   }
-}
+};

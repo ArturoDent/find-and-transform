@@ -47,7 +47,7 @@ async function activate(context) {
 
     args.filesToInclude = await parseCommands.parseArgs(commandArgs, "folder");
     args.triggerSearch = true;
-    await searchCommands.useSearchPanel(args);
+    await searchCommands.runAllSearches(args);
 	});
 
 	context.subscriptions.push(contextMenuCommandFolder);
@@ -69,7 +69,7 @@ async function activate(context) {
 
     args.filesToInclude = await parseCommands.parseArgs(commandArgs, "file");
     args.triggerSearch = true;
-		await searchCommands.useSearchPanel(args);
+    await searchCommands.runAllSearches(args);
 	});
 
 	context.subscriptions.push(contextMenuCommandFile);
@@ -92,11 +92,15 @@ async function activate(context) {
     }
     else args = {};
 
+    await vscode.env.clipboard.readText().then(string => {
+      args.clipText = string;
+    });
+    
     args.triggerSearch = true;
-    args.filesToInclude = await utilities.getSearchResultsFiles();  // isn't this done in useSearchPanel()
+    args.filesToInclude = await utilities.getSearchResultsFiles(args.clipText);  // isn't this done in useSearchPanel()
 
     // pre/postCommands?  TODO
-		await searchCommands.useSearchPanel(args);
+    await searchCommands.runAllSearches(args);
 	});
 
 	context.subscriptions.push(contextMenuCommandResults);  

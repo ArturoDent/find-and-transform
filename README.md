@@ -5,7 +5,7 @@
 1. &nbsp; Find and transform text in a single file with many kinds of transforms.  
 2. &nbsp; Search across files with pre-defined options.
 3. &nbsp; Do a series of find and replaces in the current file.
-3. &nbsp; Do a series of finds and a replace across files, using only the results files from previous searches. See [Multiple searches across files.](searchInPanel.md#multiple-searches).  TODO check
+3. &nbsp; Do a series of finds and a replace across files, using only the results files from previous searches. See [Multiple searches across files.](searchInPanel.md#multiple-searches).
 5. &nbsp; Execute javascript code, like math or string operations, on replacements.
 6. &nbsp; Supports using path or snippet variables in the Search Panel or the Find in File Widget fields.
 7. &nbsp; Save named settings or keybindings for finds or searches.
@@ -734,7 +734,7 @@ Explanation: Find `>` and add `class="uppercased filename">` to it.
 * ### Variables defined by this extension for use in args  
 
 ```
-${resultsFiles}            ** explained below **
+${resultsFiles}            ** explained below ** Only available with a 'runInSearchPanel' command
 ${getDocumentText}         get the entire text of the current document
   
 ${getTextLines:n}          get the text of a line, 'n' is 0-based, so ${getLineText:1} gets the second line of the file
@@ -1114,26 +1114,7 @@ Note `^` and `$` work for `restrictFind` selections/line/once/document.
 
 <br/>
 
-> When you use the `cursorMoveSelect` argument for a `restrictFind: document` or the `nextMoveCursor` or `nextSelect` options for the `restrictFind` key, it is assumed that you actually want to go there and see the result.  So the editor will be scrolled to reveal the line of that match if it is not curently visible in the editor's viewport.  For `selections/line/once` no scolling will occur - it is assumed that you can see the resultant match already (the only way that wouldn't typically be true is if you had a long selection that went off-screen). 
-
-<br/>  
-
-```jsonc
-{
-  "key": "alt+y",
-  "command": "findInCurrentFile",
-  "args": {
-
-    // uses the selected text, which may simply be the word under the cursor
-    "find": "${selectedText}(?=\\s*[}\\]]?\\s*=)",  // double-escaping, positive lookahead 
-    "isRegex": true,
-  }
-}
-```
-
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/selectedTextWithReveal.gif?raw=true" width="700" height="500" alt="demo of selectedText with reveal"/>
-
-Explanation: Very simple keybinding uses the selected text, either a word actually selected, or if none, the word under the cursor, as part of the `find` term - with a positive lookahead after the selected text.  In this case, the match will be revealed by editor scroll if necessary.  
+> When you use the `cursorMoveSelect` argument for a `restrictFind: document` or the `nextMoveCursor` or `nextSelect` options for the `restrictFind` key, it is assumed that you actually want to go there and see the result.  So the editor will be scrolled to reveal the line of that match if it is not curently visible in the editor's viewport.  For `selections/line/once` no scolling will occur - it is assumed that you can see the resulting match already (the only way that wouldn't typically be true is if you had a long selection that went off-screen). 
 
 <br/>
 
