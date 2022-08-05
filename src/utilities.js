@@ -58,34 +58,6 @@ exports.getRelativeFolderPath = function (filePath) {
 	else return undefined;
 }
 
-/**
- * Get the relative paths of the current search results 
- * @returns {Promise<string>} object
- */
-exports.getResultsFiles = async function (args) {
-
-	await vscode.commands.executeCommand('search.action.copyAll');
-	await vscode.env.clipboard.readText()
-		.then(async results => {
-			if (results) {
-				results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
-				let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
-
-				let pathArray = resultsArray.filter(result => result !== "");
-				pathArray = pathArray.map(path => this.getRelativeFilePath(path));
-
-				await vscode.env.clipboard.writeText(args.clipText);
-				return pathArray.join(", ");
-			}
-			else {
-				// notifyMessage?
-				// put the previous clipBoard text back on the clipboard
-				await vscode.env.clipboard.writeText(args.clipText);
-				return "";
-			}
-		});
-		return "";
-}
 
 /**
  * Get the relative paths of the current search results 
@@ -95,11 +67,9 @@ exports.getResultsFiles = async function (args) {
  */
 exports.getSearchResultsFiles = async function (clipText) {
 
-  // restore clipboard TODO
 	await vscode.commands.executeCommand('search.action.copyAll');
 	let results = await vscode.env.clipboard.readText();
 
-	// handle no results
 	if (results)  {
 		results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
 		let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
@@ -111,6 +81,7 @@ exports.getSearchResultsFiles = async function (clipText) {
 	}
 	else {
 		// notifyMessage?
+    // restore original clipboard content
     await vscode.env.clipboard.writeText(clipText);
 		return "";
 	}
@@ -120,7 +91,7 @@ exports.getSearchResultsFiles = async function (clipText) {
 /**
  * Convert string to PascalCase.  
  * first_second_third => FirstSecondThird  
- * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/snippetParser.ts}  
+ * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/browser/snippetParser.ts}  
  * 
  * @param {string} value - string to transform to PascalCase  
  * @returns {string} transformed value  
@@ -142,12 +113,37 @@ exports.toPascalCase = function(value) {
 /**
  * Convert string to camelCase.  
  * first_second_third => firstSecondThird  
- * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/snippetParser.ts}  
+ * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/browser/snippetParser.ts}  
  * 
  * @param {string} value - string to transform to camelCase
  * @returns {string} transformed value  
  */
 exports.toCamelCase = function (value) {
+
+	const match = value.match(/[a-z0-9]+/gi);
+	if (!match) {
+		return value;
+	}
+	return match.map((word, index) => {
+		if (index === 0) {
+			return word.toLowerCase();
+		} else {
+			return word.charAt(0).toUpperCase()
+				+ word.substring(1).toLowerCase();
+		}
+	})
+		.join('');
+};
+
+/**
+ * Convert string to snakeCase.  
+ * first_second_third => firstSecondThird  
+ * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/snippetParser.ts}  
+ * 
+ * @param {string} value - string to transform to snakeCase
+ * @returns {string} transformed value  
+ */
+exports.toSankeCase = function (value) {
 
 	const match = value.match(/[a-z0-9]+/gi);
 	if (!match) {

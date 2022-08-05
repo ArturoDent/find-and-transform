@@ -776,7 +776,12 @@ function _applyCaseTransform(p2, p3, groups) {
     case "camelcase":        // first_second_third => firstSecondThird
       resolved = utilities.toCamelCase(resolved);
       break;
+    
+    // case "snakecase":
+    //   resolved = utilities.toSnakeCase(resolved);
+    //   break;
   }
+  
   return resolved;
 }
 

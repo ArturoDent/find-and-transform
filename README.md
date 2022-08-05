@@ -1733,7 +1733,9 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 &emsp;&emsp; 3.2.6 Fix setting `filesToInclude` to  resolved `${resultsFiles}`.  
 
 * 3.3.0  Move `postCommands` into individual transform functions.  Run them only if a find match.    
-&emsp;&emsp; `cursorMoveSelect` in whole document restricted to find match ranges.  
+&emsp;&emsp; `cursorMoveSelect` in whole document restricted to find match ranges.    
+
+* 3.4.0  Refactor jsOPeration command parsing.  Bug fixes on search in file/folder commands.      
 
 <br/> 
 

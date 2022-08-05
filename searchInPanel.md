@@ -544,7 +544,9 @@ Explanation: find the uppercased version of the first selection and the lower-ca
 
 <br/>
 
-## Context Menu Commands  
+## Context Menu Commands    
+
+> Note: Using these commands with a selection or selections will automatically use that selection(s) as the search query term.  Multiple selections will be combined with an `or` pipe `|` like this: `Selection1|Selections2`.  
 
 <br/>
 
@@ -574,7 +576,7 @@ You can use the context menu of the currently active editor or any other editor.
 * `Search in File(s)`  opens the Search Panel with the selected filename or filename.   
 * `Search in Folder(s)` opens the Search Panel with the selected folder or folder.   
 
-For either of the above Explorer context menu options you can select either multiple files or folders.  Then right-click to bring up the context menu and choose `Search in File(s)` or `Search in Folder(s)`.  Currently, choosing a mix of files and folders is not supported but that will be supported soon.  
+For either of the above Explorer context menu options you can select either multiple files or folders.  Then right-click to bring up the context menu and choose `Search in File(s)` or `Search in Folder(s)`.  Currently, choosing a mix of files and folders is not supported.  
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/contextExplorer.gif?raw=true" width="700" height="300" alt="demo of Explorer file context menus"/>
 
