@@ -280,8 +280,8 @@ function _resolvePathVariables (variableToResolve, args, caller, selection, matc
        if (caller === "cursorMoveSelect" && args.restrict !== "document") resolved = String(match);
        else if (caller === "cursorMoveSelect" && args.restrict === "document") resolved = resolved;
 
-      //  else if (caller !== "ignoreLineNumbers") {
-       else if (caller !== "ignoreLineadasdbers") {
+       else if (caller !== "ignoreLineNumbers") {
+      //  else if (caller !== "ignoreLineadasdbers") {
          if (args.restrict === "selections") {
            const line = vscode.window.activeTextEditor.document.positionAt(match.index + selectionStartIndex).line;
            resolved = String(line);
