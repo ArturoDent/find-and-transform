@@ -1,6 +1,6 @@
 const vscode = require('vscode');
 const utilities = require('./utilities');
-const variables = require('./variables');
+const resolve = require('./resolveVariables');
 // const delay = require('node:timers/promises');
 
 /**
@@ -79,7 +79,7 @@ async function _buildSearchArgs(args, index)  {
   // find = "" is allowable and does a makeFind
   if (!indexedArgs.find) {
     // if multiple selections, isRegex must be true  TODO
-    const findObject = variables.makeFind(editor.selections, args);
+    const findObject = resolve.makeFind(editor.selections, args);
     indexedArgs.find = findObject.find;
     indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
     indexedArgs.pointReplaces = findObject.emptyPointSelections;
@@ -91,34 +91,40 @@ async function _buildSearchArgs(args, index)  {
   // "find": "(\\U\\$1)"  TODO not in find either
   if (indexedArgs.find && /\\\$(\d+)/.test(indexedArgs.find)) {
     // replaceFindCaptureGroups also does case modifiers
-    indexedArgs.find = await variables.replaceFindCaptureGroups(indexedArgs.find);
+    indexedArgs.find = await resolve.replaceFindCaptureGroups(indexedArgs.find);
   }
 
   // add args.filesToInclude === "${resultsFiles} if index > 0 (i.e., search > 1)
   // notify message?, can be overridden by specifying some filesToInclude
+  // TODO test
   if (index > 0 && !indexedArgs.filesToInclude) indexedArgs.filesToInclude = "${resultsFiles}";
-
-  // check for '${...}' some variable
-  let re = /\$\{.+\}/g;
-  if (indexedArgs.find.search(re) !== -1) {
-    indexedArgs.find = await variables.resolveSearchPathVariables(indexedArgs.find, indexedArgs, "findSearch", vscode.window.activeTextEditor.selections[0]);
-    indexedArgs.find = await variables.resolveSearchSnippetVariables(indexedArgs.find, indexedArgs, "findSearch", vscode.window.activeTextEditor.selections[0]);
-  }
-  if (indexedArgs.filesToInclude && indexedArgs.filesToInclude.search(re) !== -1) 
-      indexedArgs.filesToInclude = await variables.resolveSearchPathVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude", vscode.window.activeTextEditor.selections[0]);
-  if (indexedArgs.filesToExclude && indexedArgs.filesToExclude.search(re) !== -1) 
-      indexedArgs.filesToExclude = await variables.resolveSearchPathVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude", vscode.window.activeTextEditor.selections[0]);
   
-  if (indexedArgs.replace && indexedArgs.replace.search(re) !== -1) {
-    indexedArgs.replace = await variables.resolveSearchPathVariables(indexedArgs.replace, indexedArgs, "replace", vscode.window.activeTextEditor.selections[0]);
-    indexedArgs.replace = await variables.resolveSearchSnippetVariables(indexedArgs.replace, indexedArgs, "replace", vscode.window.activeTextEditor.selections[0]);
-  }
-
-  // at least one more find/replace than this index
+    // at least one more find/replace than this index
   const numSearches = args.find.length;
   if (numSearches > index+1) indexedArgs.triggerSearch = true;
   else if (numSearches === index+1 && args.filesToInclude === "${resultsFiles}") 
     indexedArgs.triggerSearch = true;
+
+  // check for '${...}' some variable
+  let re = /\$\{.+\}/g;
+  if (indexedArgs.find.search(re) !== -1) {
+    indexedArgs.find = await resolve.resolveSearchPathVariables(indexedArgs.find, indexedArgs, "findSearch", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.find = await resolve.resolveSearchSnippetVariables(indexedArgs.find, indexedArgs, "findSearch", vscode.window.activeTextEditor.selections[0]);
+  }
+  if (indexedArgs.filesToInclude && indexedArgs.filesToInclude.search(re) !== -1) {
+    indexedArgs.filesToInclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.filesToInclude = await resolve.resolveExtensionDefinedVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude");
+  }
+  if (indexedArgs.filesToExclude && indexedArgs.filesToExclude.search(re) !== -1) {
+    indexedArgs.filesToExclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.filesToExclude = await resolve.resolveExtensionDefinedVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude");
+  }
+  
+  if (indexedArgs.replace && indexedArgs.replace.search(re) !== -1) {
+    indexedArgs.replace = await resolve.resolveSearchPathVariables(indexedArgs.replace, indexedArgs, "replace", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.replace = await resolve.resolveSearchSnippetVariables(indexedArgs.replace, indexedArgs, "replace", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.replace = await resolve.resolveExtensionDefinedVariables(indexedArgs.replace, indexedArgs, "replace");
+  }
 
   // so triggerReplaceAll is true for the last search only no matter the setting
   if (numSearches > index + 1) indexedArgs.triggerReplaceAll = false;
@@ -133,7 +139,6 @@ async function _buildSearchArgs(args, index)  {
   if (!indexedArgs.delay && indexedArgs.triggerReplaceAll) indexedArgs.delay = 2000;
 
   indexedArgs.query = indexedArgs.find;
-  if (indexedArgs?.filesToInclude == "${resultsFiles}") indexedArgs.filesToInclude = indexedArgs.resultsFiles;
 	return indexedArgs;
 }
 

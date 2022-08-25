@@ -5,17 +5,23 @@
 1. &nbsp; Find and transform text in a single file with many kinds of transforms.  
 2. &nbsp; Search across files with pre-defined options.
 3. &nbsp; Do a series of find and replaces in the current file.
-3. &nbsp; Do a series of finds and a replace across files, using only the results files from previous searches. See [Multiple searches across files.](searchInPanel.md#multiple-searches).
-5. &nbsp; Execute javascript code, like math or string operations, on replacements.
-6. &nbsp; Supports using path or snippet variables in the Search Panel or the Find in File Widget fields.
-7. &nbsp; Save named settings or keybindings for finds or searches.
+3. &nbsp; Do a series of finds and a replace across files, using only the results files from previous searches. See [Multiple searches across files.](searchInPanel.md#multiple-searches).  
+
+5. &nbsp; Execute javascript code, like math or string operations, on replacements.  
+6. &nbsp; Use the vscode api or node packages like `path`, `os`, `fs`, etc. in a replacement. **New in v4.0.0.**  
+
+6. &nbsp; Supports using path or snippet variables in the Search Panel or in a Find in the current file.  
+12. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.  
+ 
+7. &nbsp; Save named settings or keybindings for finds or searches.  
+
 8. &nbsp; After replacing some text, optionally move the cursor to a next designated location with `cursorMoveSelect`.
 9. &nbsp; All `findInCurrentFile` commands can be used in `"editor.codeActionsOnSave": []`. &emsp; See &nbsp;[running commands on save](codeActions.md).
-10. &nbsp; Do a second (or third, fourth, etc.) search using only the files found in a previous search. See `${resultsFiles}` in [Search using the Panel](searchInPanel.md).
+
 11. &nbsp; Insert any resolved value, like a javascript math or string operation, at the cursor(s). No `find` is necessary.
-12. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.  
-13. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#using-numbered-capture-groups-in-a-find).  
-14. `${getDocumentText}` and `${getTextLines:n}` to get text anywhere in the document to use for replacement terms.  
+
+12. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#using-numbered-capture-groups-in-a-find).  
+13. `${getDocumentText}` and `${getTextLines:n}` to get text anywhere in the document to use for replacement terms.  
 
 
 -------------
@@ -44,7 +50,8 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 &emsp; &emsp; &emsp; [a. Math Operations in Replacements](#doing-math-on-replacements)  
 &emsp; &emsp; &emsp; [b. String Operations in Replacements](#doing-string-operations-on-replacements)  
-&emsp; &emsp; &emsp; [c. More Operations in Replacements](#doing-other-javascript-operations-on-replacements)  
+&emsp; &emsp; &emsp; [c. Using the vscode api or other packages, like path, in Replacements](#using-the-vscode-api-on-replacements)  
+&emsp; &emsp; &emsp; [d. More Operations in Replacements](#doing-other-javascript-operations-on-replacements)  
 
 &emsp; &emsp; [9. Special Variables](#special-variables)  
 
@@ -199,7 +206,20 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 * Find: Use `\r?\n` with `isRegex` set to true is probably the safest across operating systems.     
 * Replace: `\n` is probably sufficient, if not, try `\r\n`.  
-* In a javascript operation replacement, make sure it is included in ticks or quotes so the newline is interpreted as a string ` $${ 'first line \n second line' }$$ `.   
+* In a javascript operation replacement, make sure it is included in backticks so the newline is interpreted as a string ` $${ 'first line \n second line' }$$ `.  
+* If you use a variable like `${getDocumentText}` or anything that might have newlines in the text, surround that variable with backticks like this example:
+
+```jsonc
+"replace": [
+  "$${",
+    "const previousLine = `${getTextLines:0-2}`;",  // or
+    "return `${getDocumentText}`.toUpperCase();",
+  "}$$"
+],
+``` 
+
+#### Important: What if there are backticks TODO
+
 
 * If you use newlines in a replace, the `cursorMoveSelect` option will not be able to properly calculate the new selection position.   
 
@@ -554,14 +574,14 @@ The above is 2 `replace`'s.  The first one will be applied to the first `find`. 
 
 <br/> 
 
-You can also do string operations inside the special syntax ` $${<operations>}$$ `.  But you will need to ***"cast"*** the string in bacticks, single quotes or escaped double quotes like so:   
+You can also do string operations inside the special syntax ` $${<operations>}$$ `.  But you will need to ***"cast"*** the string in backticks, single quotes or escaped double quotes like so:   
 
 ```
 $${ return `$1`.substring(3) }$$  use backticks (I recommend backticks) or  
 
 $${ return '$1'.substring(3) }$$  or  use single quotes
 
-$${ return \\"$1\\".includes('tro') }$$  escape the double quotes
+$${ return \"$1\".includes('tro') }$$  escape the double quotes
 ```  
 > You **must** use one of the above if the value, like a capture group or some variable, could contain newlines.  
 
@@ -625,7 +645,131 @@ $${ return \\"$1\\".includes('tro') }$$  escape the double quotes
 
 that capture group will be from the `replace/replaceAll` as you would expect.  Other capture groups in a javascript operation will reflect the capture groups from the `find` argument.  
 
-> You can combine math or string operations within **` $${<operations>}$$ `**. 
+> You can combine math or string operations within **` $${<operations>}$$ `**.   
+
+-------------  
+
+<br/>  
+
+### Using the vscode api on replacements
+
+<br/>  
+
+If you wish to use [the vscode api](https://code.visualstudio.com/api/references/vscode-api) in a replacement you can do so easily. For instance, to insert the current filename capitalized you could use this keybinding:
+
+```jsonc
+{
+  "key": "alt+n",
+  "command": "findInCurrentFile",
+  "args": {
+
+    "replace": [
+      "$${",
+
+      "const str = path.basename(document.fileName);",
+      "return str.toLocaleUpperCase();",
+      
+      "}$$"
+    ]
+  }
+}
+``` 
+
+1. `document` = `vscode.window.activeTextEditor.document` and is provided as simply `document`.   
+ 
+2. Any other node api can be used as `vscode.<more here>`.     
+Do not do `const vscode = require('vscode');` it has already been declared and you will get this error: 
+`SyntaxError: Identifier 'vscode' has already been declared`.  You can declare it as something simpler like `const vsc = require('vscode');` just not as `vscode` again.  
+
+3. `path` is also provided without needing to import it.  So don't `const path = require('path');` = error.  
+
+4. You should be able to `require` the `typescript` and `jsonc-parser` libraries without needing to install them on your machine.  
+
+5. If you get `[object Promise]` as the output of the replacement, you are trying to access an asynchronous method (or `thenable` return) - which will not work.  
+
+```jsonc    
+"replace": [
+  "$${",
+    // print a list of open file names 
+    "const tabs = vscode.tabGroups.all.tabs;",
+    "tabs.forEach(tab => str += tab.label + '\\n');",  // note double-escaped newline
+    "return str;",
+  "}$$"
+]
+```
+
+```jsonc
+    "replace": [
+      "$${",        // get the line above the cursor
+      
+        "const sel = vscode.window.activeTextEditor.selection;",
+        "const previousLine = document.lineAt(new vscode.Position(sel.active.line - 1, 0)).text;",
+        
+        // the below also works
+        // "const previousLine = document.getText(new vscode.Range(sel.active.line-1, 0, sel.active.line-1, 100));",
+        
+        // below is the simplest
+        "const previousLine = document.lineAt(new vscode.Position(${lineIndex}-1, 0)).text;",
+
+        "return previousLine.toUpperCase();",
+      
+      "}$$"
+    ],
+```
+
+```jsonc    
+"replace": [
+  "$${",
+    "const os = require('os');", 
+    "return os.arch();",
+  "}$$"
+]
+``` 
+
+```jsonc
+"replace": [
+  "$${",
+
+    "const { basename } = require('path');",  // you can re-import to rename or extract
+    "return basename(document.fileName);",
+  
+  "}$$"
+]
+```
+
+
+```jsonc
+"replace": [
+  "$${",
+
+    // change the current editor's fileName
+    "const fsp = require('node:fs/promises');",
+    "fsp.rename(document.fileName, path.join(path.dirname(document.fileName), 'changed2.txt'));",
+    
+    "return '';",   // return an empty string, else "undefined" is returned and inserted at the cursor(s)
+  "}$$"
+]
+```
+
+* While this last example does work, it seems odd to use a find and replace extension to change fileNames and run such commands that may have nothing to do with text replacements or insertions.  I can see a case where you want to change the fileName based on some text found in the current file though...
+
+Better is to use the built-in `vscode.workspace.fs` for file operations:
+
+```jsonc
+"replace": [
+  "$${",
+
+    "const thisUri = vscode.Uri.file(document.fileName);",
+    // the new filename could be derived from some text in the current file
+    "const newUri = vscode.Uri.file(document.fileName + '_bak');",
+    // this will rename the current file and it remains open
+    "vscode.workspace.fs.rename(thisUri, newUri);",
+  
+    "return '';",  // return empty string
+  
+  "}$$"
+]
+```  
 
 ----------------
 
@@ -735,13 +879,18 @@ Explanation: Find `>` and add `class="uppercased filename">` to it.
 
 ```
 ${resultsFiles}            ** explained below ** Only available with a 'runInSearchPanel' command
+
 ${getDocumentText}         get the entire text of the current document
   
 ${getTextLines:n}          get the text of a line, 'n' is 0-based, so ${getLineText:1} gets the second line of the file
-${getTextLines:n-p}        get the text of a lines n through p inclusive, example  ${getTextLines:2-4} 
 
-// to get the text from line `n`, column `p` through line `q`, column `r`
-${getTextLines:n,p,q,r}    get the text of a lines n through q inclusive, from columns p to r, example  ${getTextLines:2,0,4,15}      
+${getTextLines:n-p}        get the text of lines n through p inclusive, example  ${getTextLines:2-4}  
+
+${getTextLines:(n-n)}      get the text of a line n-n, example  ${getTextLines:(${lineIndex}-1)} : get previous line
+                           use this form, note the parentheses, if you want to do math to resolve to a line.  Can use `+-/*%`.  
+                           
+${getTextLines:n,p,q,r}    get the text from line `n`, column `p` through line `q`, column `r` inclusive, 
+                           example  ${getTextLines:2,0,4,15}      
 ```
 
 You will get intellisense in the keybinding or setting showing where the variables can be used.  
@@ -761,6 +910,8 @@ Here is an example using `${getDocumentText}`:
         // note the variables should be wrapped in backticks, so they are interpreted as strings
         "const fullText = `${getDocumentText}`;",
         // "const fullText = `${vscode.window.activeTextEditor.document.getText()}`;",  // same as above, also works
+        // "const fullText = `${document.getText()}`;",                                // same as above, also works
+        
         // "const fullText = `${getLineText:3}`;",   // if you knew which line you wanted to get
          
         "let foundClass = '';",      
@@ -1030,7 +1181,7 @@ Explanation:
 
 You would effectively be replacing the match `trouble` with nothing, so all matches would disappear from your code.  This **is** the correct result, since you have chosen to match something and replace it with something else that may not exist.  
 
-> If `isRegex` is set to `false`, the replace value, even one like `\\U$2` will be interpreted as literal plain text.    
+> If `isRegex` is set to `false` (the same as not setting it at all), the replace value, even one like `\\U$2` will be interpreted as literal plain text.    
 
 ---------------  
 

@@ -44,6 +44,7 @@ exports.getRelativeFolderPath = function (filePath) {
 	return vscode.workspace.asRelativePath(dirname);
 }
 
+
 /**
  * Get the language configuration comments object for  the current file
  * @returns {Promise<object|undefined>} comments object
@@ -76,7 +77,6 @@ exports.getSearchResultsFiles = async function (clipText) {
 
 		let pathArray = resultsArray.filter(result => result !== "");
 		pathArray = pathArray.map(path => this.getRelativeFilePath(path))
-
 		return pathArray.join(", ");
 	}
 	else {
@@ -143,7 +143,7 @@ exports.toCamelCase = function (value) {
  * @param {string} value - string to transform to snakeCase
  * @returns {string} transformed value  
  */
-exports.toSankeCase = function (value) {
+exports.toSnakeCase = function (value) {
 
 	const match = value.match(/[a-z0-9]+/gi);
 	if (!match) {

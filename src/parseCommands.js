@@ -1,6 +1,6 @@
 const vscode = require('vscode');
 const findCommands = require('./transform');
-const variables = require('./variables');
+const resolve = require('./resolveVariables');
 const utilities = require('./utilities');
 
 
@@ -165,7 +165,7 @@ async function _buildFindArgs(args, index)  {
   // or if find is an array but length < replace array
   else {
     // if multiple selections, isRegex must be true  TODO
-    const findObject = variables.makeFind(editor.selections, args);
+    const findObject = resolve.makeFind(editor.selections, args);
     indexedArgs.find = findObject.find;
     indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
     madeFind = true;
@@ -174,7 +174,7 @@ async function _buildFindArgs(args, index)  {
   
   //  "find": "(\\$1 \\$2)" if find has (double-escaped) capture groups 
   if (indexedArgs.find && /\\\$(\d+)/.test(indexedArgs.find)) {
-    indexedArgs.find = await variables.replaceFindCaptureGroups(indexedArgs.find);
+    indexedArgs.find = await resolve.replaceFindCaptureGroups(indexedArgs.find);
   }
   
   // handle "replace": ""  <== empty string should remove find values
@@ -213,7 +213,6 @@ async function _buildFindArgs(args, index)  {
 exports.parseArgs = async function (commandArgs, resourceType) {
 
   let editorPath = vscode.window.activeTextEditor.document.uri.path;
-  let resources = "";
   let getRelativePath;
 
   if (resourceType === "folder") getRelativePath = utilities.getRelativeFolderPath;
@@ -226,16 +225,13 @@ exports.parseArgs = async function (commandArgs, resourceType) {
   }
 
   else if (commandArgs?.length === 2) {
-    if (Object.keys(commandArgs[1]).includes("editorIndex")) {       // editor/title/context
+    if (Object.keys(commandArgs[1]).includes("editorIndex")) {       // editor/title/context - the editor tab
       return getRelativePath(commandArgs[0].fsPath);
     }
     else if (commandArgs[1][0] instanceof vscode.Uri) {              // explorer/context
-      for (const resource of commandArgs[1]) {
-        const thisResource = vscode.workspace.asRelativePath(resource.fsPath);
-        resources += `${ thisResource }, `;
-      }
-      resources = resources.substring(0, resources.length - 2);  // strip ', ' off end
-      return resources;
+      let resources = commandArgs[1].map(resource => vscode.workspace.asRelativePath(resource.fsPath));
+      return resources.join(', ');
     }
   }
 };
+

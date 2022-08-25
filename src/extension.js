@@ -6,6 +6,8 @@ const providers = require('./completionProviders');
 const codeActions = require('./codeActions');
 const utilities = require('./utilities');
 
+
+
 /** @type { Array<vscode.Disposable> } */
 let _disposables = [];
 
@@ -16,11 +18,13 @@ let enableWarningDialog = false;
  */
 async function activate(context) {
   
+  this.context = context;  // global
+  
 	let firstRun = true;
 
   await _loadSettingsAsCommands(context, _disposables, firstRun);
 
-	providers.makeKeybindingsCompletionProvider(context);
+  providers.makeKeybindingsCompletionProvider(context);
 	providers.makeSettingsCompletionProvider(context);
 
 	// enableWarningDialog = await vscode.workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
@@ -97,7 +101,7 @@ async function activate(context) {
     });
     
     args.triggerSearch = true;
-    args.filesToInclude = await utilities.getSearchResultsFiles(args.clipText);  // isn't this done in useSearchPanel()
+    args.filesToInclude = await utilities.getSearchResultsFiles(args.clipText);  // isn't this done in useSearchPanel() TODO
 
     // pre/postCommands?  TODO
     await searchCommands.runAllSearches(args);
@@ -115,6 +119,11 @@ async function activate(context) {
     let continueRun = true;
     
     if (args?.preCommands) await commands.runPrePostCommands(args.preCommands);
+    
+    let replacement = "";
+    if (Array.isArray(args?.replace)) replacement = args?.replace.join(' ');
+    else if (args?.replace) replacement = args?.replace;
+    if (replacement?.search(/\$\{resultsFiles\}/) !== -1) args.resultsFiles = await utilities.getSearchResultsFiles(args.clipText);
     
     // could be an array of 1 : ["$${ return 'howdy', }$$"] or ["howdy $${ return 'pardner', }$$"]
     // call a function that looks for all jsOp's $${...}$$ in args.replace
@@ -175,22 +184,22 @@ async function activate(context) {
 	// not exposed in package.json
   let selectDigitInCompletion = vscode.commands.registerCommand('find-and-transform.selectDigitInCompletion', async (completionText, completionRange) => {
 
-		// args = [completionText, Range]
-		// if completionText startsWith '\\U$n' or '${n'
-		let keyLength;
-		if (completionText?.startsWith("${n")) keyLength = 3;
+    // args = [completionText, Range]
+    // if completionText startsWith '\\U$n' or '${n'
+    let keyLength;
+    if (completionText?.startsWith("${n")) keyLength = 3;
     else if (completionText?.search(/^\\\\[UuLl]\$n/m) === 0) keyLength = 5;
     else if (completionText?.search(/^\$\{getTextLines:n/m) === 0) keyLength = 16;
-		else return;
+    else return;
 
-		if (completionRange?.start) {
-			const digitStart = new vscode.Position(completionRange.start.line, completionRange.start.character + keyLength - 1);
-			const digitEnd = new vscode.Position(completionRange.start.line, completionRange.start.character + keyLength);
-			vscode.window.activeTextEditor.selection = new vscode.Selection(digitStart, digitEnd);
-		}
-	});
+    if (completionRange?.start) {
+      const digitStart = new vscode.Position(completionRange.start.line, completionRange.start.character + keyLength - 1);
+      const digitEnd = new vscode.Position(completionRange.start.line, completionRange.start.character + keyLength);
+      vscode.window.activeTextEditor.selection = new vscode.Selection(digitStart, digitEnd);
+    }
+  });
 
-	context.subscriptions.push(selectDigitInCompletion);
+  context.subscriptions.push(selectDigitInCompletion);
 
 	// ---------------------------------------------------------------------------------------------------------------------
   
@@ -282,3 +291,4 @@ module.exports = {
 	activate,
 	deactivate
 }
+

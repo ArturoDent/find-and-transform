@@ -18,8 +18,7 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
 					let find = false;
 					let search = false;
 
-					// ---------------    command completion start   ----------------------------
-
+					// ------------------------------------    command completion start  ------------------------------------
 					if (linePrefix.search(/^\s*"command":\s*"(findInCurrentFile)\./) !== -1) find = true;
 					if (linePrefix.search(/^\s*"command":\s*"(runInSearchPanel)\./) !== -1) search = true;
 
@@ -28,23 +27,19 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
 						const thisExtension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
 						const packageCommands = thisExtension.packageJSON.contributes.commands;
 
-						const completionArray = [];
-
-						packageCommands.forEach(pcommand => {
-							if (find && pcommand.command.startsWith("findInCurrentFile")) {
-								completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null, "", "A 'findInCurrentFile' from your settings."));
-							}
-							else if (search && pcommand.command.startsWith("runInSearchPanel")) {
-								completionArray.push(_makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null, "", "A 'runInSearchPanel' from your settings."));
-							}
-						});
-						return completionArray;
+            if (find) {
+              return packageCommands.filter(pcommand => pcommand.command.startsWith("findInCurrentFile"))
+                .map(pcommand => _makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null, "", "A 'findInCurrentFile' command from your settings."));
+            }
+            else if (search) {
+              return packageCommands.filter(pcommand => pcommand.command.startsWith("runInSearchPanel"))
+                .map(pcommand => _makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null, "", "A 'runInSearchPanel' command from your settings."));
+            }
 					}
+					// ------------------------------------    command completion end   -------------------------------------------------
 
-					// ---------------    command completion end   ----------------------------
-
-					// ---------------    args completion start   ----------------------------
-
+          
+					// ------------------------------------    args completion start   -------------------------------------------------
 					find = false;
 					search = false;
 							
@@ -67,7 +62,7 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           const argCompletions = _completeArgs(linePrefix, position, find, search, curLocation.path[2]);
           if (argCompletions) return argCompletions;
           
-					// ---------------    duplicate args removal start   ----------------------------
+					// ------------------------------------    duplicate args removal start   ------------------------------------
 
           // curLocation.path = [26, 'args', ''] = good  or [26, 'args', 'replace', 1] = bad here
           if (!curLocation?.path[2] === false || curLocation?.path[1] !== 'args') return undefined;
@@ -141,7 +136,7 @@ exports.makeSettingsCompletionProvider = async function(context) {
         const argCompletions = _completeArgs(linePrefix, position, find, search, curLocation.path[2]);
         if (argCompletions) return argCompletions;
 
-				// -----------------------------------------------------------------------
+				// -----------------------------------------------------------------------------------------------------------
         
         // curLocation.path = [findInCurrentFile, addClassToElement, ''] = good here 
         // or [findInCurrentFile, addClassToElement, replace] =  bad
@@ -190,27 +185,20 @@ exports.makeSettingsCompletionProvider = async function(context) {
 function _completeArgs(linePrefix, position, find, search, arg) {
   
 // ----------  filesToInclude/filesToExclude  -----------
-
   if (arg === 'filesToInclude' || arg === 'filesToExclude') {
     if (linePrefix.endsWith('${'))
-      // return _completePathVariables(position, "${");
       return [..._completePathVariables(position, "${"), ..._completeExtensionDefinedVariables(position, "${", search)];
     
     else if (linePrefix.endsWith('$'))
-      // return _completePathVariables(position, '$');
       return [..._completePathVariables(position, "$"), ..._completeExtensionDefinedVariables(position, "$", search)];
-      
   }
 
  // ---------------------  find  ------------------------
-
   if (arg === 'find') {
     if (linePrefix.endsWith('$'))
-      // return _completePathVariables(position, '$', search).concat(_completeSnippetVariables(position, '$'));  // other variables?  jsOp?
       return [..._completePathVariables(position, '$'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '$')];
       
     else if (linePrefix.endsWith('${'))
-      // return _completePathVariables(position, '${', search).concat(_completeSnippetVariables(position, '${'));
       return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '${')];
       
     
@@ -222,7 +210,6 @@ function _completeArgs(linePrefix, position, find, search, arg) {
   }
   
 // ---------------------  replace  ------------------------
-  
   if (arg === 'replace') {
   
     if (find && linePrefix.endsWith('$${')) 
@@ -243,26 +230,16 @@ function _completeArgs(linePrefix, position, find, search, arg) {
     
     else if (linePrefix.endsWith('\\'))
       return _completeReplaceCaseTransforms(position, '\\');
-      
-    // else if (find) {
-    //   const regex = /\$\{(?<pathVar>\w*)$/m;
-    //   const found = linePrefix.match(regex);
-    //   if (found?.groups?.pathVar) 
-    //     return _completeReplaceFindVariables(position, '${');
-    // } 
     
     else if (search && linePrefix.endsWith('$'))
-      // return _completePathVariables(position, '$', search).concat(_completeSnippetVariables(position, '$'));
       return [..._completePathVariables(position, '$'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '$')];
       
 
 		else if (search && linePrefix.endsWith('${'))
-      // return _completePathVariables(position, '${', search).concat(_completeSnippetVariables(position, '${'));
       return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '${')];
   }
 
 // -------------------  cursorMoveSelect  ----------------------
-
   if (arg === 'cursorMoveSelect') {
     if (find && linePrefix.endsWith('$')) 
       return _completeReplaceFindVariables(position, '$');
@@ -275,7 +252,6 @@ function _completeArgs(linePrefix, position, find, search, arg) {
   }
 
 // ---------------------  restrictFind ------------------------
-  
   if (find && arg === 'restrictFind') {
     return _completeRestrictFindValues(position);
   }
@@ -366,16 +342,11 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 		"preserveCase": ""
 	};
 
-	/** @type { Array<vscode.CompletionItem> } */
-	const completionArray = [];
-
-	// account for commented options (in keybindings and settings)
-	argArray.forEach(option => {
-		if (argsText.search(new RegExp(`^[ \t]*"${option}"`, "gm")) === -1)
-			completionArray.push(_makeCompletionItem(option, new vscode.Range(position, position), defaults[`${ option }`], priority[`${ option }`], description[`${ option }`]));
-	});
-
-	return completionArray;
+  return argArray
+    .filter(option => argsText.search(new RegExp(`^[ \t]*"${ option }"`, "gm")) === -1)
+    .map(option => {
+    return _makeCompletionItem(option, new vscode.Range(position, position), defaults[`${ option }`], priority[`${ option }`], description[`${ option }`]);
+  })
 }
 
 /**
@@ -543,20 +514,6 @@ function _completeReplaceFindVariables(position, trigger) {
 
 	// triggered by 1 '$' or '$${' or '${'
 
-  // const pathVariableArray = _completePathVariables(position, trigger);
-  // // search? arg TODO
-  // const extensionDefinedArray = _completeExtensionDefinedVariables(position, trigger);
-  // const conditionalsArray = _completeFindConditionalTransforms(position, trigger);
-  // const snippetVariableArray = _completeSnippetVariables(position, trigger);  
-  // const jsOperation = _completeReplaceJSOperation(position, trigger);
-
-	// return [
-  //   ...pathVariableArray,  // or just ..._completePathVariables(position, trigger); ?
-  //   ...extensionDefinedArray,
-  //   ...conditionalsArray,
-  //   ...jsOperation,
-  //   ...snippetVariableArray
-  // ];
   	return [
     ..._completePathVariables(position, trigger),
     ..._completeExtensionDefinedVariables(position, trigger),
