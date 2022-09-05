@@ -7,18 +7,20 @@ const codeActions = require('./codeActions');
 const utilities = require('./utilities');
 
 
+exports.outputChannel = vscode.window.createOutputChannel("find-and-transform");
 
 /** @type { Array<vscode.Disposable> } */
 let _disposables = [];
 
 let enableWarningDialog = false;
 
+
 /**
  * @param {vscode.ExtensionContext} context
  */
 async function activate(context) {
   
-  this.context = context;  // global
+  this.context = context;  // global  
   
 	let firstRun = true;
 
@@ -130,12 +132,14 @@ async function activate(context) {
     if (args && Array.isArray(args.replace) && args.replace.find(el => el.search(/^\s*\$\$\{\s*/m) !== -1))
       args.replace = await parseCommands.buildJSOperationsFromArgs(args.replace);
     
-      
-    // if (Array.isArray(args.replace) && args.replace.find(el => el.search(/^\$\$\{\s*vsapi:/m) !== -1))
-    //   args.replace = await parseCommands.buildVSCodeOpsFromArgs(args.replace);
-
+    const argsBadObject = await utilities.checkArgs(args, "findBinding");
+    
+    if (Object.entries(argsBadObject).length) {  // send to utilities function
+      await utilities.writeBadArgsToOutputChannel(argsBadObject, module.exports.outputChannel);
+      return;    // abort
+    }
+    
 		if (args && enableWarningDialog) {
-			const argsBadObject = await utilities.checkArgs(args, "findBinding");
 			// boolean modal or not
 			if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, true, "");
 		}
@@ -161,8 +165,14 @@ async function activate(context) {
       await commands.runPrePostCommands(args.preCommands);
     }
 
+    const argsBadObject = await utilities.checkArgs(args, "searchBinding");
+    
+    if (Object.entries(argsBadObject).length) {  // send to utilities function
+      await utilities.writeBadArgsToOutputChannel(argsBadObject, module.exports.outputChannel);
+      return;    // abort
+    }
+    
 		if (args && enableWarningDialog) {
-			const argsBadObject = await utilities.checkArgs(args, "searchBinding");
 			// boolean modal or not
 			if (argsBadObject.length)	continueRun = await utilities.showBadKeyValueMessage(argsBadObject, true, "");
 		}
@@ -289,6 +299,6 @@ function deactivate() { }
 
 module.exports = {
 	activate,
-	deactivate
+  deactivate,
 }
 

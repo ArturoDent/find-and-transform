@@ -206,7 +206,7 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 * Find: Use `\r?\n` with `isRegex` set to true is probably the safest across operating systems.     
 * Replace: `\n` is probably sufficient, if not, try `\r\n`.  
-* In a javascript operation replacement, make sure it is included in backticks so the newline is interpreted as a string ` $${ 'first line \n second line' }$$ `.  
+* In a javascript operation replacement, make sure it is included in backticks so the newline is interpreted as a string ``` $${ `first line \n second line` }$$ ```.  
 * If you use a variable like `${getDocumentText}` or anything that might have newlines in the text, surround that variable with backticks like this example:
 
 ```jsonc
@@ -217,8 +217,6 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
   "}$$"
 ],
 ``` 
-
-#### Important: What if there are backticks TODO
 
 
 * If you use newlines in a replace, the `cursorMoveSelect` option will not be able to properly calculate the new selection position.   
@@ -235,7 +233,8 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
   "command": "findInCurrentFile",  
   
   "args": {
-  
+    "description": "some string",      // for your information only, no function
+    
     "find": "(trouble)",               // can be plain text, a regexp or a special variable
     "replace": "\\U$1",                // text, variables, conditionals, case modifiers, operations, etc.
     
@@ -254,7 +253,9 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
   "upcaseSelectedKeywords": {
   
-    "title": "Uppercase Selected Keywords",   // used for Command Palette
+    "description": "some string",             // for your information only, no function
+  
+    "title": "Uppercase Selected Keywords",   // used for Command Palette, required
     
     "find": "(Hello) (World)",
     "replace": "\\U$1--${2:-WORLD}",          // conditional, if no capture group 2, add "WORLD"
@@ -273,6 +274,8 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 > **Defaults**: If you do not specify an argument, its default will be applied.  So `"matchCase": false` is the same as no `"matchCase"` argument at all.  
 
+> **Important**: Some checking for bad `args` keys and their values will be done by this extension for both `findInCurrentFile` and `runInSearchPanel` commands.  For example, if you used `"restrictFind": "selection"` (instead of the proper `"restrictFind": "selections"`) or `"matchCases": false` (should be `"matchCase": false`) - a error message will be printed to the **Output** (under the dropdown *find-and-transform* option) notifying you of the errors and aborting the current command with no action.  So any bad `args` option will stop execution and nothing will be done.  
+
 <br/>
 
 -----------
@@ -283,7 +286,7 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 ### &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;  &emsp; &emsp; Example : `"find": "\\$1(\\d+)"`  
 <br/>  
 
-> Any numbered capture group, like the double-escaped `\\$1` above, will be **replaced by the first selection** in the current file (`\\$2` will be replaced by the second selection and so on).  You can easily make generic find regex's this way, that are determined by your selections not by hard-coding them first.  After these replacements, the `find` is run.   
+> Any numbered capture group, like the double-escaped `\\$1` above, will be **replaced in the find query by the first selection** in the current file (`\\$2` will be replaced by the second selection and so on).  You can easily make generic find regex's this way, that are determined by your selections not by hard-coding them first.  After these replacements, the `find` is run.   
 
 a. This works for both find in a file or search across files, keybindings or settings.   
 b. The first selection, which can be just a cursor in a word, is really the first selection made in the file - it may actually appear before or after the second selection!  
@@ -297,6 +300,8 @@ d. If you use a numbered capture group higher than the number of selections, tho
   "args": {
     
     "find": "\\$1(\\d+)",            // double-escaping necessary
+    
+    // "find": "(\\$1|\\$2)-${lineNumber}"  // group 1 or group 2 followed by its line number
     
     // "find": "\\$1(\\d+)\\$2",     // up to 9 capture groups
     // "replace": "",                // if no replace, matches will be highlighted
@@ -489,7 +494,7 @@ On the first pass above, "someWord" will be replaced with "SOMEWORD".  On the se
 
 It is difficult to debug errors in javascript code you write in a replacement as below.  If your keybinding or setting generates an error, you will get a warning message notifying you of the failure.  And if you check your `Output` tab, and chose `find-and-transform` from the dropdown menu, you may get some helpful information on the nature of the error.  
 
-You can put `console.log(...)` statements into the replacement code.  It wil lbe logged to your `Help/Toggle Developer Tools/Console`. 
+You can also put `console.log(...)` statements into the replacement code.  It wil lbe logged to your `Help/Toggle Developer Tools/Console`. 
 
 <br/> 
 
@@ -666,8 +671,8 @@ If you wish to use [the vscode api](https://code.visualstudio.com/api/references
     "replace": [
       "$${",
 
-      "const str = path.basename(document.fileName);",
-      "return str.toLocaleUpperCase();",
+        "const str = path.basename(document.fileName);",
+        "return str.toLocaleUpperCase();",
       
       "}$$"
     ]
@@ -699,22 +704,102 @@ Do not do `const vscode = require('vscode');` it has already been declared and y
 ```
 
 ```jsonc
-    "replace": [
-      "$${",        // get the line above the cursor
-      
-        "const sel = vscode.window.activeTextEditor.selection;",
-        "const previousLine = document.lineAt(new vscode.Position(sel.active.line - 1, 0)).text;",
-        
-        // the below also works
-        // "const previousLine = document.getText(new vscode.Range(sel.active.line-1, 0, sel.active.line-1, 100));",
-        
-        // below is the simplest
-        "const previousLine = document.lineAt(new vscode.Position(${lineIndex}-1, 0)).text;",
+"replace": [
+  "$${",
+  
+    "let str = '';",
+    "const groups = vscode.window.tabGroups.all;",
+    
+    "groups.map((group, index) => {",
+      "str += 'Group ' + (index+1) + '\\n';",   // double-escaped newlines and tabs
+      "group.tabs.map(tab => {",
+        "if (tab.input instanceof vscode.TabInputText) str += '\\t' + tab.input.uri.fsPath + '\\n';",
+      "});",
+    "str += '\\n';",
+    "});",
+    
+    "vscode.env.clipboard.writeText( str );",  // copy the resolved 'str' to the clipboard 
+    
+    "return '';",                              // return empty string
 
-        "return previousLine.toUpperCase();",
+  "}$$",
+  
+  // create a new file and paste into it
+  "postCommands": ["workbench.action.files.newUntitledFile", "editor.action.clipboardPasteAction"]
+  
+],
+```
+
+> For the above example which prints out the full path, there is no `find` so the replacement, the empty string was returned, will just be inserted at the cursor.  So make sure the cursor is not in or at a word boundary or that word will be treated as the `find` query and be replaced by an empty string.  There must be a `return` of some kind.  
+
+Output of above replacement in a newly created file:
+
+```
+Group 1
+	c:\Users\Mark\AppData\Roaming\Code\User\keybindings.json
+	c:\Users\Mark\AppData\Roaming\Code\User\settings.json
+	c:\Users\Mark\OneDrive\Test Bed\test5.js
+	c:\Users\Mark\OneDrive\Test Bed\zip\changed2.txt_bak
+	c:\Users\Mark\OneDrive\Test Bed\zip\config.json
+
+Group 2
+	c:\Users\Mark\OneDrive\Test Bed\zip\test3.txt
+
+```
+
+```jsonc
+"find": "${getTextLines:(${lineIndex}-1)}",  // get the line above the cursor
+
+"replace": [
+    "$${",                                     // get the line above the cursor
+    
+      "const sel = vscode.window.activeTextEditor.selection;",
+      "const previousLine = document.lineAt(new vscode.Position(sel.active.line - 1, 0)).text;",
       
-      "}$$"
-    ],
+      // the below also works
+      // "const previousLine = document.getText(new vscode.Range(sel.active.line-1, 0, sel.active.line-1, 100));",
+      
+      // below is the simplest
+      "const previousLine = document.lineAt(new vscode.Position(${lineIndex}-1, 0)).text;",
+
+      "return previousLine.toUpperCase();",
+    
+    "}$$"
+],
+```
+
+The below will get the line above the cursor, put it into a capture group because it is surrounded by `()`, and capitalize it throughout the document (since there is no `restrictFind` value, `document` is the default).
+
+```jsonc
+{
+  "key": "alt+n",
+  "command": "findInCurrentFile",
+  "args": {
+    "description": "capitalize the line above the cursor everywhere it occurs",
+    
+    "find": "(${getTextLines:(${lineIndex}-1)})",
+    "replace": "\\U$1",
+    "isRegex": true
+  }
+}
+```
+
+To capitalize only the preceding line:
+
+```jsonc
+{
+  "key": "alt+n",
+  "command": "findInCurrentFile",
+  "args": {
+    "description": "capitalize the preceding line only",
+    
+    "find": "(${getTextLines:(${lineIndex}-1)})",
+    "replace": "\\U$1",
+    "restrictFind": "previousSelect",  // this makes it work on the preceding line only, will wrap
+    // "restrictFind": "nextSelect",   // capitalize next instance of the find, will wrap
+    "isRegex": true                    // must be here to treat the find as a regex
+  }
+}
 ```
 
 ```jsonc    
@@ -731,6 +816,7 @@ Do not do `const vscode = require('vscode');` it has already been declared and y
   "$${",
 
     "const { basename } = require('path');",  // you can re-import to rename or extract
+    // "const path = require('path');",       // error: path is already declared
     "return basename(document.fileName);",
   
   "}$$"
@@ -887,11 +973,13 @@ ${getTextLines:n}          get the text of a line, 'n' is 0-based, so ${getLineT
 ${getTextLines:n-p}        get the text of lines n through p inclusive, example  ${getTextLines:2-4}  
 
 ${getTextLines:(n-n)}      get the text of a line n-n, example  ${getTextLines:(${lineIndex}-1)} : get previous line
-                           use this form, note the parentheses, if you want to do math to resolve to a line.  Can use `+-/*%`.  
+                           use the parentheses, if you want to do math to resolve to a line.  Can use `+-/*%`.  
                            
 ${getTextLines:n,p,q,r}    get the text from line `n`, column `p` through line `q`, column `r` inclusive, 
                            example  ${getTextLines:2,0,4,15}      
 ```
+
+
 
 You will get intellisense in the keybinding or setting showing where the variables can be used.  
 
@@ -1208,8 +1296,14 @@ Example keybinding:
 
 
 1. `"restrictFind": "nextDontMoveCursor"` make the next replacement but leave the cursor at the original position.  
-2. `"restrictFind": "nextCursor"` make the next replacement and move the cursor to that next replaced match. Does not select.
+2. `"restrictFind": "nextMoveCursor"` make the next replacement and move the cursor to end of next replaced match. Does not select.
 3. `"restrictFind": "nextSelect"` make the next replacement and select it. 
+
+4. `"restrictFind": "previousDontMoveCursor"` make the previous replacement but leave the cursor at the original position.  
+5. `"restrictFind": "previousMoveCursor"` make the previous replacement and move the cursor to start of previous replaced match. Does not select.
+6. `"restrictFind": "previousSelect"` make the previous replacement and select it. 
+
+> The `next...` and `previous...` options will **wrap**.  This means for example if there is no match in the document after the cursor that the first match from the beginning of the document will be used (when using a `next...` option).  
 
 >  When using the **above** `restrictFind` options the `cursorMoveSelect` option will be ignored. 
 
@@ -1217,10 +1311,10 @@ Example keybinding:
 
 You can use the `cursorMoveSelect` option with the below `restrictFind` options.  
 
-4. `"restrictFind": "document"` the **default**, make all replacements in the document, select all of them.  
-5. `"restrictFind": "once"` make the next replacement **after the cursor** on the **same line** only.  
-6. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
-7. `"restrictFind": "selections"` make all replacements in the selections only. 
+7. `"restrictFind": "document"` the **default**, make all replacements in the document, select all of them.  
+8. `"restrictFind": "once"` make the next replacement **after the cursor** on the **same line** only.  
+9. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
+10. `"restrictFind": "selections"` make all replacements in the selections only. 
 
 The `cursorMoveSelect` option takes any text as its value, including anything that resolves to text, like `$` or any variable.  That text, which can be a result of a prior replacement, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp.  `matchCase` and `matchWholeWord` settings will be honored for both the `cursorMoveSelect` and `find` text.  
 
@@ -1844,7 +1938,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Add a `cursorMove` option (like `cursorMoveSelect` without the selection).    
 * Consider how `cursorMoveSelect` should work in full document search?  
 * Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.  
-* `async/await` all code so `postCommands` are more reliable.     
+* `async/await` all code so `postCommands` are more reliable. 
+* How to handle backticks in resolved find inside backticks.      
 
 
 ## Release Notes
@@ -1886,7 +1981,13 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 3.3.0  Move `postCommands` into individual transform functions.  Run them only if a find match.    
 &emsp;&emsp; `cursorMoveSelect` in whole document restricted to find match ranges.    
 
-* 3.4.0  Refactor jsOPeration command parsing.  Bug fixes on search in file/folder commands.      
+* 3.4.0  Refactor jsOPeration command parsing.  Bug fixes on search in file/folder commands.   
+
+* 4.0.0 Added `previous...` options to `restrictFind`.  
+&emsp;&emsp; Added the ability to use the vscode api in a javascript operation.  
+&emsp;&emsp; More use of outputChannel, to check arguments.  
+&emsp;&emsp; Can use `${getTextLines:(${lineIndex/Number}+-/*%n)}}`.  
+&emsp;&emsp; Replace `forEach` with `await Promise.all(editor.selections.map(async (selection) => {` to get async.  
 
 <br/> 
 

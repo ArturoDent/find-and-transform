@@ -176,33 +176,81 @@ exports.checkArgs = async function (args, fromWhere) {
 	let badValues = [];
 
 	if (fromWhere === "findBinding" || fromWhere === "findSetting") {
-		goodKeys = findCommands.getKeys();  // an array
+		goodKeys = findCommands.getKeys();     // an array
 		goodValues = findCommands.getValues(); // an object
 	}
 	else if (fromWhere === "searchBinding" || fromWhere === "searchSetting") {
-		goodKeys = searchCommands.getKeys();  // an array
+		goodKeys = searchCommands.getKeys();     // an array
 		goodValues = searchCommands.getValues(); // an object
-	}
+  }
+  
 	badKeys = Object.keys(args).filter(arg => !goodKeys.includes(arg));
 	
   for (const key of goodKeys) {
-    if (args[key]) {  // and not the empty string "" TODO
-      if (typeof goodValues[key] === "string") {
-        if (typeof args[key] !== "string") badValues.push({ [key]: args[key] });
+    
+    // "title" cannot be an array
+    if (key === "title" && (args["title"] || args["title"] === "")) {
+      if (Array.isArray(args["title"])) badValues.push({ [key]: `<value should not be an array>` });
+      else if (args[key] && typeof args[key] !== "string") badValues.push({ [key]: args[key] });
+    }
+    
+    else if (args[key] || args[key] === "" || typeof args[key] === "boolean") {
+      // for key === 'restrictFind' and others that may come later
+      if (Array.isArray(args[key]) && Array.isArray(goodValues[key])) {
+        
+        await Promise.all(args[key].map(async (value) => {
+          if (!goodValues[key].includes(value)) badValues.push({ [key]: value });
+        }));
+      }
+      else if (key === 'restrictFind') {
+        if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
+      }
+      
+      else if (Array.isArray(args[key])) {
+        await Promise.all(args[key].map(async (value) => {
+          if (typeof value !== goodValues[key]) badValues.push({ [key]: value });
+        }));
       }
       else {
-        let badValue = !goodValues[key]?.includes(args[key]); // TODO
-        if (badValue) {
-          // badValues[key] = args[key];
-          badValues.push({ [key] : args[key] });
-        }
+        if (typeof args[key] !== goodValues[key]) badValues.push({ [key]: args[key] });
         // if (badValue && typeof goodValues[key][0] === "boolean") console.log(`"${ args[key] }" is not an accepted value of "${ key }".  The value must be a boolean true or false (not a string).`);
         // else if (badValue && typeof goodValues[key][0] === "string") console.log(`"${ args[key] }" is not an accepted value of "${ key }". Accepted values are "${ goodValues[key].join('", "') }".`);
       }
+      
     }
   }
 	if (badKeys.length || badValues.length) return { fromWhere: fromWhere, badKeys: badKeys, badValues: badValues}
-	return {};
+	else return {};
+};
+
+/**
+ * Write bad keys and values to outputChannel
+ *  
+ * @param {Object} argsBadObject computed in utilities.checkArgs
+ * @param {vscode.OutputChannel} outputChannel, global from extension.js
+ * @returns void  - writes to outputChannel
+ */
+exports.writeBadArgsToOutputChannel = async function (argsBadObject, outputChannel) {
+
+  let output;
+  
+  if (argsBadObject.badKeys.length) {
+    output = Object.entries(argsBadObject.badKeys).map(badItem => {
+      return `\n\t"${ badItem[1] }"`;
+    });
+    outputChannel.appendLine(`\nBad Keys: ${ output }`);
+  }
+  
+  if (argsBadObject.badValues.length) {
+    output = Object.entries(argsBadObject.badValues).map(badItem => {
+      if (typeof Object.entries(badItem[1])[0][1] === "boolean" || typeof Object.entries(badItem[1])[0][1] === "number")
+        return `\n\t"${ Object.entries(badItem[1])[0][0] }": ${ Object.entries(badItem[1])[0][1] }`;
+      else return `\n\t"${ Object.entries(badItem[1])[0][0] }": "${ Object.entries(badItem[1])[0][1] }"`;
+    });
+    
+    outputChannel.appendLine(`\nBad Values: ${ output }`);
+    outputChannel.appendLine(`_________________________________`);
+  }
 };
 
 /**

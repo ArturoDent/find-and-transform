@@ -1,9 +1,220 @@
 const vscode = require('vscode');
+const global = require('./extension');  // for outputChannel
+
 const variables = require('./variables'); 
 const path = require('path');        
 const os = require('os');     
 const utilities = require('./utilities');     
-const outputChannel = vscode.window.createOutputChannel("find-and-transform");
+
+
+/**
+ * If '${getTextLines:${line(Index|Number)}}' resolve lineIndex/Number immediately.
+ * Else, resolve later in transform.js for each line of document/selection/line.
+ * Only works on 'find' value, not 'replace', etc.
+ * 
+ * @param {vscode.window.activeTextEditor} editor
+ * @param {Object} args - keybinding/settings args
+ * @param {Number} matchIndex - which match is it: first, second, etc.
+ * @param {vscode.Selection} selection
+ * @returns {Promise<string>} resolvedFind 
+ */
+exports.resolveFind = async function (editor, args, matchIndex, selection) {
+  
+  let resolvedFind = "";
+  let cursorIndex = editor.document.offsetAt(editor.selection.active);
+  
+  const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
+  
+  if (args.find.search(lineIndexNumberRE) !== -1)
+    resolvedFind = this.resolveVariables(args, "find", null, selection ?? editor.selection, cursorIndex, null, matchIndex);
+  else
+    resolvedFind = this.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, null, matchIndex);
+    
+  return this.adjustFindValue(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+}
+
+
+/**
+ * Build the replaceString by updating the setting 'replaceValue' to
+ * account for case modifiers, capture groups and conditionals
+ *
+ * @param {Object} args - keybinding/settings args
+ * @param {string} caller - find/replace/cursorMoveSelect
+ * @param {Array} groups - may be a single match
+ * @param {vscode.Selection} selection - the current selection
+ * @param {number} matchIndex - which match is it
+ * @returns {string} - the resolved string
+ */
+exports.resolveVariables = function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
+  
+  let error = false;
+  let replaceValue;
+  
+  if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
+  else if (caller === "replace") replaceValue = args?.replace;
+  else if (caller === "cursorMoveSelect") replaceValue = args?.cursorMoveSelect;
+  // else if (caller === "snippet") replaceValue = args?.snippet;
+    
+  if (!replaceValue) return replaceValue;
+  const specialVariable = new RegExp('\\$[\\{\\d]');
+  if (replaceValue.search(specialVariable) === -1) return replaceValue;  // doesn't contain '${' or '$\d'
+
+  let resolved = replaceValue;
+  let re;
+  
+  // --------------------  path variables -----------------------------------------------------------
+  let vars = variables.getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+  re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
+
+  resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
+    
+    const variableToResolve = _resolvePathVariables(match, args, caller, selection, groups, selectionStartIndex, matchIndex);
+    return _applyCaseModifier(namedGroups, groups, variableToResolve);
+  });
+  // --------------------  path variables -----------------------------------------------------------
+  
+  // --------------------  snippet variables -----------------------------------------------------------
+  vars = variables.getSnippetVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+  re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<snippetVars>${ vars })`, 'g');
+
+  resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
+    
+    const variableToResolve = _resolveSnippetVariables(match, args, caller, selection, groups);
+    return _applyCaseModifier(namedGroups, groups, variableToResolve);
+  });
+  // --------------------  snippet variables -----------------------------------------------------------
+  
+  // --------------------  extension-defined variables -------------------------------------------
+  vars = variables.getExtensionDefinedVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
+  // vars = variables.getExtensionDefinedVariables().join("|");
+  re = new RegExp(`(?<varCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
+
+  resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
+    
+    const variableToResolve = _resolveExtensionDefinedVariables(match, args, caller);
+    return _applyCaseModifier(namedGroups, groups, variableToResolve);
+  });
+  // --------------------  extension-defined variables ----------------------------------------------
+
+  
+  // if (caller !== "find" && !args.isRegex) {
+  // TODO if caller = findSearch
+  if (caller !== "find") {
+  
+    // --------------------  caseModifier/capGroup --------------------------------------------------
+    re = new RegExp("(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d\\}?)", "g");
+      
+    resolved = resolved.replaceAll(re, (match, p1, p2, offset, string, namedGroups) =>
+      _applyCaseModifier(namedGroups, groups, ""));
+    // --------------------  caseModifier/capGroup --------------------------------------------------
+      
+    // --------------------  caseTransform ----------------------------------------------------------
+    re = new RegExp("(?<caseTransform>\\$\\{(\\d):\\/((up|down|pascal|camel)case|capitalize)\\})", "g");
+
+    resolved = resolved.replaceAll(re, (match, p1, p2, p3) =>
+      _applyCaseTransform(p2, p3, groups));
+    // --------------------  caseTransform ----------------------------------------------------------
+    
+    // --------------------  conditional ------------------------------------------------------------
+    // if (caller !== "snippet") {  // because you can ahve a conditional like '${2:else}' which is a good snippet
+    re = new RegExp("(?<conditional>\\$\\{(\\d):([-+?]?)(.*?)\\})", "g");
+  
+    // // if a '}' in a replacement? => '\\}' must be escaped
+    // // ${1:+${2}}  ?  => ${1:+`$2`} or ${1:+`$2`} note the backticks or ${1:+$1 pardner}
+    //  will check for capture groups inside _applyConditionalTransform
+    resolved = resolved.replaceAll(re, (match, p1, p2, p3, p4) =>
+      _applyConditionalTransform(match, p2, p3, p4, groups));
+    // }
+    // --------------------  conditional -----------------------------------------------------------
+    
+    // --------------------  capGroupOnly ----------------------------------------------------------
+    re = new RegExp("(?<capGroupOnly>(?<!\\$)\\$\{(\\d)\\}|(?<!\\$)\\$(\\d))", "g");
+    
+    resolved = resolved.replaceAll(re, function (match, p1, p2, p3, offset) {
+      
+      // So can use 'replace(/.../, '$nn?')` and use the replace capture group
+      
+      // check for a capture group '$nn?' in a replace/replaceAll replacement
+      // if there is a capture group, check to see if it is the <capGroupOnly> $nn by their same index and offset
+      // if true just return the match $nn? and do not replace the capture group by any group[n] match
+      const replaceRE = /(?<=(?:\.replaceAll\(|\.replace\()\s*\/[^/]+\/[gmi]?\s*,\s*\\?["'`].*?)(?<capGroup>\$\d\d?).*?(?=\\?["'`]\s*\))/g;
+      const found = [...resolved.matchAll(replaceRE)];
+      if (found[0]?.index === offset) return match;    // also works for emptyPointSelections
+            
+      if (groups && p2 && groups[p2]) return groups[p2];
+      else if (groups && p3 && groups[p3]) return groups[p3];
+      else return "";     // no matching capture group
+    });
+    // --------------------  capGroupOnly ----------------------------------------------------------
+    
+    // -------------------  jsOp ------------------------------------------------------------------
+    // can have multiple $${...}$$ in a replace
+    re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+    try {
+      resolved = resolved.replaceAll(re, function (match, p1, operation) {
+        // return Function('require', 'context', `"use strict"; ${operation}`)(require, context);
+        
+        if (/vscode\./.test(operation) && /path\./.test(operation))
+          return Function('vscode', 'path', 'require', 'document', `"use strict"; ${ operation }`)
+            (vscode, path, require, vscode.window.activeTextEditor.document);
+        else if (/vscode\./.test(operation))
+          return Function('vscode', 'require', 'document', `"use strict"; ${ operation }`)
+            (vscode, require, vscode.window.activeTextEditor.document);
+          // return await eval(`(async()=>{${ operation }})(vscode, require, vscode.window.activeTextEditor.document)`);
+        else if (/path\./.test(operation))
+          return Function('path', 'require', 'document', `"use strict"; ${ operation }`)
+            (path, require, vscode.window.activeTextEditor.document);
+        else
+          return Function('require', 'document', `"use strict"; ${ operation }`)
+            (require, vscode.window.activeTextEditor.document);
+      });
+    }
+    catch (jsOPError) {
+      error = true;
+      global.outputChannel.appendLine(`\n${jsOPError.stack}\n`);
+      vscode.window.showWarningMessage("There was an error in the `$${<operations>}$$` part of the replace value.  See the Output channel: `find-and-transform` for more.")
+    }
+    // -------------------  jsOp ------------------------------------------------------------------
+  }
+  
+  // if still have a '${` or `$n` re-resolve
+  // if (!error && caller !== "snippet" && resolved.search(/\$[\{\d]/) !== -1) {  // could this be replaced with a while loop up top?
+  //   args.replace = resolved;
+  //   resolved = this.resolveVariables(args, "replace");
+  // }
+  return resolved;
+};
+
+
+/**
+ * Wrap or escape the findValue if matchWholeWord or not a regexp.
+ * @param {string} findValue 
+ * @param {boolean} isRegex 
+ * @param {boolean} matchWholeWord 
+ * @param {boolean} madeFind 
+ * @returns {string} findValue escaped or wrapped
+ */
+exports.adjustFindValue = function(findValue, isRegex, matchWholeWord, madeFind) {
+
+	if (matchWholeWord) findValue = findValue.replace(/\\b/g, "@%@");
+
+	// removed escaping the or | if madeFind
+	if (!isRegex && madeFind) findValue = findValue.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
+  else if (!isRegex) findValue = findValue.replace(/([+?^.\\*\[\]\(\)]|\$(?!{line(Number|Index)})|\{(?!line(Number|Index)})|(?<!\$\{lineNumber)(?<!\$\{lineIndex)\})/g, "\\$1");
+  
+	if (matchWholeWord) findValue = findValue.replace(/@%@/g, "\\b");
+	if (matchWholeWord && !madeFind) findValue = `\\b${ findValue }\\b`;
+
+  // since all \n are replaced by \r?\n by vscode
+  if (isRegex) findValue = findValue.replaceAll(/\n/g, "\r?\n");
+  
+  if (isRegex) {
+    if (findValue === "^") findValue = "^(?!\n)";
+    else if (findValue === "$") findValue = "$(?!\n)";
+  }
+
+	return findValue;
+}
 
 
 /**
@@ -86,13 +297,21 @@ function _resolveExtensionDefinedVariables (variableToResolve, args, caller) {
   const document = vscode.window.activeTextEditor.document;
   let resolved = variableToResolve;
   
-  let testLineRE = /\$\{getTextLines:\(\s*(?<lineNumberOP>\d+(\s*[-+%*\/]?\s*\d+)?\s*)\)\}|\$\{getTextLines:\s*(?<lineNumberOnly>\d+)\s*\}/;
+  let testLineRE = /\$\{getTextLines:\(\s*(?<lineNumberOP>\d+(\s*[-+%*\/]?\s*\d+)?\s*)\)\}|\$\{getTextLines:\s*(?<lineNumberOnly>[-+]?\d+)\s*\}/;
   let lineTextMatch = variableToResolve.match(testLineRE);
    
-  if (lineTextMatch?.groups?.lineNumberOP)               // '(23-1)'
-    resolved = document.lineAt(eval(lineTextMatch?.groups?.lineNumberOP)).text;
-  else if (lineTextMatch?.groups?.lineNumberOnly)        // '22'
-    resolved = document.lineAt(Number(lineTextMatch?.groups?.lineNumberOnly)).text;
+  if (lineTextMatch?.groups?.lineNumberOP) {      // '(23-1)'
+    // if eval is a negative number => wrap?  TODO
+    const lineNumber = eval(lineTextMatch?.groups?.lineNumberOP);
+    if (lineNumber >= 0) resolved = document.lineAt(lineNumber).text;
+    else resolved = document.lineAt(document.lineCount + lineNumber).text;
+  }
+  else if (lineTextMatch?.groups?.lineNumberOnly) {      // '22'
+    if (Number(lineTextMatch?.groups?.lineNumberOnly) >= 0)
+      resolved = document.lineAt(Number(lineTextMatch?.groups?.lineNumberOnly)).text;
+    else 
+      resolved = document.lineAt(document.lineCount + Number(lineTextMatch?.groups?.lineNumberOnly)).text;
+  }
     
   else {
     testLineRE = /\$\{getTextLines:(?<From>\d+)-(?<To>\d+)\}/;
@@ -571,158 +790,6 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
   };
   return resolved;
 }
-
-/**
- * Build the replaceString by updating the setting 'replaceValue' to
- * account for case modifiers, capture groups and conditionals
- *
- * @param {Object} args - keybinding/settings args
- * @param {string} caller - find/replace/cursorMoveSelect
- * @param {Array} groups - may be a single match
- * @param {vscode.Selection} selection - the current selection
- * @param {number} matchIndex - which match is it
- * @returns {string} - the resolved string
- */
-exports.buildReplace = function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
-  
-  let error = false;
-  let replaceValue;
-  
-  // if (args.replace.search(/\$\{resultsFiles\}/) !== -1) args.resultsFiles = utilities.getSearchResultsFiles(args.clipText);
-  
-  if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
-  else if (caller === "replace") replaceValue = args?.replace;
-  else if (caller === "cursorMoveSelect") replaceValue = args?.cursorMoveSelect;
-  // else if (caller === "snippet") replaceValue = args?.snippet;
-    
-  if (!replaceValue) return replaceValue;
-  const specialVariable = new RegExp('\\$[\\{\\d]');
-  if (replaceValue.search(specialVariable) === -1) return replaceValue;  // doesn't contain '${' or '$\d'
-
-  let resolved = replaceValue;
-  let re;
-  
-  // --------------------  path variables -----------------------------------------------------------
-  let vars = variables.getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-  re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
-
-  resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
-    
-    const variableToResolve = _resolvePathVariables(match, args, caller, selection, groups, selectionStartIndex, matchIndex);
-    return _applyCaseModifier(namedGroups, groups, variableToResolve);
-  });
-  // --------------------  path variables -----------------------------------------------------------
-  
-  // --------------------  snippet variables -----------------------------------------------------------
-  vars = variables.getSnippetVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-  re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<snippetVars>${ vars })`, 'g');
-
-  resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
-    
-    const variableToResolve = _resolveSnippetVariables(match, args, caller, selection, groups);
-    return _applyCaseModifier(namedGroups, groups, variableToResolve);
-  });
-  // --------------------  snippet variables -----------------------------------------------------------
-  
-  // --------------------  extension-defined variables -------------------------------------------
-  vars = variables.getExtensionDefinedVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-  // vars = variables.getExtensionDefinedVariables().join("|");
-  re = new RegExp(`(?<varCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
-
-  resolved = resolved.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
-    
-    const variableToResolve = _resolveExtensionDefinedVariables(match, args, caller);
-    return _applyCaseModifier(namedGroups, groups, variableToResolve);
-  });
-  // --------------------  extension-defined variables ----------------------------------------------
-
-  
-  // if (caller !== "find" && !args.isRegex) {
-  // TODO if caller = findSearch
-  if (caller !== "find") {
-  
-    // --------------------  caseModifier/capGroup --------------------------------------------------
-    re = new RegExp("(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d\\}?)", "g");
-      
-    resolved = resolved.replaceAll(re, (match, p1, p2, offset, string, namedGroups) =>
-      _applyCaseModifier(namedGroups, groups, ""));
-    // --------------------  caseModifier/capGroup --------------------------------------------------
-      
-    // --------------------  caseTransform ----------------------------------------------------------
-    re = new RegExp("(?<caseTransform>\\$\\{(\\d):\\/((up|down|pascal|camel)case|capitalize)\\})", "g");
-
-    resolved = resolved.replaceAll(re, (match, p1, p2, p3) =>
-      _applyCaseTransform(p2, p3, groups));
-    // --------------------  caseTransform ----------------------------------------------------------
-    
-    // --------------------  conditional ------------------------------------------------------------
-    // if (caller !== "snippet") {  // because you can ahve a conditional like '${2:else}' which is a good snippet
-    re = new RegExp("(?<conditional>\\$\\{(\\d):([-+?]?)(.*?)\\})", "g");
-  
-    // // if a '}' in a replacement? => '\\}' must be escaped
-    // // ${1:+${2}}  ?  => ${1:+`$2`} or ${1:+`$2`} note the backticks or ${1:+$1 pardner}
-    //  will check for capture groups inside _applyConditionalTransform
-    resolved = resolved.replaceAll(re, (match, p1, p2, p3, p4) =>
-      _applyConditionalTransform(match, p2, p3, p4, groups));
-    // }
-    // --------------------  conditional -----------------------------------------------------------
-    
-    // --------------------  capGroupOnly ----------------------------------------------------------
-    re = new RegExp("(?<capGroupOnly>(?<!\\$)\\$\{(\\d)\\}|(?<!\\$)\\$(\\d))", "g");
-    
-    resolved = resolved.replaceAll(re, function (match, p1, p2, p3, offset) {
-      
-      // So can use 'replace(/.../, '$nn?')` and use the replace capture group
-      
-      // check for a capture group '$nn?' in a replace/replaceAll replacement
-      // if there is a capture group, check to see if it is the <capGroupOnly> $nn by their same index and offset
-      // if true just return the match $nn? and do not replace the capture group by any group[n] match
-      const replaceRE = /(?<=(?:\.replaceAll\(|\.replace\()\s*\/[^/]+\/[gmi]?\s*,\s*\\?["'`].*?)(?<capGroup>\$\d\d?).*?(?=\\?["'`]\s*\))/g;
-      const found = [...resolved.matchAll(replaceRE)];
-      if (found[0]?.index === offset) return match;    // also works for emptyPointSelections
-            
-      if (groups && p2 && groups[p2]) return groups[p2];
-      else if (groups && p3 && groups[p3]) return groups[p3];
-      else return "";     // no matching capture group
-    });
-    // --------------------  capGroupOnly ----------------------------------------------------------
-    
-    // -------------------  jsOp ------------------------------------------------------------------
-    // can have multiple $${...}$$ in a replace
-    re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
-    try {
-      resolved = resolved.replaceAll(re, function (match, p1, operation) {
-        // return Function('require', 'context', `"use strict"; ${operation}`)(require, context);
-        
-        if (/vscode\./.test(operation) && /path\./.test(operation))  
-          return Function('vscode', 'path', 'require', 'document', `"use strict"; ${ operation }`)
-            (vscode, path, require, vscode.window.activeTextEditor.document);
-        else if (/vscode\./.test(operation))
-          return Function('vscode', 'require', 'document', `"use strict"; ${ operation }`)
-            (vscode, require, vscode.window.activeTextEditor.document);
-        else if (/path\./.test(operation))
-          return Function('path', 'require', 'document', `"use strict"; ${ operation }`)
-            (path, require, vscode.window.activeTextEditor.document);
-        else
-          return Function('require', 'document', `"use strict"; ${ operation }`)
-            (require, vscode.window.activeTextEditor.document);
-      });
-    }
-    catch (jsOPError) {
-      error = true;
-      outputChannel.appendLine(`\n${jsOPError.stack}\n`);
-      vscode.window.showWarningMessage("There was an error in the `$${<operations>}$$` part of the replace value.  See the Output channel: `find-and-transform` for more.")
-    }
-    // -------------------  jsOp ------------------------------------------------------------------
-  }
-  
-  // if still have a '${` or `$n` re-resolve
-  // if (!error && caller !== "snippet" && resolved.search(/\$[\{\d]/) !== -1) {  // could this be replaced with a while loop up top?
-  //   args.replace = resolved;
-  //   resolved = this.buildReplace(args, "replace");
-  // }
-  return resolved;
-};
 
 
 /**

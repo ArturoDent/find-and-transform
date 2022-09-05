@@ -247,11 +247,11 @@ exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "match
  */
 exports.getValues = function () {    // removed "isCaseSensitive" in favor of "matchCase"
 	return {
-    title: "string", find: "string", replace: "string", isRegex: [true, false], matchCase: [true, false],
+    title: "string", find: "string", replace: "string", isRegex: "boolean", matchCase: "boolean",
     preCommands: "string", postCommands: "string", delay: "number",
-		matchWholeWord: [true, false], triggerSearch: [true, false], triggerReplaceAll: [true, false],
-    useExcludeSettingsAndIgnoreFiles: [true, false], preserveCase: [true, false],
-		filesToInclude: "string", filesToExclude: "string", onlyOpenEditors: [true, false]
+		matchWholeWord: "boolean", triggerSearch: "boolean", triggerReplaceAll: "boolean",
+    useExcludeSettingsAndIgnoreFiles: "boolean", preserveCase: "boolean",
+		filesToInclude: "string", filesToExclude: "string", onlyOpenEditors: "boolean"
 	};
 }
 

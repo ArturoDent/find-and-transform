@@ -44,40 +44,12 @@ exports.buildJSOperationsFromArgs = async function (arg) {
       arg.splice(start, end+1 - start, operation);
     }
     arg[index] = arg[index].replace(/\$\$\{\s*;/g, '$$${');
+    // replace '\n` with '\\n` and '\t' with '\\t'
+    // arg[index] = arg[index].replace(/(?<!\\)[\\]([nt])/g, '*****$1');  // doesn't work
   }
   return arg;
 }
 
-// /**
-//  * Reduce any vscapi:'s in args.replace to single entries.
-//  * @param {string[]} arg - args.replace
-//  * @returns {Promise<string[] | string>}
-//  */
-// exports.buildVSCodeOpsFromArgs = async function (arg) {
-  
-//   if (!Array.isArray(arg)) return arg;
-//   // else if (Array.isArray(arg) && arg.length === 1)
-// 	//   return arg[0].replaceAll(/\$\$\{\s*(;)\s*vsapi/g, '$$${vsapi');
-  
-//   for (let index = 0; index < arg.length; index++) {
-    
-//     let start = arg.indexOf('$${vsapi:', index);
-//     let end = arg.indexOf('}$$', index);
-
-//     if (start !== -1 && end !== -1) {
-//       for (let j = start; j < end; j++) {
-//         arg[j] = arg[j].replace(/;+$/m, '');
-//       }
-//       // const operation = arg.slice(start, end + 1).join('; ');
-//       const operation = arg.slice(start, end + 1).join(' ');
-      
-//       arg.splice(start, end+1 - start, operation);
-//     }
-//     arg[index] = arg[index].replace(/\$\$\{vsapi:;/g, '$$${vsapi:');
-//   }
-
-//   return arg;
-// }
 
 
 /**
@@ -110,21 +82,22 @@ exports.splitFindCommands = async function (editor, edit, args) {
     const splitArgs = await _buildFindArgs(args, index);
 
     if (!splitArgs.find && !splitArgs.replace && !splitArgs.restrictFind?.startsWith("next"))
-      findCommands.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
+      await findCommands.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
 
     // add all "empty selections" to editor.selections_replaceInSelections
     else if (args.restrictFind === "selections" && splitArgs.replace !== undefined) {
-      findCommands.addEmptySelectionMatches(editor);
-      findCommands.replaceInSelections(editor, edit, splitArgs);
+      await findCommands.addEmptySelectionMatches(editor);
+      await findCommands.replaceInSelections(editor, edit, splitArgs);
     }
 
     else if ((splitArgs.restrictFind === "line" || splitArgs.restrictFind === "once") && splitArgs.replace !== undefined) {
-      findCommands.replaceInLine(editor, edit, splitArgs);
+      await findCommands.replaceInLine(editor, edit, splitArgs);
     }
 
     // find/noFind and replace/noReplace, restrictFind = nextSelect/nextMoveCursor/nextDontMoveCursor
-    else if (splitArgs.restrictFind?.startsWith("next")) {
-      findCommands.replaceNextInWholeDocument(editor, edit, splitArgs);
+    // else if (splitArgs.restrictFind?.startsWith("next")) {
+    else if (splitArgs.restrictFind?.startsWith("next") || splitArgs.restrictFind?.startsWith("previous")) {
+      await findCommands.replacePreviousOrNextInWholeDocument(editor, edit, splitArgs);
     }
 
     // find and replace, restrictFind = document/default
@@ -132,7 +105,7 @@ exports.splitFindCommands = async function (editor, edit, args) {
       await findCommands.replaceInWholeDocument(editor, edit, splitArgs);
     }
 
-    else findCommands.findAndSelect(editor, splitArgs);   // find but no replace
+    else await findCommands.findAndSelect(editor, splitArgs);   // find but no replace
   }
 }
 

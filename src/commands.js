@@ -22,7 +22,7 @@ exports.runPrePostCommands = async function (commands) {
     // pass in find capture groups if any
     // lopp through all commands.args (.snippet, .text, etc.)
     if (commands.args?.snippet?.search(/\$[\{\d]/) !== -1) {
-      commands.args.snippet = resolve.buildReplace(commands.args, "snippet", null, null, null, null);
+      commands.args.snippet = resolve.resolveVariables(commands.args, "snippet", null, null, null, null);
     }
     await vscode.commands.executeCommand(commands.command, commands.args);
   }

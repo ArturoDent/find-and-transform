@@ -6,7 +6,7 @@
  */
 exports.getExtensionDefinedVariables = function() {
 
-  return ["${getDocumentText}", "${getTextLines:\\(\\s*\\d+(\\s*[-+%*\/]\\s*\\d+)?\\s*\\)}", "${getTextLines:\\d+}",
+  return ["${getDocumentText}", "${getTextLines:\\(\\s*\\d+(\\s*[-+%*\/]\\s*\\d+)?\\s*\\)}", "${getTextLines:[-+]?\\d+}",
     "${getTextLines:\\d+-\\d+}", "${getTextLines:\\d+,\\d+,\\d+,\\d+}", "${resultsFiles}"];
 }
 

@@ -288,6 +288,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 
 	const priority = {
     "title": "01",
+    "description": '0101',
     
     "preCommands": "011",
     "find": "012",
@@ -316,7 +317,8 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
   
 	const description = {
 		"title": "This will appear in the Command Palette as `Find-and-Transform:<title>`. Can include spaces.",
-
+    "description": "Any string describing what this keybinding does.",
+    
     "preCommands": "A single command, as a string, or an array of commands to run before any find occurs.",
     "find": "Query to find or search.  Can be a regexp or plain text.",
     "delay": "Pause, in millisceonds, between searches when you have defined an array of searches.  Usually needed to allow the prior search to complete and populate the search results if you want to use those results files in a subsequent search with: .",
@@ -591,8 +593,12 @@ function _completeRestrictFindValues(position) {
 
 		_makeCompletionItem("nextSelect", new vscode.Range(position, position), "document", "05", "Select the next match after replacing it (if you specify a replacement)."),
 		_makeCompletionItem("nextMoveCursor", new vscode.Range(position, position), "document", "06", "Move the cursor to after the next match and replace it, if any, but do not select it."),
-		_makeCompletionItem("nextDontMoveCursor", new vscode.Range(position, position), "document", "07", "Replace the next match but leave cursor at original position.")
-	];
+		_makeCompletionItem("nextDontMoveCursor", new vscode.Range(position, position), "document", "07", "Replace the next match but leave cursor at original position."),
+
+		_makeCompletionItem("previousSelect", new vscode.Range(position, position), "document", "08", "Select the previous match after replacing it (if you specify a replacement)."),
+		_makeCompletionItem("previousMoveCursor", new vscode.Range(position, position), "document", "09", "Move the cursor to after the previous match and replace it, if any, but do not select it."),
+		_makeCompletionItem("previousDontMoveCursor", new vscode.Range(position, position), "document", "10", "Replace the previous match but leave cursor at original position.")
+  ];
 }
 
 /**
