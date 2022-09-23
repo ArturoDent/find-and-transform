@@ -1,4 +1,4 @@
-const vscode = require('vscode');
+const { extensions } = require('vscode');
 const jsonc = require("jsonc-parser");
 const fs = require('fs');
 const path = require('path');
@@ -35,7 +35,7 @@ exports.get = async function (langID, config) {
 
 	var langConfigFilePath = null;
 
-	for (const _ext of vscode.extensions.all) {
+	for (const _ext of extensions.all) {
 		if (
 			_ext.packageJSON.contributes &&
 			_ext.packageJSON.contributes.languages
@@ -59,7 +59,6 @@ exports.get = async function (langID, config) {
 	if (!!langConfigFilePath && fs.existsSync(langConfigFilePath)) {
 
 		// the whole language config will be returned if config arg was the empty string ''
-    // desiredConfig = JSON.parse(fs.readFileSync(langConfigFilePath).toString());
     desiredConfig = jsonc.parse(fs.readFileSync(langConfigFilePath).toString());
 
 		if (Array.isArray(configArg)) {

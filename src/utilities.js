@@ -1,11 +1,12 @@
-const vscode = require('vscode');
+const { window, workspace, env, commands } = require('vscode');
+
 const languageConfigs = require('./getLanguageConfig');
 const path = require('path');
 const os = require('os');
 
 const findCommands = require('./transform');
 const searchCommands = require('./search');
-
+const globals = require('./extension');  // for outputChannel
 
 /**
  * Get the relative path to the workspace folder  
@@ -15,7 +16,7 @@ const searchCommands = require('./search');
 exports.getRelativeFilePath = function (filePath) {
 
 	const basename = path.basename(filePath);
-	let relativePath = vscode.workspace.asRelativePath(filePath, false);
+	let relativePath = workspace.asRelativePath(filePath, false);
 
 	if (basename === "settings.json" || basename === "keybindings.json") {
 		if (os.type() === "Windows_NT") relativePath = filePath.substring(3);  // for Windows
@@ -41,7 +42,7 @@ exports.getRelativeFolderPath = function (filePath) {
 	// const homedir = os.homedir();
 
 	const dirname = path.dirname(filePath);
-	return vscode.workspace.asRelativePath(dirname);
+	return workspace.asRelativePath(dirname);
 }
 
 
@@ -49,11 +50,14 @@ exports.getRelativeFolderPath = function (filePath) {
  * Get the language configuration comments object for  the current file
  * @returns {Promise<object|undefined>} comments object
  */
- exports.getlanguageConfigComments = async function (args) {
+exports.getlanguageConfigComments = async function (args) {
+  
+  const document = window.activeTextEditor.document;
+   
   // do only if $LINE_COMMENT, $BLOCK_COMMENT_START, $BLOCK_COMMENT_END in find or replace
   let re = /\$\{LINE_COMMENT\}|\$\{BLOCK_COMMENT_START\}|\$\{BLOCK_COMMENT_END\}/;
   if (args.find?.search(re) !== -1 || args.replace?.search(re) !== -1) {
-    const documentLanguageId = vscode.window.activeTextEditor.document.languageId;
+    const documentLanguageId = document.languageId;
     return await languageConfigs.get(documentLanguageId, 'comments');
   }
 	else return undefined;
@@ -68,8 +72,8 @@ exports.getRelativeFolderPath = function (filePath) {
  */
 exports.getSearchResultsFiles = async function (clipText) {
 
-	await vscode.commands.executeCommand('search.action.copyAll');
-	let results = await vscode.env.clipboard.readText();
+	await commands.executeCommand('search.action.copyAll');
+	let results = await env.clipboard.readText();
 
 	if (results)  {
 		results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
@@ -82,7 +86,7 @@ exports.getSearchResultsFiles = async function (clipText) {
 	else {
 		// notifyMessage?
     // restore original clipboard content
-    await vscode.env.clipboard.writeText(clipText);
+    await env.clipboard.writeText(clipText);
 		return "";
 	}
 } 
@@ -91,7 +95,7 @@ exports.getSearchResultsFiles = async function (clipText) {
 /**
  * Convert string to PascalCase.  
  * first_second_third => FirstSecondThird  
- * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/browser/snippetParser.ts}  
+ * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/linesOperations/browser/linesOperations.ts}  
  * 
  * @param {string} value - string to transform to PascalCase  
  * @returns {string} transformed value  
@@ -113,7 +117,7 @@ exports.toPascalCase = function(value) {
 /**
  * Convert string to camelCase.  
  * first_second_third => firstSecondThird  
- * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/browser/snippetParser.ts}  
+ * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/linesOperations/browser/linesOperations.ts}  
  * 
  * @param {string} value - string to transform to camelCase
  * @returns {string} transformed value  
@@ -138,26 +142,24 @@ exports.toCamelCase = function (value) {
 /**
  * Convert string to snakeCase.  
  * first_second_third => firstSecondThird  
- * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/snippetParser.ts}  
+ * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/linesOperations/browser/linesOperations.ts}  
  * 
  * @param {string} value - string to transform to snakeCase
  * @returns {string} transformed value  
  */
 exports.toSnakeCase = function (value) {
+  
+  // return value.replace(/(?<=\p{Ll})(\p{Lu})|(?<!\b|_)(\p{Lu})(?=\p{Ll})/gmu, '_$&').replace(/(?<=\p{L})[- ](?=\p{L})/gmu, '_').toLocaleLowerCase();
 
-	const match = value.match(/[a-z0-9]+/gi);
-	if (!match) {
-		return value;
-	}
-	return match.map((word, index) => {
-		if (index === 0) {
-			return word.toLowerCase();
-		} else {
-			return word.charAt(0).toUpperCase()
-				+ word.substring(1).toLowerCase();
-		}
-	})
-		.join('');
+  const caseBoundary = /(\p{Ll})(\p{Lu})/gmu;
+  const singleLetters = /(\p{Lu}|\p{N})(\p{Lu})(\p{Ll})/gmu;
+  
+  return (value
+    .replace(caseBoundary, '$1_$2')
+    .replace(singleLetters, '$1_$2$3')
+    .toLocaleLowerCase()
+  );
+
 };
 
 
@@ -194,6 +196,17 @@ exports.checkArgs = async function (args, fromWhere) {
       else if (args[key] && typeof args[key] !== "string") badValues.push({ [key]: args[key] });
     }
     
+    else if ((key === "preCommands" || key === "postCommands") && args[key]) {
+      
+      // if array, check each item for string or object
+      if (Array.isArray(args[key])) {
+        await Promise.all(args[key].map(async (value) => {
+          if (!goodValues[key].includes(typeof value)) badValues.push({ [key]: value });
+        }));
+      }
+      else if (args[key] && typeof args[key] !== "string" && typeof args[key] !== "object") badValues.push({ [key]: args[key] });
+    }
+
     else if (args[key] || args[key] === "" || typeof args[key] === "boolean") {
       // for key === 'restrictFind' and others that may come later
       if (Array.isArray(args[key]) && Array.isArray(goodValues[key])) {
@@ -227,13 +240,13 @@ exports.checkArgs = async function (args, fromWhere) {
  * Write bad keys and values to outputChannel
  *  
  * @param {Object} argsBadObject computed in utilities.checkArgs
- * @param {vscode.OutputChannel} outputChannel, global from extension.js
  * @returns void  - writes to outputChannel
  */
-exports.writeBadArgsToOutputChannel = async function (argsBadObject, outputChannel) {
+exports.writeBadArgsToOutputChannel = async function (argsBadObject) {
 
+  const outputChannel = globals.outputChannel;
   let output;
-  
+
   if (argsBadObject.badKeys.length) {
     output = Object.entries(argsBadObject.badKeys).map(badItem => {
       return `\n\t"${ badItem[1] }"`;
@@ -251,6 +264,7 @@ exports.writeBadArgsToOutputChannel = async function (argsBadObject, outputChann
     outputChannel.appendLine(`\nBad Values: ${ output }`);
     outputChannel.appendLine(`_________________________________`);
   }
+  if (output) outputChannel.show(false);
 };
 
 /**
@@ -287,7 +301,7 @@ exports.showBadKeyValueMessage = async function (badObject, modal, name) {
 		}
 	}	
 
-	await vscode.window
+	await window
 		.showErrorMessage(`${ message }`, { modal: modal },
 			// ...['Run As Is', 'Abort'])   // two buttons + Cancel
 			...buttons[badObject.fromWhere])

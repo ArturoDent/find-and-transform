@@ -12,7 +12,7 @@
 			"runtimeExecutable": "${execPath}",
 			"args": [
         // "--profile-temp",
-				"${workspaceFolder}/../OneDrive/Test Bed",
+				"${workspaceFolder}/../Test Bed",
 				"--extensionDevelopmentPath=${workspaceFolder}"
 			]
 		},

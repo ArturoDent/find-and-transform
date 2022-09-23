@@ -1,12 +1,10 @@
-<br/>  
-
-## Running one or more of your find/replace settings on file save. 
+# Running one or more of your find/replace settings on file save.
 
 <br/>
 
 If you have some `findInCurrentFile` commands, for example:  
 
-```jsonc	
+```jsonc
 "findInCurrentFile": {
   "upcaseSwap": {                            // use this name in the codeActionsOnSave setting
     "title": "swap iif <==> hello",
@@ -44,6 +42,4 @@ You may want to restrict this action to certain languages.   Use this form:
 }
 ```
 
-The commands will be run in the order listed.  So you could chain together find/replaces that must run in a certain order on save.   
-
-<br/>
+The commands will be run in the order listed.  So you could chain together find/replaces that must run in a certain order on save.  

@@ -1,4 +1,4 @@
-const vscode = require('vscode');
+const { workspace, commands, extensions} = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const parseCommands = require('./parseCommands');
@@ -9,29 +9,29 @@ const utilities = require('./utilities');
 
 /**
  * Execute the pre/post commands, which are vscode commands and may have args
- * @param {string | string[] | object} commands 
+ * @param {string | string[] | object} userCommands 
+ * @param {object} groups
  */
-exports.runPrePostCommands = async function (commands) {
+exports.runPrePostCommands = async function (userCommands, groups) {
   
-  // TODO resolve variables here (but not capture groups - except in a choice), fill choices with array items, e.g.
+  // resolve variables here (but not capture groups - except in a choice), fill choices with array items, e.g.
   
-  if (typeof commands === 'string') await vscode.commands.executeCommand(commands); 
+  if (typeof userCommands === 'string') await commands.executeCommand(userCommands); 
     
   // does this handle multiple commands/args TODO
-  else if (typeof commands === 'object' && !Array.isArray(commands)) {
-    // pass in find capture groups if any
-    // lopp through all commands.args (.snippet, .text, etc.)
-    if (commands.args?.snippet?.search(/\$[\{\d]/) !== -1) {
-      commands.args.snippet = resolve.resolveVariables(commands.args, "snippet", null, null, null, null);
+  else if (typeof userCommands === 'object' && !Array.isArray(userCommands)) {
+    if (userCommands.args?.snippet?.search(/\$[\{\d]/) !== -1) {
+      // first null is 'groups'
+      userCommands.args.snippet = resolve.resolveVariables(userCommands.args, "snippet", groups, null, null, null);
     }
-    await vscode.commands.executeCommand(commands.command, commands.args);
+    await commands.executeCommand(userCommands.command, userCommands.args);
   }
   
-  else if (Array.isArray(commands) && commands.length) {
-    for (const command of commands) {
-      if (typeof command === 'string') await vscode.commands.executeCommand(command);
+  else if (Array.isArray(userCommands) && userCommands.length) {
+    for (const command of userCommands) {
+      if (typeof command === 'string') await commands.executeCommand(command);
       else if (typeof command === 'object')
-        await vscode.commands.executeCommand(command.command, command.args);
+        await commands.executeCommand(command.command, command.args);
     }
   }
 }
@@ -43,8 +43,8 @@ exports.runPrePostCommands = async function (commands) {
  * @returns {Promise<object>} array of settings
  */
 exports.getSettings = async function (setting) {
-
-  const settings = await vscode.workspace.getConfiguration().get(setting);
+  
+  const settings = await workspace.getConfiguration().get(setting);
 	let findArray = [];
 
 	if (settings) {
@@ -61,11 +61,11 @@ exports.getSettings = async function (setting) {
  *
  * @param {object} findSettings
  * @param {object} searchSettings
- * @param {vscode.ExtensionContext} context
+ * @param {import("vscode").ExtensionContext} context
  */
 exports.loadCommands = async function (findSettings, searchSettings, context, enableWarningDialog) {
 
-	const thisExtension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
+	const thisExtension = extensions.getExtension('ArturoDent.find-and-transform');
 	const packageCommands = thisExtension.packageJSON.contributes.commands;
 
 	const builtins = _makeCommandsFromPackageCommands();
@@ -92,7 +92,7 @@ exports.loadCommands = async function (findSettings, searchSettings, context, en
  * Transform the settings into package.json-style commands {command: "", title: ""}
  * @param {object} settings - this extension's settings from getCurrentSettings()
  * @param {boolean} enableWarningDialog
- * @returns { Promise<vscode.Command[] | any[]> } - package.json form of 'contributes.commands'
+ * @returns { Promise<import("vscode").Command[] | any[]> } - package.json form of 'contributes.commands'
  */
 async function _makePackageCommandsFromFindSettings(settings, enableWarningDialog) {
 
@@ -131,7 +131,7 @@ async function _makePackageCommandsFromFindSettings(settings, enableWarningDialo
  * Transform the settings into package.json-style commands {command: "", title: ""}
  * @param {object} settings - this extension's settings from getCurrentSettings()
  * @param {boolean} enableWarningDialog
- * @returns { Promise<any[]|vscode.Command[]> } - package.json form of 'contributes.commands'
+ * @returns { Promise<any[]|import("vscode").Command[]> } - package.json form of 'contributes.commands'
  */
 async function _makePackageCommandsFromSearchSettings(settings, enableWarningDialog) {
 
@@ -168,7 +168,7 @@ async function _makePackageCommandsFromSearchSettings(settings, enableWarningDia
 
 /**
  * Transform the built-in commands into package.json-style commands {command: "", title: ""}
- * @returns {Array<vscode.Command>} - package.json form of builtin 'contributes.commands'
+ * @returns {Array<import("vscode").Command>} - package.json form of builtin 'contributes.commands'
  */
 function _makeCommandsFromPackageCommands() {
 
@@ -271,8 +271,8 @@ function _activationEventArraysAreEquivalent(settings, packages) {
 /**
  * Get the settings and register TextEditorCommands for the findInCurrentFile commands
  * @param {Array} argArray
- * @param {vscode.ExtensionContext} context
- * @param {Array<vscode.Disposable>} disposables
+ * @param {import("vscode").ExtensionContext} context
+ * @param {Array<import("vscode").Disposable>} disposables
  */
 exports.registerFindCommands = async function (argArray, context, disposables, enableWarningDialog) {
 
@@ -281,7 +281,7 @@ exports.registerFindCommands = async function (argArray, context, disposables, e
 
 	for (const elem in argArray) {
 
-    disposable = vscode.commands.registerTextEditorCommand(`findInCurrentFile.${ argArray[elem][0] }`, async (editor, edit) => {
+    disposable = commands.registerTextEditorCommand(`findInCurrentFile.${ argArray[elem][0] }`, async (editor, edit) => {
 			// could check for bad args here - on use of settings commands
 			if (enableWarningDialog) {
 				const argsBadObject = await utilities.checkArgs(argArray[elem][1], "findSetting");
@@ -304,7 +304,7 @@ exports.registerFindCommands = async function (argArray, context, disposables, e
       
       // triggering from Command Palette doesn't seem to return focus to the current editor [seems like an extension testing bug]
       // not needed for keybinding trigger though
-      await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
+      await commands.executeCommand('workbench.action.focusActiveEditorGroup');
     });
 
     context.subscriptions.push(disposable);
@@ -316,8 +316,8 @@ exports.registerFindCommands = async function (argArray, context, disposables, e
  * Get the settings and register TextEditorCommands for the runInSearchPanel commands
  * 
  * @param {Array} argArray
- * @param {vscode.ExtensionContext} context
- * @param {Array<vscode.Disposable>} disposables
+ * @param {import("vscode").ExtensionContext} context
+ * @param {Array<import("vscode").Disposable>} disposables
  */
 exports.registerSearchCommands = async function (argArray, context, disposables, enableWarningDialog) {
 
@@ -326,7 +326,7 @@ exports.registerSearchCommands = async function (argArray, context, disposables,
 
 	for (const elem in argArray) {
 
-		disposable = vscode.commands.registerCommand(`runInSearchPanel.${ argArray[elem][0] }`, async () => {
+		disposable = commands.registerCommand(`runInSearchPanel.${ argArray[elem][0] }`, async () => {
 
 			let temp = argArray[0][1];
 			// could check for bad args here - on use of settings commands

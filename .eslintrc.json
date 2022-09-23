@@ -4,10 +4,11 @@
 		"commonjs": true,
 		"es6": true,
 		"node": true,
-		"mocha": true
+		"mocha": true,
+    "es2022": true
 	},
 	"parserOptions": {
-		"ecmaVersion": 2020,
+		"ecmaVersion": 2022,
 		"ecmaFeatures": {
 			"jsx": true
 		},

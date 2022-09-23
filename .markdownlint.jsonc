@@ -1,0 +1,8 @@
+{
+  "MD013": false,  // 80 line length
+  "MD026": false,  // no trailing punctation
+  "MD028": false,   // no blank line inside blockquote
+  "MD033": false,  // no in-line html
+  "MD035": false,   // horizontal rule end with ---------;
+  "MD038": false  // no spaces inside code span elements
+}

@@ -1,4 +1,5 @@
-const vscode = require('vscode');
+const { window, env, commands } = require('vscode');
+
 const utilities = require('./utilities');
 const resolve = require('./resolveVariables');
 // const delay = require('node:timers/promises');
@@ -30,7 +31,7 @@ exports.runAllSearches = async function (args) {
 	let numFindArgs = 0;
   let numReplaceArgs = 0;
 
-  await vscode.env.clipboard.readText().then(string => {
+  await env.clipboard.readText().then(string => {
     args.clipText = string;
   });
 
@@ -68,8 +69,9 @@ exports.runAllSearches = async function (args) {
  */
 async function _buildSearchArgs(args, index)  {
 
-	const editor = vscode.window.activeTextEditor;
-
+  const editor = window.activeTextEditor;
+  const { selections } = editor;
+  
 	let  indexedArgs = { isRegex: false, matchWholeWord: false, matchCase: false, triggerReplaceAll: false, filesToInclude: undefined };
   const splitArgs = await _returnArgsByIndex(args, index);
 	Object.assign(indexedArgs, splitArgs);
@@ -108,21 +110,21 @@ async function _buildSearchArgs(args, index)  {
   // check for '${...}' some variable
   let re = /\$\{.+\}/g;
   if (indexedArgs.find.search(re) !== -1) {
-    indexedArgs.find = await resolve.resolveSearchPathVariables(indexedArgs.find, indexedArgs, "findSearch", vscode.window.activeTextEditor.selections[0]);
-    indexedArgs.find = await resolve.resolveSearchSnippetVariables(indexedArgs.find, indexedArgs, "findSearch", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.find = await resolve.resolveSearchPathVariables(indexedArgs.find, indexedArgs, "findSearch", selections[0]);
+    indexedArgs.find = await resolve.resolveSearchSnippetVariables(indexedArgs.find, indexedArgs, "findSearch", selections[0]);
   }
   if (indexedArgs.filesToInclude && indexedArgs.filesToInclude.search(re) !== -1) {
-    indexedArgs.filesToInclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.filesToInclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude", selections[0]);
     indexedArgs.filesToInclude = await resolve.resolveExtensionDefinedVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude");
   }
   if (indexedArgs.filesToExclude && indexedArgs.filesToExclude.search(re) !== -1) {
-    indexedArgs.filesToExclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.filesToExclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude", selections[0]);
     indexedArgs.filesToExclude = await resolve.resolveExtensionDefinedVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude");
   }
   
   if (indexedArgs.replace && indexedArgs.replace.search(re) !== -1) {
-    indexedArgs.replace = await resolve.resolveSearchPathVariables(indexedArgs.replace, indexedArgs, "replace", vscode.window.activeTextEditor.selections[0]);
-    indexedArgs.replace = await resolve.resolveSearchSnippetVariables(indexedArgs.replace, indexedArgs, "replace", vscode.window.activeTextEditor.selections[0]);
+    indexedArgs.replace = await resolve.resolveSearchPathVariables(indexedArgs.replace, indexedArgs, "replace", selections[0]);
+    indexedArgs.replace = await resolve.resolveSearchSnippetVariables(indexedArgs.replace, indexedArgs, "replace", selections[0]);
     indexedArgs.replace = await resolve.resolveExtensionDefinedVariables(indexedArgs.replace, indexedArgs, "replace");
   }
 
@@ -222,11 +224,11 @@ exports.useSearchPanel = async function (args) {
   }
 
   // do args.clipText and args.resultsFiles need to be removed?  Doesn't seem to affect anything.
-	await vscode.commands.executeCommand('workbench.action.findInFiles',
+	await commands.executeCommand('workbench.action.findInFiles',
 		args).then(() => {
       if (args.triggerReplaceAll)
         setTimeout(async () => {
-          await vscode.commands.executeCommand('search.action.replaceAll');
+          await commands.executeCommand('search.action.replaceAll');
 				}, args.delay);
 		});
 };

@@ -1,6 +1,3 @@
-// const vscode = require('vscode');
-
-
 /**
  * @returns {Array} - all the available variables defined by this extension
  */
