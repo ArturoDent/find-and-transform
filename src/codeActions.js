@@ -1,13 +1,13 @@
-const vscode = require('vscode');
+const { languages, CodeAction, CodeActionKind} = require('vscode');
 
 /**
  * Create codeActions to use on save from settings
- * @param {vscode.ExtensionContext} context
+ * @param {import("vscode").ExtensionContext} context
  */
 exports.makeCodeActionProvider = async function (context, codeActionCommands) {
 
 	context.subscriptions.push(
-		vscode.languages.registerCodeActionsProvider('*',
+		languages.registerCodeActionsProvider('*',
 			{
 				provideCodeActions() {
 
@@ -20,7 +20,7 @@ exports.makeCodeActionProvider = async function (context, codeActionCommands) {
 				}
 			},
 			{
-				providedCodeActionKinds: [vscode.CodeActionKind.Source]
+				providedCodeActionKinds: [CodeActionKind.Source]
 			})
 	);
 }
@@ -28,10 +28,10 @@ exports.makeCodeActionProvider = async function (context, codeActionCommands) {
 /**
  * Make a codeAction from a setting command
  * @param {Array} command - one command from the findInCurrentFile settings
- * @returns {vscode.CodeAction}
+ * @returns {CodeAction}
  */
 function _createCommand(command) {
-	const action = new vscode.CodeAction(`${command[1].title}`, vscode.CodeActionKind.Source.append(`${command[0]}`));
+	const action = new CodeAction(`${command[1].title}`, CodeActionKind.Source.append(`${command[0]}`));
 	action.command = { command: `findInCurrentFile.${command[0]}`, title: `${command[1].title}` };
 	return action;
 }

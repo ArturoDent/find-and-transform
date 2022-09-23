@@ -1,4 +1,5 @@
-const vscode = require('vscode');
+const { window, workspace, env, Uri } = require('vscode');
+
 const findCommands = require('./transform');
 const resolve = require('./resolveVariables');
 const utilities = require('./utilities');
@@ -44,48 +45,20 @@ exports.buildJSOperationsFromArgs = async function (arg) {
       arg.splice(start, end+1 - start, operation);
     }
     arg[index] = arg[index].replace(/\$\$\{\s*;/g, '$$${');
+    // replace '\n` with '\\n` and '\t' with '\\t'
+    // arg[index] = arg[index].replace(/(?<!\\)[\\]([nt])/g, '*****$1');  // doesn't work
   }
   return arg;
 }
 
-// /**
-//  * Reduce any vscapi:'s in args.replace to single entries.
-//  * @param {string[]} arg - args.replace
-//  * @returns {Promise<string[] | string>}
-//  */
-// exports.buildVSCodeOpsFromArgs = async function (arg) {
-  
-//   if (!Array.isArray(arg)) return arg;
-//   // else if (Array.isArray(arg) && arg.length === 1)
-// 	//   return arg[0].replaceAll(/\$\$\{\s*(;)\s*vsapi/g, '$$${vsapi');
-  
-//   for (let index = 0; index < arg.length; index++) {
-    
-//     let start = arg.indexOf('$${vsapi:', index);
-//     let end = arg.indexOf('}$$', index);
-
-//     if (start !== -1 && end !== -1) {
-//       for (let j = start; j < end; j++) {
-//         arg[j] = arg[j].replace(/;+$/m, '');
-//       }
-//       // const operation = arg.slice(start, end + 1).join('; ');
-//       const operation = arg.slice(start, end + 1).join(' ');
-      
-//       arg.splice(start, end+1 - start, operation);
-//     }
-//     arg[index] = arg[index].replace(/\$\$\{vsapi:;/g, '$$${vsapi:');
-//   }
-
-//   return arg;
-// }
 
 
 /**
  * From 'findInCurrentFile' settings or keybindings. If necessary, split and run each command in 
  * its separate steps (if find/replace are arrays of multiple values).
  * 
- * @param {vscode.TextEditor} editor
- * @param {vscode.TextEditorEdit} edit
+ * @param {import("vscode").TextEditor} editor
+ * @param {import("vscode").TextEditorEdit} edit
  * @param {object} args
  */
 exports.splitFindCommands = async function (editor, edit, args) {
@@ -101,7 +74,7 @@ exports.splitFindCommands = async function (editor, edit, args) {
   if (Array.isArray(args.replace)) numReplaceArgs = args.replace.length;
   else if (typeof args.replace == "string") numReplaceArgs = 1;
 
-  // TODO needs explanation
+  // needs explanation
   let most = (numFindArgs >= numReplaceArgs) ? numFindArgs : numReplaceArgs;
   if (most === 0) most = 1;
 
@@ -109,22 +82,23 @@ exports.splitFindCommands = async function (editor, edit, args) {
 
     const splitArgs = await _buildFindArgs(args, index);
 
+    // pointReplaces iff postCommands? could add 
     if (!splitArgs.find && !splitArgs.replace && !splitArgs.restrictFind?.startsWith("next"))
-      findCommands.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
+      await findCommands.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
 
     // add all "empty selections" to editor.selections_replaceInSelections
     else if (args.restrictFind === "selections" && splitArgs.replace !== undefined) {
-      findCommands.addEmptySelectionMatches(editor);
-      findCommands.replaceInSelections(editor, edit, splitArgs);
+      await findCommands.addEmptySelectionMatches(editor);
+      await findCommands.replaceInSelections(editor, edit, splitArgs);
     }
 
     else if ((splitArgs.restrictFind === "line" || splitArgs.restrictFind === "once") && splitArgs.replace !== undefined) {
-      findCommands.replaceInLine(editor, edit, splitArgs);
+      await findCommands.replaceInLine(editor, edit, splitArgs);
     }
 
     // find/noFind and replace/noReplace, restrictFind = nextSelect/nextMoveCursor/nextDontMoveCursor
-    else if (splitArgs.restrictFind?.startsWith("next")) {
-      findCommands.replaceNextInWholeDocument(editor, edit, splitArgs);
+    else if (splitArgs.restrictFind?.startsWith("next") || splitArgs.restrictFind?.startsWith("previous")) {
+      await findCommands.replacePreviousOrNextInWholeDocument(editor, edit, splitArgs);
     }
 
     // find and replace, restrictFind = document/default
@@ -132,7 +106,7 @@ exports.splitFindCommands = async function (editor, edit, args) {
       await findCommands.replaceInWholeDocument(editor, edit, splitArgs);
     }
 
-    else findCommands.findAndSelect(editor, splitArgs);   // find but no replace
+    else await findCommands.findAndSelect(editor, splitArgs);   // find but no replace
   }
 }
 
@@ -146,11 +120,11 @@ exports.splitFindCommands = async function (editor, edit, args) {
  */
 async function _buildFindArgs(args, index)  {
 
-	const editor = vscode.window.activeTextEditor;
+  const editor = window.activeTextEditor;
 	let madeFind = false;
 
 	let clipText = "";
-	await vscode.env.clipboard.readText().then(string => {
+	await env.clipboard.readText().then(string => {
 		clipText = string;
   });
   
@@ -164,7 +138,7 @@ async function _buildFindArgs(args, index)  {
 	// or if find === "" empty string ==> use wordsAtCursors
   // or if find is an array but length < replace array
   else {
-    // if multiple selections, isRegex must be true  TODO
+    // if multiple selections, isRegex must be true
     const findObject = resolve.makeFind(editor.selections, args);
     indexedArgs.find = findObject.find;
     indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
@@ -212,7 +186,9 @@ async function _buildFindArgs(args, index)  {
  */
 exports.parseArgs = async function (commandArgs, resourceType) {
 
-  let editorPath = vscode.window.activeTextEditor.document.uri.path;
+  const { document } = window.activeTextEditor;
+  
+  let editorPath = document.uri.path;
   let getRelativePath;
 
   if (resourceType === "folder") getRelativePath = utilities.getRelativeFolderPath;
@@ -228,8 +204,8 @@ exports.parseArgs = async function (commandArgs, resourceType) {
     if (Object.keys(commandArgs[1]).includes("editorIndex")) {       // editor/title/context - the editor tab
       return getRelativePath(commandArgs[0].fsPath);
     }
-    else if (commandArgs[1][0] instanceof vscode.Uri) {              // explorer/context
-      let resources = commandArgs[1].map(resource => vscode.workspace.asRelativePath(resource.fsPath));
+    else if (commandArgs[1][0] instanceof Uri) {              // explorer/context
+      let resources = commandArgs[1].map(resource => workspace.asRelativePath(resource.fsPath));
       return resources.join(', ');
     }
   }

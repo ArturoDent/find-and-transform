@@ -1,4 +1,5 @@
-const vscode = require('vscode');
+const { languages, extensions, Range, CompletionItem, CompletionItemKind, MarkdownString } = require('vscode');
+
 const jsonc = require("jsonc-parser");
 const searchCommands = require('./search');
 const findCommands = require('./transform');
@@ -6,10 +7,10 @@ const findCommands = require('./transform');
 
 /**
  * Register a CompletionItemProvider for keybindings.json
- * @param {vscode.ExtensionContext} context
+ * @param {import("vscode").ExtensionContext} context
  */
 exports.makeKeybindingsCompletionProvider = async function(context) {
-    const configCompletionProvider = vscode.languages.registerCompletionItemProvider (
+    const configCompletionProvider = languages.registerCompletionItemProvider (
       { pattern: '**/keybindings.json' },
       {
         provideCompletionItems(document, position) {
@@ -24,16 +25,16 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
 
 					if (find || search) {
 
-						const thisExtension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
+						const thisExtension = extensions.getExtension('ArturoDent.find-and-transform');
 						const packageCommands = thisExtension.packageJSON.contributes.commands;
 
             if (find) {
               return packageCommands.filter(pcommand => pcommand.command.startsWith("findInCurrentFile"))
-                .map(pcommand => _makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null, "", "A 'findInCurrentFile' command from your settings."));
+                .map(pcommand => _makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new Range(position, position), null, "", "A 'findInCurrentFile' command from your settings."));
             }
             else if (search) {
               return packageCommands.filter(pcommand => pcommand.command.startsWith("runInSearchPanel"))
-                .map(pcommand => _makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new vscode.Range(position, position), null, "", "A 'runInSearchPanel' command from your settings."));
+                .map(pcommand => _makeCompletionItem(pcommand.command.replace(/^.*\./, ""), new Range(position, position), null, "", "A 'runInSearchPanel' command from your settings."));
             }
 					}
 					// ------------------------------------    command completion end   -------------------------------------------------
@@ -74,7 +75,7 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           const argsStartingIndex = argsNode[0].offset;
           const argsLength = argsStartingIndex + argsNode[0].length;
 
-					const argsRange = new vscode.Range(document.positionAt(argsStartingIndex), document.positionAt(argsLength));
+					const argsRange = new Range(document.positionAt(argsStartingIndex), document.positionAt(argsLength));
 					const argsText = document.getText(argsRange);
 
 					// does this add anything to: curLocation?.path[1] !== 'args'
@@ -102,10 +103,10 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
 
 /**
  * Register a CompletionItemProvider for settings.json
- * @param {vscode.ExtensionContext} context
+ * @param {import("vscode").ExtensionContext} context
  */
 exports.makeSettingsCompletionProvider = async function(context) {
-  const settingsCompletionProvider = vscode.languages.registerCompletionItemProvider (
+  const settingsCompletionProvider = languages.registerCompletionItemProvider (
     { pattern: '**/settings.json' },
     {
       provideCompletionItems(document, position) {
@@ -148,7 +149,7 @@ exports.makeSettingsCompletionProvider = async function(context) {
 				if (curLocation.isAtPropertyKey && subCommand) {
           if (find) subCommandNode = findCommandNode.children[1].children[0].children[1];
           else if (search) subCommandNode = searchCommandNode.children[1].children[0].children[1];
-					const keysRange = new vscode.Range(document.positionAt(subCommandNode.offset), document.positionAt(subCommandNode.offset + subCommandNode.length));
+					const keysRange = new Range(document.positionAt(subCommandNode.offset), document.positionAt(subCommandNode.offset + subCommandNode.length));
 					keysText = document.getText(keysRange);
 				}
 
@@ -176,11 +177,11 @@ exports.makeSettingsCompletionProvider = async function(context) {
  * Parse linePrefix for correct completionItems.
  * 
  * @param {string} linePrefix 
- * @param {vscode.Position} position 
+ * @param {import("vscode").Position} position 
  * @param {boolean} find 
  * @param {boolean} search 
  * @param {jsonc.Segment} arg - which args are we in: find/replace/etc.
- * @returns {Array<vscode.CompletionItem>}
+ * @returns {Array<CompletionItem>}
  */
 function _completeArgs(linePrefix, position, find, search, arg) {
   
@@ -279,8 +280,8 @@ function _findConfig(rootNode, offset)  {
  *
  * @param   {string[]} argArray - options for forward or backward commands
  * @param   {string} argsText - text of the 'args' options:  "args": { .... }
- * @param   {vscode.Position} position - cursor position
- * @returns {Array<vscode.CompletionItem>}
+ * @param   {import("vscode").Position} position - cursor position
+ * @returns {Array<CompletionItem>}
  */
 function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 
@@ -288,6 +289,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 
 	const priority = {
     "title": "01",
+    "description": '0101',
     
     "preCommands": "011",
     "find": "012",
@@ -316,7 +318,8 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
   
 	const description = {
 		"title": "This will appear in the Command Palette as `Find-and-Transform:<title>`. Can include spaces.",
-
+    "description": "Any string describing what this keybinding does.",
+    
     "preCommands": "A single command, as a string, or an array of commands to run before any find occurs.",
     "find": "Query to find or search.  Can be a regexp or plain text.",
     "delay": "Pause, in millisceonds, between searches when you have defined an array of searches.  Usually needed to allow the prior search to complete and populate the search results if you want to use those results files in a subsequent search with: .",
@@ -345,16 +348,16 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
   return argArray
     .filter(option => argsText.search(new RegExp(`^[ \t]*"${ option }"`, "gm")) === -1)
     .map(option => {
-    return _makeCompletionItem(option, new vscode.Range(position, position), defaults[`${ option }`], priority[`${ option }`], description[`${ option }`]);
+    return _makeCompletionItem(option, new Range(position, position), defaults[`${ option }`], priority[`${ option }`], description[`${ option }`]);
   })
 }
 
 /**
  * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
  * 
- * @param   {vscode.Position} position
+ * @param   {import("vscode").Position} position
  * @param   {string} trigger - triggered by '$' so include its range
- * @returns {Array<vscode.CompletionItem>}
+ * @returns {Array<CompletionItem>}
  */
 function _completeExtensionDefinedVariables(position, trigger, search) {
 
@@ -375,8 +378,8 @@ Replace ***n, o, p, q*** with some number 0-x.
 
 `;
 
-	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
-	else replaceRange = new vscode.Range(position, position);
+	if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
+	else replaceRange = new Range(position, position);
 
 	if (search)
 		addResultFiles = _makeCompletionItem("${resultsFiles}", replaceRange, "", "052", `A comma-separated list of the files in the current search results.`);
@@ -395,21 +398,17 @@ Replace ***n, o, p, q*** with some number 0-x.
 /**
  * Make completion items for 'filesToInclude/filesToExclude/find/replace' values starting with a '$' sign
  * 
- * @param   {vscode.Position} position
+ * @param   {import("vscode").Position} position
  * @param   {string} trigger - triggered by '$' so include its range
- * @returns {Array<vscode.CompletionItem>}
+ * @returns {Array<CompletionItem>}
  */
 function _completePathVariables(position, trigger) {
 
 	// triggered by 1 '$', so include it to complete w/o two '$${file}'
 	let replaceRange;
-	// let addResultFiles = undefined;
 
-	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
-	else replaceRange = new vscode.Range(position, position);
-
-	// if (search)
-	// 	addResultFiles = _makeCompletionItem("${resultsFiles}", replaceRange, "", "052", "A comma-separated list of the files in the current search results.");
+	if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
+	else replaceRange = new Range(position, position);
 
 	const completionItems =  [
 		_makeCompletionItem("${file}", replaceRange, "", "01", "The full path (`/home/UserName/myProject/folder/test.txt`) of the current editor."),
@@ -435,23 +434,22 @@ function _completePathVariables(position, trigger) {
     _makeCompletionItem("${matchNumber}", replaceRange, "", "051", "The 1-based find match index. Is this the first, second, etc. match?"),
 	];
 
-	// if (search) return completionItems.concat(addResultFiles);
 	return completionItems;
 }
 
 /**
  * Make completion items for 'snippet' variables starting with a '$' sign
  * 
- * @param   {vscode.Position} position
+ * @param   {import("vscode").Position} position
  * @param   {string} trigger - triggered by '$' so include its range
- * @returns {Array<vscode.CompletionItem>}
+ * @returns {Array<CompletionItem>}
  */
 function _completeSnippetVariables(position, trigger) {
 
 	// triggered by 1 '$', so include it to complete w/o two '$${file}'
 	let replaceRange;
-	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
-	else replaceRange = new vscode.Range(position, position);
+	if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
+	else replaceRange = new Range(position, position);
 
   return [
 		_makeCompletionItem("${TM_CURRENT_LINE}", replaceRange, "", "0601", "The contents of the current line"),
@@ -483,16 +481,16 @@ function _completeSnippetVariables(position, trigger) {
 /**
  * Make completion items for 'replace' values starting with a '\' sign in a 'findInCurrentFile' command
  * 
- * @param   {vscode.Position} position
+ * @param   {import("vscode").Position} position
  * @param   {string} trigger - triggered by '$' or '$$' or '$${' so include their ranges
- * @returns {Array<vscode.CompletionItem>}
+ * @returns {Array<CompletionItem>}
  */
 function _completeReplaceJSOperation(position, trigger) {
 
 	// triggered by '$' or '$$' or '$${' so use their ranges
 	let replaceRange;
-	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
-	else replaceRange = new vscode.Range(position, position);
+	if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
+	else replaceRange = new Range(position, position);
 
 	const text = `
 		
@@ -506,9 +504,9 @@ Replace ***operation*** with some code.`;
 /**
  * Make completion items for 'replace' values starting with a '$' sign in a 'findInCurrentFile' command
  * 
- * @param   {vscode.Position} position
+ * @param   {import("vscode").Position} position
  * @param   {string} trigger - triggered by '$' so include its range
- * @returns {Array<vscode.CompletionItem>}
+ * @returns {Array<CompletionItem>}
  */
 function _completeReplaceFindVariables(position, trigger) {
 
@@ -526,16 +524,16 @@ function _completeReplaceFindVariables(position, trigger) {
 /**
  * Make completion items for 'find' values starting with a '\' sign in a 'findInCurrentFile' command
  * 
- * @param   {vscode.Position} position
+ * @param   {import("vscode").Position} position
  * @param   {string} trigger - triggered by '\' or '\\' so include its range
- * @returns {Array<vscode.CompletionItem>}
+ * @returns {Array<CompletionItem>}
  */
 function _completeFindConditionalTransforms(position, trigger) {
 
   // triggered by 1 or 2 '\', so include it to complete w/o three '\\\U'
   let replaceRange;
-  if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
-  else replaceRange = new vscode.Range(position, position);
+  if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
+  else replaceRange = new Range(position, position);
   
   	const text = `
 		
@@ -559,6 +557,9 @@ Example: "find": "\${2:/pascalcase}"`),
     _makeCompletionItem("${n:/camelcase}", replaceRange, "", "084", `Transform to camelcase the ***nth*** capture group.${text}
 Example: "find": "\${1:/camelcase}"`),
     
+        _makeCompletionItem("${n:/snakecase}", replaceRange, "", "085", `Transform to snakecase the ***nth*** capture group.${text}
+Example: "find": "\${1:/snakecase}"`),
+    
         
     _makeCompletionItem("${n:+ if add text}", replaceRange, "", "090", `Conditional replacement: if capture group ***nth***, add test.${text}
 Example: "find": "\${2:+ if add text}"`),
@@ -577,37 +578,41 @@ Example: "find": "\${1:? if add text: else add this text}"`),
 /**
  * Make completion items for 'restrictFind' values with priority
  * 
- * @param   {vscode.Position} position
- * @returns {Array<vscode.CompletionItem>}
+ * @param   {import("vscode").Position} position
+ * @returns {Array<CompletionItem>}
  */
 function _completeRestrictFindValues(position) {
 
 	return [
-		_makeCompletionItem("document", new vscode.Range(position, position), "document", "01", "Find and replace in the current editor."),
-		_makeCompletionItem("selections", new vscode.Range(position, position), "document", "02", "Find and replace in selections only."),
+		_makeCompletionItem("document", new Range(position, position), "document", "01", "Find and replace in the current editor."),
+		_makeCompletionItem("selections", new Range(position, position), "document", "02", "Find and replace in selections only."),
 
-		_makeCompletionItem("once", new vscode.Range(position, position), "document", "03", "Find the first match on the current line **after the cursor** and replace, if any replacement specified."),
-		_makeCompletionItem("line", new vscode.Range(position, position), "document", "04", "Find and replace all matches on the current line before and after the cursor."),
+		_makeCompletionItem("once", new Range(position, position), "document", "03", "Find the first match on the current line **after the cursor** and replace, if any replacement specified."),
+		_makeCompletionItem("line", new Range(position, position), "document", "04", "Find and replace all matches on the current line before and after the cursor."),
 
-		_makeCompletionItem("nextSelect", new vscode.Range(position, position), "document", "05", "Select the next match after replacing it (if you specify a replacement)."),
-		_makeCompletionItem("nextMoveCursor", new vscode.Range(position, position), "document", "06", "Move the cursor to after the next match and replace it, if any, but do not select it."),
-		_makeCompletionItem("nextDontMoveCursor", new vscode.Range(position, position), "document", "07", "Replace the next match but leave cursor at original position.")
-	];
+		_makeCompletionItem("nextSelect", new Range(position, position), "document", "05", "Select the next match after replacing it (if you specify a replacement)."),
+		_makeCompletionItem("nextMoveCursor", new Range(position, position), "document", "06", "Move the cursor to after the next match and replace it, if any, but do not select it."),
+		_makeCompletionItem("nextDontMoveCursor", new Range(position, position), "document", "07", "Replace the next match but leave cursor at original position."),
+
+		_makeCompletionItem("previousSelect", new Range(position, position), "document", "08", "Select the previous match after replacing it (if you specify a replacement)."),
+		_makeCompletionItem("previousMoveCursor", new Range(position, position), "document", "09", "Move the cursor to after the previous match and replace it, if any, but do not select it."),
+		_makeCompletionItem("previousDontMoveCursor", new Range(position, position), "document", "10", "Replace the previous match but leave cursor at original position.")
+  ];
 }
 
 /**
  * Make completion items for 'find' values starting with a '\' sign in a 'findInCurrentFile' command
  * 
- * @param   {vscode.Position} position
+ * @param   {import("vscode").Position} position
  * @param   {string} trigger - triggered by '\' or '\\' so include its range
- * @returns {Array<vscode.CompletionItem>}
+ * @returns {Array<CompletionItem>}
  */
 function _completeFindCaseTransforms(position, trigger) {
 
   // triggered by 1 or 2 '\', so include it to complete w/o three '\\\U'
   let replaceRange;
-  if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
-  else replaceRange = new vscode.Range(position, position);
+  if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
+  else replaceRange = new Range(position, position);
 
   return [
     _makeCompletionItem("\\\\U", replaceRange, "", "010", `Find the uppercased version of the following variable.
@@ -632,16 +637,16 @@ Example: "find": "\\\\\\l\${CURRENT_MONTH_NAME}"`)
 /**
  * Make completion items for 'replace' values starting with a '\' sign in a 'findInCurrentFile' command
  * 
- * @param   {vscode.Position} position
+ * @param   {import("vscode").Position} position
  * @param   {string} trigger - triggered by '\' or '\\' so include its range
- * @returns {Array<vscode.CompletionItem>}
+ * @returns {Array<CompletionItem>}
  */
 function _completeReplaceCaseTransforms(position, trigger) {
 
 	// triggered by 1 or 2 '\', so include it to complete w/o three '\\\U$n'
 	let replaceRange;
-	if (trigger) replaceRange = new vscode.Range(position.line, position.character - trigger.length, position.line, position.character);
-	else replaceRange = new vscode.Range(position, position);
+	if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
+	else replaceRange = new Range(position, position);
 
 	const text = `
 		
@@ -676,15 +681,15 @@ Example: "find": "\\\\\\l\$TM_CURRENT_LINE"`)
  * From a string input make a CompletionItemKind.Text
  *
  * @param   {string} key
- * @param   {vscode.Range} replaceRange
+ * @param   {Range} replaceRange
  * @param   {string|boolean} defaultValue - default value for this option
  * @param   {string} sortText - sort order of item in completions
  * @param   {string} documentation - markdown description of each item
- * @returns {vscode.CompletionItem} - CompletionItemKind.Text
+ * @returns {CompletionItem} - CompletionItemKind.Text
  */
 function _makeCompletionItem(key, replaceRange, defaultValue, sortText, documentation) {
 
-	const item = new vscode.CompletionItem(key, vscode.CompletionItemKind.Text);
+	const item = new CompletionItem(key, CompletionItemKind.Text);
 	item.range = replaceRange;
   if (defaultValue) item.detail = `default: ${ defaultValue }`;
 
@@ -700,12 +705,12 @@ function _makeCompletionItem(key, replaceRange, defaultValue, sortText, document
 
   if (documentation) {
     if (key === 'delay')
-      item.documentation = new vscode.MarkdownString(documentation).appendCodeblock(delayText, 'jsonc');
+      item.documentation = new MarkdownString(documentation).appendCodeblock(delayText, 'jsonc');
     else if (key === 'preCommands')
-      item.documentation = new vscode.MarkdownString(documentation).appendCodeblock(preCommandText, 'jsonc');
+      item.documentation = new MarkdownString(documentation).appendCodeblock(preCommandText, 'jsonc');
     else if (key === 'postCommands')
-      item.documentation = new vscode.MarkdownString(documentation).appendCodeblock(postCommandText, 'jsonc');
-    else item.documentation = new vscode.MarkdownString(documentation);
+      item.documentation = new MarkdownString(documentation).appendCodeblock(postCommandText, 'jsonc');
+    else item.documentation = new MarkdownString(documentation);
   }
   
 	if (key.substring(0, 3) === "${n") {

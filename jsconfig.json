@@ -1,10 +1,10 @@
 {
 	"compilerOptions": {
-		"module": "commonjs",
-		"target": "esnext",
+		"module": "CommonJS",
+		"target": "ES2022",
 		"checkJs": true,  /* Typecheck .js files. */
 		"lib": [
-			"esnext"
+			"ES2022"
 		]
 	},
 	"exclude": [
