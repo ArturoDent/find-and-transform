@@ -1247,11 +1247,6 @@ Explanation for above:
 4. `${2:/upcase}` if find a capture group 2, uppercase it  
 5. `${3:/downcase}` if find a capture group 3, lowercase it  
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> previous
 ```jsonc
 {
   "key": "alt+r",
@@ -1285,12 +1280,7 @@ Here is a neat trick to insert a SCREAMING_SNAKE _CASE version of the `${fileBas
 
 The above works by performing 2 replacements (with no find).  First, insert at the cursor(s) the `${fileBasenameNoExtension}` and second, replace that (since it is pre-selected) with the capitalized, snake-case version.  
 
-<<<<<<< HEAD
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/previous/images/screamingFileName.gif?raw=true" width="500" height="200" alt="insert screaming snake case filename"/>
->>>>>>> Stashed changes
-=======
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/screamingFileName?raw=true" width="500" height="200" alt="insert screaming snake case filename"/>
->>>>>>> previous
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/screamingFileName.gif?raw=true" width="500" height="200" alt="insert screaming snake case filename"/>
 
 <br/>
 
