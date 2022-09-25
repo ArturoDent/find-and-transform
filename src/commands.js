@@ -9,12 +9,14 @@ const utilities = require('./utilities');
 
 /**
  * Execute the pre/post commands, which are vscode commands and may have args
- * @param {string | string[] | object} userCommands 
+ * @param {string | string[] | object} userCommands
+ * @param {string}  preOrPost - "preCommands" or "postCommands"
  * @param {object} groups
  */
-exports.runPrePostCommands = async function (userCommands, groups) {
+exports.runPrePostCommands = async function (userCommands, preOrPost, groups) {
   
   // resolve variables here (but not capture groups - except in a choice), fill choices with array items, e.g.
+  if (preOrPost === "postComamnds") await new Promise(r => setTimeout(r, 100));
   
   if (typeof userCommands === 'string') await commands.executeCommand(userCommands); 
     

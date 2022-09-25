@@ -192,7 +192,7 @@ exports.findAndSelect = async function (editor, args) {
 
     if (foundSelections.length) editor.selections = foundSelections; // TODO this will not? remove all the original selections
   }
-  if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
+  if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
 };
 
 /**
@@ -290,7 +290,8 @@ exports.replaceInLine = async function (editor, edit, args) {
       if (foundSelections.length) editor.selections = foundSelections;
       else editor.selections = emptySelections;  // clear all selections
       
-      if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
+      // if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
+      if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
     });
   }
 
@@ -373,7 +374,8 @@ exports.replaceInLine = async function (editor, edit, args) {
         }
       }
       if (foundSelections.length) editor.selections = foundSelections;
-      if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
+      // if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
+      if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
     });
   }
 };
@@ -513,7 +515,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, edit, arg
       editor.revealRange(new Range(matchStartPos, matchEndPos), 2);
     }   // do nothing, edit already made
 
-    if ((nextMatches.length || previousMatches.length) && args.postCommands) await commands.runPrePostCommands(args.postCommands);  // TODO
+    if ((nextMatches.length || previousMatches.length) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");  // TODO
   });
 };
 
@@ -665,7 +667,7 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
       if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);
       index++;
     }
-    if (matches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, matches[0]);
+    if (matches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", matches[0]);
   });
 };
 
@@ -801,7 +803,7 @@ exports.replaceInSelections = async function (editor, edit, args) {
       if (foundSelections.length) editor.selections = foundSelections;
       if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
     }
-    if (args.postCommands && isSelectionWithMatch) await commands.runPrePostCommands(args.postCommands);
+    if (args.postCommands && isSelectionWithMatch) await commands.runPrePostCommands(args.postCommands, "postCommands");
   });
 };
 

@@ -119,7 +119,7 @@ async function activate(context) {
 
     let continueRun = true;
     
-    if (args?.preCommands) await extensionCommands.runPrePostCommands(args.preCommands);
+    if (args?.preCommands) await extensionCommands.runPrePostCommands(args.preCommands, "preCommands");
     
     let replacement = "";
     if (Array.isArray(args?.replace)) replacement = args?.replace.join(' ');
@@ -161,7 +161,7 @@ async function activate(context) {
 		let continueRun = true;
 
 		if (args?.preCommands) {
-      await extensionCommands.runPrePostCommands(args.preCommands);
+      await extensionCommands.runPrePostCommands(args.preCommands, "preCommands");
     }
 
     const argsBadObject = await utilities.checkArgs(args, "searchBinding");
@@ -182,7 +182,7 @@ async function activate(context) {
       await searchCommands.runAllSearches(args);
 		}
 		
-    if (args?.postCommands) await extensionCommands.runPrePostCommands(args.postCommands);
+    if (args?.postCommands) await extensionCommands.runPrePostCommands(args.postCommands, "postCommands");
 	});
 
 	context.subscriptions.push(runInSearchPanelDisposable);

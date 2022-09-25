@@ -122,7 +122,9 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   });
   // --------------------  extension-defined variables ----------------------------------------------
 
-  if (caller !== "find") {  // caller === "find"  caseModifier and capGroups handled in replaceFindCaptureGroups
+  // caller = snippet? TODO
+  // if (caller !== "find") {  // caller === "find"  caseModifier and capGroups handled in replaceFindCaptureGroups
+  if (caller !== "find" && caller !== "snippet") {  // caller === "find"  caseModifier and capGroups handled in replaceFindCaptureGroups
   
     // --------------------  caseModifier/capGroup --------------------------------------------------
     re = new RegExp("(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d(?!:)\\}?)", "g");
@@ -316,6 +318,7 @@ exports.replaceFindCaptureGroups = async function (findValue) {
   const selections = window.activeTextEditor.selections;
   const document = window.activeTextEditor.document;
   
+  // TODO should be replaceAll
   findValue = findValue.replace(/(\\[UuLl])?\\\$(\d+)/g, (match, p1, p2) => {
     
     // if no selection[n] in document, but in findValue
@@ -1048,7 +1051,7 @@ function _checkForCaptureGroupsInConditionalReplacement(replacement, groups) {
  * When no 'find' key in command: make a find value for use as a regexp
  * from all selected words or words at cursor positions wrapped by word boundaries \b
  *
- * @param   {Array<import("vscode").Selection>} selections
+ * @param   {readonly vscode.Selection[]} selections
  * @param   {Object} args
  * @returns {Object} - { selected text '(a|b c|d)', mustBeRegex b/c Set.size > 1 }
  */
