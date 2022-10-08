@@ -571,7 +571,9 @@ function _resolvePathVariables (variableToResolve, args, caller, selection, matc
     case "${selectedText}":  case "${ selectedText }":
       if (selection.isEmpty) {
         const wordRange = document.getWordRangeAtPosition(selection.start);
-        resolved = document.getText(wordRange);
+        if (wordRange) resolved = document.getText(wordRange);
+        else resolved = '';
+        // resolved = document.getText(wordRange);
       }
       else resolved = document.getText(selection);
       break;
@@ -1056,6 +1058,9 @@ function _checkForCaptureGroupsInConditionalReplacement(replacement, groups) {
  * @returns {Object} - { selected text '(a|b c|d)', mustBeRegex b/c Set.size > 1 }
  */
 exports.makeFind = function (selections, args) {
+  
+  // should respect "restrictFind": "line/once" for example, make find only from selections in that line
+  // would have to call makeFind per line
 
   const document = window.activeTextEditor.document;
   
@@ -1067,7 +1072,7 @@ exports.makeFind = function (selections, args) {
   let emptyPointSelections = new Set();
 
   // only use the first selection for these options: nextSelect/nextMoveCursor/nextDontMoveCursor
-  if (args?.restrictFind?.substring(0, 4) === "next") {
+  if (args?.restrictFind?.substring(0, 4) === "next" || args?.restrictFind?.substring(0, 8) === "previous") {
     selections = [selections[0]];
   }
 

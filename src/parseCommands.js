@@ -139,11 +139,14 @@ async function _buildFindArgs(args, index)  {
   // or if find is an array but length < replace array
   else {
     // if multiple selections, isRegex must be true
-    const findObject = resolve.makeFind(editor.selections, args);
-    indexedArgs.find = findObject.find;
-    indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
-    madeFind = true;
-    indexedArgs.pointReplaces = findObject.emptyPointSelections;
+    // if line/once don't call this here - do for each line
+    if (args.restrictFind !== "line" && args.restrictFind !== "once") {
+      const findObject = resolve.makeFind(editor.selections, args);
+      indexedArgs.find = findObject.find;
+      indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
+      madeFind = true;
+      indexedArgs.pointReplaces = findObject.emptyPointSelections;
+    }
   }
   
   //  "find": "(\\$1 \\$2)" if find has (double-escaped) capture groups 

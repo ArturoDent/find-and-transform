@@ -295,14 +295,15 @@ exports.registerFindCommands = async function (argArray, context, disposables, e
         argArray[elem][1].replace = await parseCommands.buildJSOperationsFromArgs(argArray[elem][1].replace);
         
       if (argArray[elem][1].preCommands) {
-        await this.runPrePostCommands(argArray[elem][1].preCommands);
+        await this.runPrePostCommands(argArray[elem][1].preCommands, "preCommands");
       }
 
       if (continueRun) await parseCommands.splitFindCommands(editor, edit, argArray[elem][1]);
       
-      if (argArray[elem][1].postCommands) {
-        await this.runPrePostCommands(argArray[elem][1].postCommands);
-      }
+      // this was moved into the transform functions
+      // if (argArray[elem][1].postCommands) {
+      //   await this.runPrePostCommands(argArray[elem][1].postCommands);
+      // }
       
       // triggering from Command Palette doesn't seem to return focus to the current editor [seems like an extension testing bug]
       // not needed for keybinding trigger though

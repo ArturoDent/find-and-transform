@@ -63,7 +63,7 @@ exports.getlanguageConfigComments = async function (args) {
 	else return undefined;
 }
 
-
+// TODO: test this with the search results tree view option - looks like nothing has changed
 /**
  * Get the relative paths of the current search results 
  * for the next `runInSearchPanel` call  
@@ -71,8 +71,9 @@ exports.getlanguageConfigComments = async function (args) {
  * @returns {Promise<string>} comma-joined string of paths or empty string
  */
 exports.getSearchResultsFiles = async function (clipText) {
-
+  
 	await commands.executeCommand('search.action.copyAll');
+  
 	let results = await env.clipboard.readText();
 
 	if (results)  {

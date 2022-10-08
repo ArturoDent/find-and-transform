@@ -1,3 +1,4 @@
+const { FileWatcherEventKind } = require("typescript");
 const { window, Range, Position, Selection } = require('vscode');
 const commands = require('./commands');
 const resolve = require('./resolveVariables');
@@ -205,27 +206,57 @@ exports.findAndSelect = async function (editor, args) {
 exports.replaceInLine = async function (editor, edit, args) {
 
   const document = editor.document;
-
+  const findArg = args.find;
+  
   let currentLine = "";
   let matches = [];
   let foundSelections = [];
   let emptySelections = [];
+  let lines = [];  
+  let uniqueSelections = [];
+  
+    uniqueSelections.push(editor.selections[0]);
+    lines.push(uniqueSelections[0].active.line);
+    
+    editor.selections.forEach(selection => {
+      if (!lines.includes(selection.active.line)) {
+        uniqueSelections.push(selection);
+        lines.push(selection.active.line);
+      }
+    });
+  
+    lines = [];
 
   if (args.restrictFind === "line") {
 
     // get all the matches on the line
     let lineIndex;
-    let lines = [];
     let lineMatches = [];  // for cursorMoveSelect
-    let index = 0;
 
-    // handle 'Error: Overlapping ranges are not allowed!` 2 cursors on the same line
+    // TODO: handle 'Error: Overlapping ranges are not allowed!` 2 cursors on the same line
     await editor.edit(async function (edit) {
 
-      await Promise.all(editor.selections.map(async (selection) => {
+      await Promise.all(uniqueSelections.map(async (selection) => {
 
+        args.find = findArg; // reset to the original args.find
+        let index = 0;        
+        foundSelections = [];
+        let resolvedFind;
+        
+        // call makeFind(selections, args) here with currentLine selections only
+        const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
+        if (!args.find) {
+          const findObject = resolve.makeFind(lineSelections, args);
+          args.find = findObject.find;
+          args.isRegex = args.isRegex || findObject.mustBeRegex;
+          args.madeFind = true;
+          args.pointReplaces = findObject.emptyPointSelections;
+        }
+        
+        if (!args.find) return;
+        
         // because caller = find, no need to resolve.resolveFind
-        let resolvedFind = resolve.resolveVariables(args, "find", null, selection, null, index);
+        resolvedFind = resolve.resolveVariables(args, "find", null, selection, null, index);
         resolvedFind = resolve.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
         if (!resolvedFind && !args.replace) return;
 
@@ -240,12 +271,21 @@ exports.replaceInLine = async function (editor, edit, args) {
           match[0] = "";
           matches.push(match);
         }
+        
+        matches?.forEach((match, index) => {
+          
+          lineIndex = document.offsetAt(new Position(selection.active.line, 0));
+          
+          const startPos = document.positionAt(lineIndex + match.index);
+          const endPos = document.positionAt(lineIndex + match.index + match[0].length);
+          foundSelections[index] = new Selection(startPos, endPos);
+        });
 
         matches?.forEach(async match => {
 
           lineIndex = document.offsetAt(new Position(selection.active.line, 0));
 
-          let resolvedReplace = resolve.resolveVariables(args, "replace", match, selection, null, index);
+          let resolvedReplace = resolve.resolveVariables(args, "replace", match, foundSelections[index], null, index);
 
           const startPos = document.positionAt(lineIndex + match.index);
           const endPos = document.positionAt(lineIndex + match.index + match[0].length);
@@ -261,7 +301,8 @@ exports.replaceInLine = async function (editor, edit, args) {
       }
 
       if (args.cursorMoveSelect) {
-
+        
+        foundSelections = [];
         let index = 0;
         const combinedMatches = await _combineMatches(Array.from(matches));
 
@@ -290,7 +331,6 @@ exports.replaceInLine = async function (editor, edit, args) {
       if (foundSelections.length) editor.selections = foundSelections;
       else editor.selections = emptySelections;  // clear all selections
       
-      // if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
       if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
     });
   }
@@ -309,8 +349,24 @@ exports.replaceInLine = async function (editor, edit, args) {
     await editor.edit(async function (edit) {
 
       let index = 0;
-      await Promise.all(editor.selections.map(async (selection) => {
-
+      await Promise.all(uniqueSelections.map(async (selection) => {
+        
+        args.find = findArg; // reset to the original args.find
+        // let index = 0;    
+        foundSelections = [];
+        // let resolvedFind;
+        
+        // call makeFind(selections, args) here with currentLine selections only
+        const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
+        if (!args.find) {
+          const findObject = resolve.makeFind(lineSelections, args);
+          args.find = findObject.find;
+          args.isRegex = args.isRegex || findObject.mustBeRegex;
+          args.madeFind = true;
+          args.pointReplaces = findObject.emptyPointSelections;
+        }
+        if (!args.find) return;
+        
         // because caller = find, no need to resolve.resolveFind, which is async
         let resolvedFind = resolve.resolveVariables(args, "find", null, selection, null, index);
         resolvedFind = resolve.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
@@ -325,20 +381,26 @@ exports.replaceInLine = async function (editor, edit, args) {
 
         // use matchAll() to get index even though only using the first one
         matches = [...currentLine.matchAll(re)];
-
+        
         if (matches.length) {  // just do once
+          
+          let selectionIndex = document.offsetAt(selection.end);
+          
+          const startPos = document.positionAt(selectionIndex + matches[0].index);
+          const endPos = document.positionAt(selectionIndex + matches[0].index + matches[0][0].length);
+          foundSelections[0] = new Selection(startPos, endPos);
 
           lineIndex = document.offsetAt(new Position(selection.end.line, 0));
-          let resolvedReplace = resolve.resolveVariables(args, "replace", matches[0], selection, null, index);
+          let resolvedReplace = resolve.resolveVariables(args, "replace", matches[0], foundSelections[0], null, index);
 
-          const startPos = document.positionAt(lineIndex + subStringIndex + matches[0].index);
-          const endPos = document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
           const matchRange = new Range(startPos, endPos);
 
           edit.replace(matchRange, resolvedReplace);
           lines[index] = startPos.line;
           lineMatches[index] = matches;
-          subStringIndices[index++] = subStringIndex + matches[0].index; // so cursorMoveSelect is only **after** a once match
+          
+          // so cursorMoveSelect is only **after** a once match
+          subStringIndices[index++] = subStringIndex + matches[0].index;
         }
       }));
     }).then(async success => {
@@ -348,6 +410,7 @@ exports.replaceInLine = async function (editor, edit, args) {
 
       if (args.cursorMoveSelect) {
 
+        foundSelections = [];
         let index = 0;
         
         for (const line of lines) {
@@ -374,7 +437,6 @@ exports.replaceInLine = async function (editor, edit, args) {
         }
       }
       if (foundSelections.length) editor.selections = foundSelections;
-      // if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands);
       if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
     });
   }
@@ -422,9 +484,16 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, edit, arg
     const re = new RegExp(resolvedFind, args.regexOptions);
     let restOfDocument = docString.substring(cursorIndex);  // text after cursor
     nextMatches = [...restOfDocument.matchAll(re)];
+    
+    // TODO test: skip first match if it is the current find location
+    if (nextMatches[0].index === 0) nextMatches.shift();
 
     const documentBeforeCursor = docString.substring(0, cursorIndex);
     previousMatches = [...documentBeforeCursor.matchAll(re)];
+    
+    // TODO test: skip last match if it is the current find location
+    const { selection } = window.activeTextEditor;
+    if (previousMatches.at(-1).index === document.offsetAt(selection.active)) previousMatches.pop();
   }
 
   // refactor to a function
@@ -573,6 +642,7 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
 
   let docRange;
   let fullText;
+  let foundSelections = [];
   let matches = [];
   let resolvedFind = "";
   let resolvedReplace;
@@ -600,6 +670,16 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
     matches.push(match);
   });
   
+  // ---------------------------------------------
+  // set selections to the find matches, need this for ${selectedText} in a replace, for example
+  matches?.forEach((match, index) => {
+    const startPos = document.positionAt(match.index);
+    const endPos = document.positionAt(match.index + match[0].length);
+    foundSelections[index] = new Selection(startPos, endPos);
+  });
+  if (foundSelections.length) editor.selections = foundSelections;  // and so postCommands work on selections
+  // -----------------------------------------------
+  
   let lastMatchLengthDiff = 0;
 
   editor.edit(editBuilder => {
@@ -608,7 +688,13 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
 
     for (const match of matches) {
 
-      resolvedReplace = resolve.resolveVariables(args, "replace", match, editor.selection, null, index);
+      // original version:
+      // resolvedReplace = resolve.resolveVariables(args, "replace", match, editor.selection, null, index);
+      
+      // this works when using ${selectedText} in a replace
+      // resolvedReplace = resolve.resolveVariables(args, "replace", match, foundSelections[index], null, index);
+      // below selects all replacements
+      resolvedReplace = resolve.resolveVariables(args, "replace", match, editor.selections[index], null, index);
 
       if (resolvedReplace === "Error: jsOPError") return;    // abort
 
