@@ -250,7 +250,7 @@ exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "match
 exports.getValues = function () {    // removed "isCaseSensitive" in favor of "matchCase"
 	return {
     title: "string", find: "string", replace: "string", isRegex: "boolean", matchCase: "boolean",
-    preCommands: "string", postCommands: "string", delay: "number",
+    preCommands: "string", postCommands: "string", delay: "number", clipText: "string",
 		matchWholeWord: "boolean", triggerSearch: "boolean", triggerReplaceAll: "boolean",
     useExcludeSettingsAndIgnoreFiles: "boolean", preserveCase: "boolean",
 		filesToInclude: "string", filesToExclude: "string", onlyOpenEditors: "boolean"

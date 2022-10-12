@@ -78,6 +78,7 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   
   if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
   else if (caller === "replace") replaceValue = args?.replace;
+  else if (caller === "run") replaceValue = args?.run;
   else if (caller === "cursorMoveSelect") replaceValue = args;
   else if (caller === "snippet") replaceValue = args?.snippet;
     

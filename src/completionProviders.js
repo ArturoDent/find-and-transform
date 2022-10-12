@@ -1,4 +1,4 @@
-const { languages, extensions, Range, CompletionItem, CompletionItemKind, MarkdownString } = require('vscode');
+const { languages, extensions, Range, Position, CompletionItem, CompletionItemKind, MarkdownString } = require('vscode');
 
 const jsonc = require("jsonc-parser");
 const searchCommands = require('./search');
@@ -66,7 +66,9 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
 					// ------------------------------------    duplicate args removal start   ------------------------------------
 
           // curLocation.path = [26, 'args', ''] = good  or [26, 'args', 'replace', 1] = bad here
-          if (!curLocation?.path[2] === false || curLocation?.path[1] !== 'args') return undefined;
+          // if (!curLocation?.path[2] === false || curLocation?.path[1] !== 'args') return undefined;
+          // if (!curLocation?.path[2] || curLocation?.path[1] !== 'args') return undefined;
+          if ((curLocation?.path[2] !== '' && !curLocation?.path[2]) || curLocation?.path[1] !== 'args') return undefined;
 
           const argsNode = thisConfig.children.filter(entry => {
             return entry.children[0].value === "args";
@@ -81,14 +83,17 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
 					// does this add anything to: curLocation?.path[1] !== 'args'
 					if (!argsRange.contains(position) || linePrefix.search(/^\s*"/m) === -1) return undefined;
 
-					const runFindArgs = findCommands.getKeys().slice(1);       // remove title
+          const runFindArgs = findCommands.getKeys().slice(1);       // remove title
 					const runSearchArgs = searchCommands.getKeys().slice(1);   // remove title
 
 					// eliminate any options already used
 					if (find && (linePrefix.search(/^\s*"$/m) !== -1)) {
 						return _filterCompletionsItemsNotUsed(runFindArgs, argsText, position);
+          }
+          else if (find && (linePrefix.search(/^\s*"\w+$/m) !== -1)) {
+						return _filterCompletionsItemsNotUsed(runFindArgs, argsText, position);
 					}
-					if (search && (linePrefix.search(/^\s*"$/m) !== -1)) {
+					else if (search && (linePrefix.search(/^\s*"$/m) !== -1)) {
 						return _filterCompletionsItemsNotUsed(runSearchArgs, argsText, position);
 					}
 					else return undefined;
@@ -141,7 +146,8 @@ exports.makeSettingsCompletionProvider = async function(context) {
         
         // curLocation.path = [findInCurrentFile, addClassToElement, ''] = good here 
         // or [findInCurrentFile, addClassToElement, replace] =  bad
-        if (!curLocation.path[2] === false) return undefined;
+        // if (!curLocation.path[2] === false) return undefined;
+        if ((curLocation?.path[2] !== '' && !curLocation?.path[2]) || !curLocation?.path[1]) return undefined;
         
         let keysText = "";
         let subCommandNode;
@@ -159,7 +165,10 @@ exports.makeSettingsCompletionProvider = async function(context) {
 				// eliminate any options already used
 				if (find && (linePrefix.search(/^\s*"$/m) !== -1)) {
 					return _filterCompletionsItemsNotUsed(runFindArgs, keysText, position);
-				}
+        }
+        else if (find && (linePrefix.search(/^\s*"\w+$/m) !== -1)) {
+          return _filterCompletionsItemsNotUsed(runFindArgs, keysText, position);
+        }
 				else if (search && (linePrefix.search(/^\s*"$/m) !== -1)) {
 					return _filterCompletionsItemsNotUsed(runSearchArgs, keysText, position);
 				}
@@ -256,7 +265,11 @@ function _completeArgs(linePrefix, position, find, search, arg) {
   if (find && arg === 'restrictFind') {
     return _completeRestrictFindValues(position);
   }
+  else if (find && arg === 'run') {
+    return _completeReplaceJSOperation(position, '$');
+  }
 }
+
 
 /**
  * Get the keybinding where the cursor is located.
@@ -278,7 +291,7 @@ function _findConfig(rootNode, offset)  {
 /**
  * Make CompletionItem arrays, eliminate already used option keys found in the args text
  *
- * @param   {string[]} argArray - options for forward or backward commands
+ * @param   {string[]} argArray - 
  * @param   {string} argsText - text of the 'args' options:  "args": { .... }
  * @param   {import("vscode").Position} position - cursor position
  * @returns {Array<CompletionItem>}
@@ -294,6 +307,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
     "preCommands": "011",
     "find": "012",
     "delay": "0121",
+    "run": "0122",
     "replace": "013",
     "isRegex": "014",
     "postCommands": "015",
@@ -323,7 +337,9 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
     "preCommands": "A single command, as a string, or an array of commands to run before any find occurs.",
     "find": "Query to find or search.  Can be a regexp or plain text.",
     "delay": "Pause, in millisceonds, between searches when you have defined an array of searches.  Usually needed to allow the prior search to complete and populate the search results if you want to use those results files in a subsequent search with: .",
-		"replace": "Replacement text.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
+    "run": "Run a javascript operation after the find (and before any replace).",
+    
+    "replace": "Replacement text.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
     "isRegex": "Is the find query a regexp.",
     "postCommands": "A single command, as a string, or an array of commands to run after any replace occurs.",
     
@@ -348,7 +364,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
   return argArray
     .filter(option => argsText.search(new RegExp(`^[ \t]*"${ option }"`, "gm")) === -1)
     .map(option => {
-    return _makeCompletionItem(option, new Range(position, position), defaults[`${ option }`], priority[`${ option }`], description[`${ option }`]);
+      return _makeCompletionItem(option, new Range(position, position), defaults[`${ option }`], priority[`${ option }`], description[`${ option }`]);
   })
 }
 
@@ -689,8 +705,16 @@ Example: "find": "\\\\\\l\$TM_CURRENT_LINE"`)
  */
 function _makeCompletionItem(key, replaceRange, defaultValue, sortText, documentation) {
 
-	const item = new CompletionItem(key, CompletionItemKind.Text);
-	item.range = replaceRange;
+  let item;
+  if (key === "run") {
+    item = new CompletionItem("run: $${ operation }$$", CompletionItemKind.Property);
+    item.insertText = "run\": [\n\t\"$${\",\n\t\t\"operation;\",\n\t\t\"operation;\",\n\t\t\"operation;\",\n\t\"}$$\",\n],";
+    item.range = new Range(replaceRange.start, new Position(replaceRange.end.line, replaceRange.end.character+1));
+  }
+  else {
+    item = new CompletionItem(key, CompletionItemKind.Property);
+    item.range = replaceRange;
+  }
   if (defaultValue) item.detail = `default: ${ defaultValue }`;
 
   if (sortText) item.sortText = sortText;

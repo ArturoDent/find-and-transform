@@ -160,6 +160,9 @@ async function _buildFindArgs(args, index)  {
     
   // if more finds than replaces, re-use the last replace
   else if (Array.isArray(args.replace)) indexedArgs.replace = args.replace[args.replace.length - 1];
+  
+  if (!Array.isArray(args.run) && (args.run || args.run === "")) indexedArgs.run = args.run;
+  else if (Array.isArray(args.run) && args.run.length > index) indexedArgs.run = args.run[index];
     
   // necessary?
 	// else if (!args.find) {  // no find and no replace

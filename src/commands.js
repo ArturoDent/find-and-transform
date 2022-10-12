@@ -1,8 +1,10 @@
 const { workspace, commands, extensions} = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const parseCommands = require('./parseCommands');
-const searchCommands = require('./search');
+
+const drivers = require('./drivers');
+// const parseCommands = require('./parseCommands');
+// const searchCommands = require('./search');
 const resolve = require('./resolveVariables');
 const utilities = require('./utilities');
 
@@ -16,10 +18,10 @@ const utilities = require('./utilities');
 exports.runPrePostCommands = async function (userCommands, preOrPost, groups) {
   
   // resolve variables here (but not capture groups - except in a choice), fill choices with array items, e.g.
-  if (preOrPost === "postComamnds") await new Promise(r => setTimeout(r, 100));
+  if (preOrPost === "postCommands") await new Promise(r => setTimeout(r, 300));
   
-  if (typeof userCommands === 'string') await commands.executeCommand(userCommands); 
-    
+  if (typeof userCommands === 'string') await commands.executeCommand(userCommands);
+  
   // does this handle multiple commands/args TODO
   else if (typeof userCommands === 'object' && !Array.isArray(userCommands)) {
     if (userCommands.args?.snippet?.search(/\$[\{\d]/) !== -1) {
@@ -28,7 +30,7 @@ exports.runPrePostCommands = async function (userCommands, preOrPost, groups) {
     }
     await commands.executeCommand(userCommands.command, userCommands.args);
   }
-  
+
   else if (Array.isArray(userCommands) && userCommands.length) {
     for (const command of userCommands) {
       if (typeof command === 'string') await commands.executeCommand(command);
@@ -284,26 +286,8 @@ exports.registerFindCommands = async function (argArray, context, disposables, e
 	for (const elem in argArray) {
 
     disposable = commands.registerTextEditorCommand(`findInCurrentFile.${ argArray[elem][0] }`, async (editor, edit) => {
-			// could check for bad args here - on use of settings commands
-			if (enableWarningDialog) {
-				const argsBadObject = await utilities.checkArgs(argArray[elem][1], "findSetting");
-				// boolean modal or not
-				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, argArray[elem][0]);
-			}
       
-      if (Array.isArray(argArray[elem][1].replace) && argArray[elem][1].replace.find(el => el === "$${"))
-        argArray[elem][1].replace = await parseCommands.buildJSOperationsFromArgs(argArray[elem][1].replace);
-        
-      if (argArray[elem][1].preCommands) {
-        await this.runPrePostCommands(argArray[elem][1].preCommands, "preCommands");
-      }
-
-      if (continueRun) await parseCommands.splitFindCommands(editor, edit, argArray[elem][1]);
-      
-      // this was moved into the transform functions
-      // if (argArray[elem][1].postCommands) {
-      //   await this.runPrePostCommands(argArray[elem][1].postCommands);
-      // }
+      drivers.startFindInCurrentFile(argArray[elem][1], editor, edit, enableWarningDialog);
       
       // triggering from Command Palette doesn't seem to return focus to the current editor [seems like an extension testing bug]
       // not needed for keybinding trigger though
@@ -329,33 +313,11 @@ exports.registerSearchCommands = async function (argArray, context, disposables,
 
 	for (const elem in argArray) {
 
-		disposable = commands.registerCommand(`runInSearchPanel.${ argArray[elem][0] }`, async () => {
-
-			let temp = argArray[0][1];
-			// could check for bad args here - on use of settings commands
-			if (enableWarningDialog) {
-				const argsBadObject = await utilities.checkArgs(argArray[elem][1], "findSetting");
-				// boolean modal or not
-				if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, false, argArray[elem][0]);
-      }
+    disposable = commands.registerCommand(`runInSearchPanel.${ argArray[elem][0] }`, async () => {
       
-      if (Array.isArray(argArray[elem][1].replace) && argArray[elem][1].replace.find(el => el === "$${"))
-        argArray[elem][1].replace = await parseCommands.buildJSOperationsFromArgs(argArray[elem][1].replace);
-        
-      if (argArray[elem][1].preCommands) {
-        await this.runPrePostCommands(argArray[elem][1].preCommands);
-      }
-
-			if (continueRun) {
-				let argsArray = [];
-				if (temp) argsArray = await searchCommands.getObjectFromArgs(temp);
-				await searchCommands.runAllSearches(argsArray);
-      }
-      
-      if (argArray[elem][1].postCommands) {
-        await this.runPrePostCommands(argArray[elem][1].postCommands);
-      }
-		});
+      drivers.startRunInSearchPanel(argArray[elem][1], enableWarningDialog);
+    });
+    
     context.subscriptions.push(disposable);
     disposables.push(disposable);  // this is necessary to dispose all on onDidChangeConfiguration()
 	}

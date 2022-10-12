@@ -1,4 +1,3 @@
-const { FileWatcherEventKind } = require("typescript");
 const { window, Range, Position, Selection } = require('vscode');
 const commands = require('./commands');
 const resolve = require('./resolveVariables');
@@ -92,7 +91,9 @@ exports.findAndSelect = async function (editor, args) {
     await Promise.all(editor.selections.map(async (selection) => {
 
       // TODO selection arg = "" ?
+      if (!args.find) return;
       const resolvedFind = await resolve.resolveFind(editor, args, null, selection);
+      // resolvedFind = resolve.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 
       if (!resolvedFind) return;
 
@@ -193,6 +194,7 @@ exports.findAndSelect = async function (editor, args) {
 
     if (foundSelections.length) editor.selections = foundSelections; // TODO this will not? remove all the original selections
   }
+  if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
   if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
 };
 
@@ -280,8 +282,14 @@ exports.replaceInLine = async function (editor, edit, args) {
           const endPos = document.positionAt(lineIndex + match.index + match[0].length);
           foundSelections[index] = new Selection(startPos, endPos);
         });
+        
+        // README: only works for one line at a time
+        if (foundSelections.length) editor.selections = foundSelections;
+        if (args.run) resolve.resolveVariables(args, "run", null, foundSelections[index], null, null);
 
         matches?.forEach(async match => {
+          
+          // if (args.run) resolve.resolveVariables(args, "run", null, foundSelections[index], null, null);
 
           lineIndex = document.offsetAt(new Position(selection.active.line, 0));
 
@@ -330,6 +338,12 @@ exports.replaceInLine = async function (editor, edit, args) {
       }
       if (foundSelections.length) editor.selections = foundSelections;
       else editor.selections = emptySelections;  // clear all selections
+      
+      // if (args.run) {    // doesn't work
+      //   matches?.forEach((match, index) => {
+      //     resolve.resolveVariables(args, "run", null, foundSelections[index], null, null);
+      //   });
+      // }
       
       if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
     });
@@ -389,6 +403,10 @@ exports.replaceInLine = async function (editor, edit, args) {
           const startPos = document.positionAt(selectionIndex + matches[0].index);
           const endPos = document.positionAt(selectionIndex + matches[0].index + matches[0][0].length);
           foundSelections[0] = new Selection(startPos, endPos);
+          
+          // README: only works for one line at a time
+          if (foundSelections.length) editor.selections = foundSelections;
+          if (args.run) resolve.resolveVariables(args, "run", null, foundSelections[index], null, null);
 
           lineIndex = document.offsetAt(new Position(selection.end.line, 0));
           let resolvedReplace = resolve.resolveVariables(args, "replace", matches[0], foundSelections[0], null, index);
@@ -646,9 +664,8 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
   let matches = [];
   let resolvedFind = "";
   let resolvedReplace;
-
+  
   if (args.find) resolvedFind = await resolve.resolveFind(editor, args, null, null);
-
   if (resolvedFind === "Error: jsOPError") return;  // abort
 
   if (resolvedFind?.search(/\$\{\s*line(Number|Index)\s*\}/) !== -1) {
@@ -670,15 +687,15 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
     matches.push(match);
   });
   
-  // ---------------------------------------------
   // set selections to the find matches, need this for ${selectedText} in a replace, for example
   matches?.forEach((match, index) => {
     const startPos = document.positionAt(match.index);
     const endPos = document.positionAt(match.index + match[0].length);
     foundSelections[index] = new Selection(startPos, endPos);
   });
+    
   if (foundSelections.length) editor.selections = foundSelections;  // and so postCommands work on selections
-  // -----------------------------------------------
+  if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
   
   let lastMatchLengthDiff = 0;
 
@@ -688,9 +705,6 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
 
     for (const match of matches) {
 
-      // original version:
-      // resolvedReplace = resolve.resolveVariables(args, "replace", match, editor.selection, null, index);
-      
       // this works when using ${selectedText} in a replace
       // resolvedReplace = resolve.resolveVariables(args, "replace", match, foundSelections[index], null, index);
       // below selects all replacements
@@ -807,6 +821,9 @@ exports.replaceInSelections = async function (editor, edit, args) {
         const selectedText = document.getText(selectedRange);
         matches = [...selectedText.matchAll(re)];
       }
+      
+      // TODO: needs to be the find selection only
+      // if (args.run) resolve.resolveVariables(args, "run", null, selection, null, null);
 
       for (const match of matches) {
 
@@ -920,7 +937,8 @@ async function _combineMatches(matches) {
  */
 exports.getKeys = function () {
   // preserveCase ?
-  return ["title", "description", "preCommands", "find", "replace", "isRegex", "postCommands",
+  // return ["title", "description", "preCommands", "find", "replace", "run\": [\n\t\"$${\",\n\t\t\"operation;\",\n\t\"}$$\",\n],", "isRegex", "postCommands",
+  return ["title", "description", "preCommands", "find", "replace", "run", "isRegex", "postCommands",
     "matchCase", "matchWholeWord", "restrictFind", "cursorMoveSelect"];
 };
 
@@ -932,7 +950,7 @@ exports.getKeys = function () {
 exports.getValues = function () {
   // preserveCase support
   return {
-    title: "string", description: "string", find: "string", replace: "string",
+    title: "string", description: "string", find: "string", replace: "string", run: "string",
     preCommands: ["string", "object"], postCommands: ["string", "object"],
     isRegex: "boolean", matchCase: "boolean", matchWholeWord: "boolean",
     restrictFind: ["document", "selections", "line", "once", "nextSelect", "nextMoveCursor", "nextDontMoveCursor",
