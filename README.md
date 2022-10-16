@@ -8,7 +8,7 @@
 4. &nbsp; Do a series of finds and a replace across files, using only the results files from previous searches. See [Multiple searches across files.](searchInPanel.md#multiple-searches).  
 
 5. &nbsp; Execute javascript code, like math or string operations, on replacements.  
-&nbsp;&nbsp;Execute standalone javascript code for side effects, see example below.  **New in v4.2.0.**  
+&nbsp;&nbsp;Execute standalone javascript code for side effects, see example below.  **New in preview in v4.2.0.**  
 
 6. &nbsp; Use the vscode api or node packages like `path`, `os`, `fs`, etc. in a replacement.  
 
