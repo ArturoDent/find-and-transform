@@ -51,36 +51,32 @@ exports.findAndSelect = async function (editor, args) {
     let fullText;
     let matches;
 
+    // an undefined find will be converted to the empty string already, find = ''
     const resolvedFind = await resolve.resolveFind(editor, args, null, null);
 
-    // use args.pointReplaces here?  TODO
-    if (!resolvedFind) return;
+    if (resolvedFind) {
 
-    // if (args.isRegex) {
-    //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-    //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-    // }
+      if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
+        // lineCount is 1-based, so need to subtract 1 from it
+        const lastLineRange = document.lineAt(document.lineCount - 1).range;
+        docRange = new Range(0, 0, document.lineCount - 1, lastLineRange.end.character);
+        matches = _buildLineNumberMatches(resolvedFind, docRange);
+      }
 
-    if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
-      // lineCount is 1-based, so need to subtract 1 from it
-      const lastLineRange = document.lineAt(document.lineCount - 1).range;
-      docRange = new Range(0, 0, document.lineCount - 1, lastLineRange.end.character);
-      matches = _buildLineNumberMatches(resolvedFind, docRange);
-    }
+      // else get all the matches in the document, resolvedFind !== lineNumber/lineIndex
+      else if (resolvedFind.length) {
+        fullText = document.getText();
+        matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
+      }
 
-    // else get all the matches in the document, resolvedFind !== lineNumber/lineIndex
-    else if (resolvedFind.length) {
-      fullText = document.getText();
-      matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
-    }
-
-    // Any way to designate a capture group to select, like '\\$1(\\d+)' ?
-    matches?.forEach((match, index) => {
-      const startPos = document.positionAt(match.index);
-      const endPos = document.positionAt(match.index + match[0].length);
-      foundSelections[index] = new Selection(startPos, endPos);
-    });
-    if (foundSelections.length) editor.selections = foundSelections; // this will not? remove all the original selections
+      // Any way to designate a capture group to select, like '\\$1(\\d+)' ?
+      matches?.forEach((match, index) => {
+        const startPos = document.positionAt(match.index);
+        const endPos = document.positionAt(match.index + match[0].length);
+        foundSelections[index] = new Selection(startPos, endPos);
+      });
+      if (foundSelections.length) editor.selections = foundSelections;
+    }// this will not? remove all the original selections
   }
 
   else {  // restrictFind === "selections/once/line"
@@ -90,17 +86,16 @@ exports.findAndSelect = async function (editor, args) {
 
     await Promise.all(editor.selections.map(async (selection) => {
 
-      // TODO selection arg = "" ?
-      if (!args.find) return;
+      
+      if (!args.find && args.restrictFind !== "selections") {
+        const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
+        const findObject = resolve.makeFind(lineSelections, args);
+        ({ find: args.find, emptyPointSelections: args.pointReplaces } = findObject);
+        args.madeFind = true;
+        args.isRegex ||= findObject.mustBeRegex;
+      }
       const resolvedFind = await resolve.resolveFind(editor, args, null, selection);
-      // resolvedFind = resolve.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
-
       if (!resolvedFind) return;
-
-      // if (args.isRegex) {
-      //   if (resolvedFind === "^") resolvedFind = "^(?!\n)";
-      //   else if (resolvedFind === "$") resolvedFind = "$(?!\n)";
-      // }     
 
       let searchText;
 
@@ -195,7 +190,7 @@ exports.findAndSelect = async function (editor, args) {
     if (foundSelections.length) editor.selections = foundSelections; // TODO this will not? remove all the original selections
   }
   if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
-  if (foundSelections.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
+  if ((foundSelections.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, editor.selection);
 };
 
 /**
@@ -246,13 +241,13 @@ exports.replaceInLine = async function (editor, edit, args) {
         let resolvedFind;
         
         // call makeFind(selections, args) here with currentLine selections only
-        const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
+        // const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
         if (!args.find) {
+          const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
           const findObject = resolve.makeFind(lineSelections, args);
-          args.find = findObject.find;
-          args.isRegex = args.isRegex || findObject.mustBeRegex;
+          ({ find: args.find, emptyPointSelections: args.pointReplaces } = findObject);
           args.madeFind = true;
-          args.pointReplaces = findObject.emptyPointSelections;
+          args.isRegex ||= findObject.mustBeRegex;
         }
         
         if (!args.find) return;
@@ -274,25 +269,22 @@ exports.replaceInLine = async function (editor, edit, args) {
           matches.push(match);
         }
         
+        // inaccurate? 
         matches?.forEach((match, index) => {
           
           lineIndex = document.offsetAt(new Position(selection.active.line, 0));
-          
           const startPos = document.positionAt(lineIndex + match.index);
           const endPos = document.positionAt(lineIndex + match.index + match[0].length);
           foundSelections[index] = new Selection(startPos, endPos);
         });
         
-        // README: only works for one line at a time
+        // only works for one line at a time
         if (foundSelections.length) editor.selections = foundSelections;
         if (args.run) resolve.resolveVariables(args, "run", null, foundSelections[index], null, null);
 
         matches?.forEach(async match => {
           
-          // if (args.run) resolve.resolveVariables(args, "run", null, foundSelections[index], null, null);
-
           lineIndex = document.offsetAt(new Position(selection.active.line, 0));
-
           let resolvedReplace = resolve.resolveVariables(args, "replace", match, foundSelections[index], null, index);
 
           const startPos = document.positionAt(lineIndex + match.index);
@@ -336,16 +328,12 @@ exports.replaceInLine = async function (editor, edit, args) {
           if (!foundSelections.length) emptySelections.push(new Selection(new Position(line, 0), new Position(line, 0)));
         }
       }
-      if (foundSelections.length) editor.selections = foundSelections;
+      // these are inaccurate TODO
+      if (args.cursorMoveSelect && foundSelections.length) editor.selections = foundSelections;
       else editor.selections = emptySelections;  // clear all selections
       
-      // if (args.run) {    // doesn't work
-      //   matches?.forEach((match, index) => {
-      //     resolve.resolveVariables(args, "run", null, foundSelections[index], null, null);
-      //   });
-      // }
-      
-      if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
+      if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
+      if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, null);
     });
   }
 
@@ -357,7 +345,7 @@ exports.replaceInLine = async function (editor, edit, args) {
     let subStringIndex;
     let lines = [];
     let subStringIndices = [];
-    let lineMatches = {};
+    let lineMatches = [];
     let matches = [];     // for cursorMoveSelect
 
     await editor.edit(async function (edit) {
@@ -366,18 +354,16 @@ exports.replaceInLine = async function (editor, edit, args) {
       await Promise.all(uniqueSelections.map(async (selection) => {
         
         args.find = findArg; // reset to the original args.find
-        // let index = 0;    
         foundSelections = [];
-        // let resolvedFind;
         
         // call makeFind(selections, args) here with currentLine selections only
-        const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
+        // const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
         if (!args.find) {
+          const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
           const findObject = resolve.makeFind(lineSelections, args);
-          args.find = findObject.find;
-          args.isRegex = args.isRegex || findObject.mustBeRegex;
+          ({ find: args.find, emptyPointSelections: args.pointReplaces } = findObject);
           args.madeFind = true;
-          args.pointReplaces = findObject.emptyPointSelections;
+          args.isRegex ||= findObject.mustBeRegex;
         }
         if (!args.find) return;
         
@@ -404,7 +390,7 @@ exports.replaceInLine = async function (editor, edit, args) {
           const endPos = document.positionAt(selectionIndex + matches[0].index + matches[0][0].length);
           foundSelections[0] = new Selection(startPos, endPos);
           
-          // README: only works for one line at a time
+          // only works for one line
           if (foundSelections.length) editor.selections = foundSelections;
           if (args.run) resolve.resolveVariables(args, "run", null, foundSelections[index], null, null);
 
@@ -420,6 +406,9 @@ exports.replaceInLine = async function (editor, edit, args) {
           // so cursorMoveSelect is only **after** a once match
           subStringIndices[index++] = subStringIndex + matches[0].index;
         }
+        
+        if (foundSelections.length) editor.selections = foundSelections;
+        
       }));
     }).then(async success => {
       if (!success) {
@@ -454,8 +443,10 @@ exports.replaceInLine = async function (editor, edit, args) {
           }
         }
       }
-      if (foundSelections.length) editor.selections = foundSelections;
-      if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
+      if (args.cursorMoveSelect && foundSelections.length) editor.selections = foundSelections;
+      // takes only one selection from the editor
+      if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
+      if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, editor.selection);
     });
   }
 };
@@ -602,7 +593,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, edit, arg
       editor.revealRange(new Range(matchStartPos, matchEndPos), 2);
     }   // do nothing, edit already made
 
-    if ((nextMatches.length || previousMatches.length) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");  // TODO
+    if ((nextMatches.length || previousMatches.length) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, null);  // TODO
   });
 };
 
@@ -767,7 +758,7 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
       if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);
       index++;
     }
-    if (matches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", matches[0]);
+    if (matches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", matches[0], editor.selection);
   });
 };
 
@@ -822,9 +813,6 @@ exports.replaceInSelections = async function (editor, edit, args) {
         matches = [...selectedText.matchAll(re)];
       }
       
-      // TODO: needs to be the find selection only
-      // if (args.run) resolve.resolveVariables(args, "run", null, selection, null, null);
-
       for (const match of matches) {
 
         resolvedReplace = resolve.resolveVariables(args, "replace", match, selection, selectionStartIndex, index);
@@ -906,7 +894,9 @@ exports.replaceInSelections = async function (editor, edit, args) {
       if (foundSelections.length) editor.selections = foundSelections;
       if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
     }
-    if (args.postCommands && isSelectionWithMatch) await commands.runPrePostCommands(args.postCommands, "postCommands");
+    // runs after all finds in all selections, and uses only the first selection
+    if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
+    if (args.postCommands && isSelectionWithMatch) await commands.runPrePostCommands(args.postCommands, "postCommands", null, null);
   });
 };
 

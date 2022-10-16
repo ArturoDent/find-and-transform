@@ -163,7 +163,9 @@ exports.toSnakeCase = function (value) {
 
 };
 
-
+// TODO: check for \n, etc. not double-backslashed
+// no capture ground in find but $1, etc. in replace (unless isRegEx = true)
+// an apparent capture group in find, but isReg is miising (default is false)
 /**
  * Check args of commands: keys and values
  *  
@@ -246,6 +248,8 @@ exports.checkArgs = async function (args, fromWhere) {
 exports.writeBadArgsToOutputChannel = async function (argsBadObject) {
 
   const outputChannel = globals.outputChannel;
+  // const outputChannel = window.createOutputChannel("find-and-transform");
+  
   let output;
 
   if (argsBadObject.badKeys.length) {

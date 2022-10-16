@@ -1,4 +1,4 @@
-const { workspace, commands, extensions} = require('vscode');
+const { workspace, commands, extensions, Selection} = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
@@ -14,8 +14,9 @@ const utilities = require('./utilities');
  * @param {string | string[] | object} userCommands
  * @param {string}  preOrPost - "preCommands" or "postCommands"
  * @param {object} groups
+ * @param {Selection} selection
  */
-exports.runPrePostCommands = async function (userCommands, preOrPost, groups) {
+exports.runPrePostCommands = async function (userCommands, preOrPost, groups, selection) {
   
   // resolve variables here (but not capture groups - except in a choice), fill choices with array items, e.g.
   if (preOrPost === "postCommands") await new Promise(r => setTimeout(r, 300));
@@ -26,7 +27,7 @@ exports.runPrePostCommands = async function (userCommands, preOrPost, groups) {
   else if (typeof userCommands === 'object' && !Array.isArray(userCommands)) {
     if (userCommands.args?.snippet?.search(/\$[\{\d]/) !== -1) {
       // first null is 'groups'
-      userCommands.args.snippet = resolve.resolveVariables(userCommands.args, "snippet", groups, null, null, null);
+      userCommands.args.snippet = resolve.resolveVariables(userCommands.args, "snippet", groups, selection, null, null);
     }
     await commands.executeCommand(userCommands.command, userCommands.args);
   }
@@ -34,6 +35,11 @@ exports.runPrePostCommands = async function (userCommands, preOrPost, groups) {
   else if (Array.isArray(userCommands) && userCommands.length) {
     for (const command of userCommands) {
       if (typeof command === 'string') await commands.executeCommand(command);
+      // else if (typeof command === 'object')
+      else if (typeof command === 'object' && command.args?.snippet?.search(/\$[\{\d]/) !== -1) {
+        command.args.snippet = resolve.resolveVariables(command.args, "snippet", groups, selection, null, null);
+        await commands.executeCommand(command.command, command.args);
+      } 
       else if (typeof command === 'object')
         await commands.executeCommand(command.command, command.args);
     }

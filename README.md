@@ -8,7 +8,9 @@
 4. &nbsp; Do a series of finds and a replace across files, using only the results files from previous searches. See [Multiple searches across files.](searchInPanel.md#multiple-searches).  
 
 5. &nbsp; Execute javascript code, like math or string operations, on replacements.  
-6. &nbsp; Use the vscode api or node packages like `path`, `os`, `fs`, etc. in a replacement. **New in v4.0.0.**  
+&nbsp;&nbsp;Execute standalone javascript code for side effects, see example below.  **New in v4.2.0.**  
+
+6. &nbsp; Use the vscode api or node packages like `path`, `os`, `fs`, etc. in a replacement.  
 
 7. &nbsp; Supports using path or snippet variables in the Search Panel or in a Find in the current file.  
 8. &nbsp; Replacements can include case modifiers, like `\U`, conditionals, as in if found capture group 1 add other text, snippet-like transforms like `${1:/pascalcase}` and more.  
@@ -45,14 +47,16 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 &emsp; &emsp; [7. Running Multiple finds or replaces](#running-multiple-finds-and-replaces-with-a-single-keybinding-or-setting)  
 
-&emsp; &emsp; [8. Running Javascript Code in a Replacement](#running-javacript-code-in-a-replacement)  
+&emsp; &emsp; [8. Running Javascript Code in a Replacement](#running-javascript-code-in-a-replacement)  
 
 &emsp; &emsp; &emsp; [a. Math Operations in Replacements](#doing-math-on-replacements)  
 &emsp; &emsp; &emsp; [b. String Operations in Replacements](#doing-string-operations-on-replacements)  
 &emsp; &emsp; &emsp; [c. Using the vscode api or other packages, like path, in Replacements](#using-the-vscode-api-on-replacements)  
 &emsp; &emsp; &emsp; [d. More Operations in Replacements](#doing-other-javascript-operations-on-replacements)  
 
-&emsp; &emsp; [9. Special Variables](#special-variables)  
+&emsp; &emsp; [9. Running Javascript Code as a Side Effect](#running-javascript-code-as-a-side-effect)  
+
+&emsp; &emsp; [10. Special Variables](#special-variables)  
 
 &emsp; &emsp; &emsp; [a. Path Variables: Launch or Task-like Variables](#launch-or-task-variables-path-variables)  
 &emsp; &emsp; &emsp; [b. Snippet Variables: Snippet-like Variables](#snippet-variables)  
@@ -61,13 +65,13 @@ Below you will find information on using the `findInCurrentFile` command - which
 &emsp; &emsp; &emsp; [e. Snippet Transforms: `${3:/capitalize}`](#snippet-like-transforms-replacements-in-findincurrentfile-commands-or-keybindings)  
 &emsp; &emsp; &emsp; [f. More Examples of Variable Transforms](#examples)  
 
-&emsp; &emsp; [10. Using `restrictFind` and `cursorMoveSelect`](#details-on-the-restrictfind-and-cursormoveselect-arguments)  
+&emsp; &emsp; [11. Using `restrictFind` and `cursorMoveSelect`](#details-on-the-restrictfind-and-cursormoveselect-arguments)  
 
 &emsp; &emsp; &emsp; [a. Some `"restrictFind": "next...` option examples](#some-restrictfind-next-option-examples)  
 
-&emsp; &emsp; [11. Settings Examples](#sample-settings)  
+&emsp; &emsp; [12. Settings Examples](#sample-settings)  
 
-&emsp; &emsp; [12. Keybinding Examples](#sample-keybindings)  
+&emsp; &emsp; [13. Keybinding Examples](#sample-keybindings)  
 
 &emsp; &emsp; &emsp; [a. `lineNumber` and `lineIndex`](#using-linenumber-or-lineindex-in-the-find)  
 &emsp; &emsp; &emsp; [b. Nearest Words at Cursors](#nearest-words-at-cursors)  
@@ -77,9 +81,9 @@ Below you will find information on using the `findInCurrentFile` command - which
 &emsp; &emsp; &emsp; &emsp; [i. find, no replace, restrictFind: selections](#find-and-no-replace-with-restrictfind-selections)  
 &emsp; &emsp; &emsp; [f. no find argument but with a replace](#with-a-replace-key-but-no-find-key)  
 
-&emsp; &emsp; [13. Demonstrating `cursorMoveSelect` after replacement](#demonstrating-cursormoveselect-after-replacement)  
+&emsp; &emsp; [14. Demonstrating `cursorMoveSelect` after replacement](#demonstrating-cursormoveselect-after-replacement)  
 
-&emsp; &emsp; [14. `matchNumber` and `matchIndex`](#matchnumber-and-matchindex)  
+&emsp; &emsp; [15. `matchNumber` and `matchIndex`](#matchnumber-and-matchindex)  
 
 <br/>
 
@@ -116,7 +120,7 @@ Above is an example of the `preCommands` and `postCommands` arguments.  This fun
 
 `preCommands` are run before any `find` or `replace` occurs.  It can be a single string or an object or an array of strings/objects.  The arguments `preCommands` and `postCommands` can appear anywhere in the arguments.  All the arguments can be in any order.  
 
-`postCommands` are run after the find and replace has occurred.  And will only run **if** there has been a successful find match.  So if there is no find match, no `postCommand` will run.  
+`postCommands` are run after the find and replace has occurred.  And will only run **if** there has been a successful find match or there is a `run` argument.  So if there is no find match and no `run` argument, no `postCommand` will run.  
 
 Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command ID` - the same command ID's you would use in a keybinding.  And the same for the `args` of each of those commands - see the `type` example above.  
 
@@ -227,6 +231,8 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 ## What arguments can a `findInCurrentFile` setting or keybinding use:
 
+> These are all discussed in more detail elsewhere.  
+
 ```jsonc
 {                                     // in keybindings.json 
   "key": "alt+r",
@@ -236,7 +242,27 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
     "description": "some string",      // for your information only, no function
     
     "find": "(trouble)",               // can be plain text, a regexp or a special variable
+    
     "replace": "\\U$1",                // text, variables, conditionals, case modifiers, operations, etc.
+    
+    "replace": "$${ someOperation }$$",
+    
+    "replace": [                       // run code, including the vscode extension api
+      "$${",                           // and do a replace with the result
+        "operation;",                  // insert at the cursor or replace selections
+        "operation;",
+        "operation;",
+        "return result;",
+      "}$$",
+    ],
+    
+    "run": [                           // run code, including the vscode extension api
+      "$${",                           // but do not do a replace with the result
+        "operation;",
+        "operation;",
+        "operation;",
+      "}$$",
+    ],
     
     "isRegex": true,                   // boolean, will apply to 'cursorMoveSelect' as well as the find query
     "matchWholeWord": true,            // boolean, same as above
@@ -489,7 +515,7 @@ On the first pass above, "someWord" will be replaced with "SOMEWORD".  On the se
 
 <br/>
 
-## Running Javacript Code in a Replacement  
+## Running Javascript Code in a Replacement  
 
 It is difficult to debug errors in javascript code you write in a replacement as below.  If your keybinding or setting generates an error, you will get a warning message notifying you of the failure.  And if you check your `Output` tab, and chose `find-and-transform` from the dropdown menu, you may get some helpful information on the nature of the error.  
 
@@ -719,6 +745,7 @@ Do not do `const vscode = require('vscode');` it has already been declared and y
     "vscode.env.clipboard.writeText( str );",  // copy the resolved 'str' to the clipboard 
     
     "return '';",                              // return empty string
+    // "return str;"                // return the str if you want to insert it somewhere
 
   "}$$",
   
@@ -728,7 +755,9 @@ Do not do `const vscode = require('vscode');` it has already been declared and y
 ],
 ```
 
-> For the above example which prints out the full path, there is no `find` so the replacement - just an empty string - will just be inserted at the cursor.  So make sure the cursor is not in or at a word boundary or that word will be treated as the `find` query and be replaced by an empty string.  There must be a `return` of some kind.  
+> For the above example which prints out the full path, there is no `find` so the replacement - just an empty string - will just be inserted at the cursor.  So make sure the cursor is not in or at a word boundary or that word will be treated as the `find` query and be replaced by an empty string.  There must be a `return` of some kind for a `replace` javascript operation.  
+
+> It probably makes more sense to put the above javascript operation into a `"run"` argument if you are going to use it as a side effect, like here where you store it in the clipboard to paste into a different file.  Then you don't care where the cursor is or whether there is any selected text already.  
 
 Output of above replacement in a newly created file:
 
@@ -953,6 +982,55 @@ A `settings.json` example:
 Explanation for above: Find `>` and add `class="uppercased filename">` to it.  
 
 ------------------  
+
+## Running Javascript Code as a side effect  
+
+You may want to run some javascript code, including the vscode api's, but **NOT** to replace anything.  You may want to construct a string to paste somewhere for example.  Consider this example (in your `settings.json`):
+
+```jsonc
+"findInCurrentFile": {
+  "buildMarkdownTOC": {             
+    "title": "Build Markdown Table of Contents",  // will be in the Command Palette
+    
+    "find": "(?<=^###? )(.*)$",     // these will be selected
+    
+    "run": [                        // this will be run after the find selections and before any replace
+      "$${",
+        "const headers = vscode.window.activeTextEditor.selections;",
+        "let str = '';",
+
+        "headers.forEach(header => {",
+          "const selectedHeader = document.getText(header);",
+          "str += `* [${selectedHeader}](#${selectedHeader.toLocaleLowerCase().split(' ').join('-')})\\n`;",
+        "});",
+
+        "str = str.slice(0, -1);",   // remove last \n from str
+        "vscode.env.clipboard.writeText(str);",  // note that a return statement isn't necessary for "run"
+      "}$$"
+    ],
+    
+    "isRegex": true,
+    "postCommands": [
+      "cursorTop", 
+      "editor.action.insertLineAfter",  
+      "editor.action.insertLineAfter", 
+      "editor.action.clipboardPasteAction"
+    ]
+  }
+}
+```
+
+This setting will select all the headers with 2 or more `##`'s, and then the `run` code will use those selections to construct a table of contents.  That will be saved to the clipboard.  
+
+And lastly, the `postCommands` will move the cursor to the top, insert 2 blank lines and then paste the table of contents.  
+
+This can be seen demonstrated at [Stack Overflow: run custom code on selected text](https://stackoverflow.com/questions/64748430/is-there-a-way-to-run-custom-js-code-on-the-selected-text-in-vscode), with a keybinding shown as well.  
+
+> In all cases except when using `"restrictFind": "selections"` the `run` argument will be performed after any `find` and before any replacements.  So you could, for example, use the `vscode.window.activeTextEditor.selections` that your `find` finds and selects automatically to manipulate those new selections.  For the `"restrictFind": "selections"` case, `args.run` is run after both the find and replace and uses only the first resulting selection in the file.  
+
+> As of v4.2.0, `args.run` will only run once with `"restrictFind": "line"`, NOT once for each line.  
+
+------------------------
 
 ## Special variables
 
@@ -1997,6 +2075,7 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.  
 * `async/await` all code so `postCommands` are more reliable.  
 * How to handle backticks in resolved find inside backticks.  
+* Prevent OutputChannel from appearing in Output when not being actively used.  
 
 ## Release Notes
 
@@ -2050,6 +2129,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 &emsp;&emsp; Added `{n:/snakecase}` transform.  
 &emsp;&emsp; Can do case modifications on conditionals and case transforms now.  `\\U${1:add this text}`.  
 &emsp;&emsp; Check args of pre/postCommands works with command objects (i.e., with arguments).  
+
+* 4.2.0 Introduced `args.run` to run js code as a side effect and not necessarily a replacement.  
 
 <br/>
 

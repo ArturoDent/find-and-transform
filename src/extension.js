@@ -10,6 +10,7 @@ const utilities = require('./utilities');
 
 
 exports.outputChannel = window.createOutputChannel("find-and-transform");
+// module.exports.outputChannel.hide();
 
 /** @type { Array<import("vscode").Disposable> } */
 let _disposables = [];
@@ -20,6 +21,8 @@ let enableWarningDialog = false;
  * @param {import("vscode").ExtensionContext} context
  */
 async function activate(context) {
+  
+  // module.exports.outputChannel.hide();
   
   this.context = context;  // global  
 	let firstRun = true;
@@ -242,9 +245,13 @@ async function _loadSettingsAsCommands(context, _disposables, firstRun) {
 
 // exports.activate = activate;
 
-function deactivate() { }
+function deactivate() {
+  // this.outputChannel.dispose();
+  module.exports.outputChannel.dispose();
+ }
 
 module.exports = {
 	activate,
   deactivate
+  // outputChannel: this.outputChannel
 }

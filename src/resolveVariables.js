@@ -27,7 +27,7 @@ exports.resolveFind = async function (editor, args, matchIndex, selection) {
   
   const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
   
-  if (args.find.search(lineIndexNumberRE) !== -1)
+  if (args.find && args.find.search(lineIndexNumberRE) !== -1)
     resolvedFind = await this.resolveVariables(args, "find", null, selection ?? editor.selection, cursorIndex, null, matchIndex);
   else
     resolvedFind = await this.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, null, matchIndex);
@@ -203,6 +203,11 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
     }
     catch (jsOPError) {  // this doesn't run async
       resolved = 'Error: jsOPError';
+      
+      
+      // const outputChannel = window.createOutputChannel("find-and-transform");
+      // outputChannel.appendLine(`\n${ jsOPError.stack }\n`);
+      // outputChannel.show(false);     
       globals.outputChannel.appendLine(`\n${ jsOPError.stack }\n`);
       globals.outputChannel.show(false);
       window.showWarningMessage("There was an error in the `$${<operations>}$$` part of the replace value.  See the Output channel: `find-and-transform` for more.")
