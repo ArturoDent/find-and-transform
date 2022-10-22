@@ -3,10 +3,15 @@ const fs = require('fs');
 const path = require('path');
 
 const drivers = require('./drivers');
-// const parseCommands = require('./parseCommands');
-// const searchCommands = require('./search');
 const resolve = require('./resolveVariables');
 const utilities = require('./utilities');
+// import { workspace, commands, extensions, Selection} from 'vscode';
+// import fs from 'fs';
+// import path from 'path';
+
+// import drivers from './drivers';
+// import resolve from './resolveVariables';
+// import utilities from './utilities';
 
 
 /**
@@ -74,26 +79,36 @@ exports.getSettings = async function (setting) {
  * @param {import("vscode").ExtensionContext} context
  */
 exports.loadCommands = async function (findSettings, searchSettings, context, enableWarningDialog) {
+  
+  const packageJSON = await utilities.getPackageJSON();
 
-	const thisExtension = extensions.getExtension('ArturoDent.find-and-transform');
-	const packageCommands = thisExtension.packageJSON.contributes.commands;
+  // const thisExtension = extensions.getExtension('ArturoDent.find-and-transform');
+  // thisExtension.extensionPath
+	// const packageCommands = thisExtension.packageJSON.contributes.commands;
+	const packageCommands = packageJSON.contributes.commands;
 
-	const builtins = _makeCommandsFromPackageCommands();
-
+  const builtins = _makeCommandsFromPackageCommands();
+  
+  // if ('isUnderDevelopment' in thisExtension.packageJSON) {
+  //   delete thisExtension.packageJSON.isUnderDevelopment;
+  // }
+  
 	const findSettingsCommands   =  await _makePackageCommandsFromFindSettings(findSettings, enableWarningDialog);
 	const searchSettingsCommands =  await _makePackageCommandsFromSearchSettings(searchSettings, enableWarningDialog);
 	const settingsCommands       =  findSettingsCommands.concat(searchSettingsCommands);
 
-  const packageEvents  =  thisExtension.packageJSON.activationEvents;
+
+  const packageEvents  =  packageJSON.activationEvents;
 	const settingsEvents =  _makeSettingsEventsFromSettingsCommands(settingsCommands);
 
 	if (!_commandArraysAreEquivalent(settingsCommands, packageCommands) ||
 		!_activationEventArraysAreEquivalent(settingsEvents, packageEvents)) {
 
-		thisExtension.packageJSON.contributes.commands = builtins.concat(settingsCommands);
-		thisExtension.packageJSON.activationEvents = settingsEvents;
+		packageJSON.contributes.commands = builtins.concat(settingsCommands);
+		packageJSON.activationEvents = settingsEvents;
 
-		fs.writeFileSync(path.join(context.extensionPath, 'package.json'), JSON.stringify(thisExtension.packageJSON, null, 1));
+		// fs.writeFileSync(path.join(context.extensionPath, 'package.json'), JSON.stringify(thisExtension.packageJSON, null, 1));
+		fs.writeFileSync(path.join(context.extensionPath, 'package.json'), JSON.stringify(packageJSON, null, 1));
 	}
 }
 

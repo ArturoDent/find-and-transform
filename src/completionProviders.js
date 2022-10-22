@@ -1,8 +1,14 @@
 const { languages, extensions, Range, Position, CompletionItem, CompletionItemKind, MarkdownString } = require('vscode');
+// import { languages, extensions, Range, Position, CompletionItem, CompletionItemKind, MarkdownString } from 'vscode';
 
 const jsonc = require("jsonc-parser");
+// import { parseTree, getLocation, getNodeValue } from "jsonc-parser";
+// import jsonc from "jsonc-parser";
+
 const searchCommands = require('./search');
+// import searchCommands from './search';
 const findCommands = require('./transform');
+// import findCommands from './transform';
 
 
 /**

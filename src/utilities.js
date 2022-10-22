@@ -1,12 +1,35 @@
-const { window, workspace, env, commands } = require('vscode');
+const { window, workspace, env, extensions, commands, Uri } = require('vscode');
 
 const languageConfigs = require('./getLanguageConfig');
 const path = require('path');
 const os = require('os');
+// import { window, workspace, env, extensions, commands, Uri } from 'vscode';
+
+// import languageConfigs from './getLanguageConfig';
+// import path from 'path';
+// import os from 'os';
 
 const findCommands = require('./transform');
 const searchCommands = require('./search');
 const globals = require('./extension');  // for outputChannel
+// import findCommands from './transform';
+// import searchCommands from './search';
+// import globals from './extension';  // for outputChannel
+
+/**
+ * Get the full path to this extension  
+ * @returns  
+ */
+exports.getPackageJSON = async function () {
+
+	const extensionPath = extensions.getExtension('ArturoDent.find-and-transform').extensionPath;
+  
+  const packageJSONUri = Uri.file(path.join(extensionPath, 'package.json'));
+  const packageContents = (await workspace.fs.readFile(packageJSONUri)).toString();
+  const packageJSON = JSON.parse(packageContents);
+
+	return packageJSON;
+}
 
 /**
  * Get the relative path to the workspace folder  
@@ -160,8 +183,8 @@ exports.toSnakeCase = function (value) {
     .replace(singleLetters, '$1_$2$3')
     .toLocaleLowerCase()
   );
-
 };
+
 
 // TODO: check for \n, etc. not double-backslashed
 // no capture ground in find but $1, etc. in replace (unless isRegEx = true)

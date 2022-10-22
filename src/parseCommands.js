@@ -3,6 +3,11 @@ const { window, workspace, env, Uri } = require('vscode');
 const findCommands = require('./transform');
 const resolve = require('./resolveVariables');
 const utilities = require('./utilities');
+// import { window, workspace, env, Uri } from 'vscode';
+
+// import findCommands from './transform';
+// import resolve from './resolveVariables';
+// import utilities from './utilities';
 
 
 /**

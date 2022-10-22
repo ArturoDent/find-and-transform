@@ -6,7 +6,16 @@ const globals = require('./extension');  // for outputChannel
 const variables = require('./variables'); 
 const path = require('path');        
 const os = require('os');     
-const utilities = require('./utilities');     
+const utilities = require('./utilities'); 
+// import vscode from 'vscode';
+// import { window, workspace, Range } from 'vscode';
+
+// import globals from './extension';  // for outputChannel
+
+// import variables from './variables'; 
+// import path from 'path';        
+// import os from 'os';     
+// import utilities from './utilities';     
 
 
 /**
@@ -51,7 +60,7 @@ exports.resolveCursorMoveSelect = async function (cursorMoveSelect, numMatches, 
   
   while (n++ < numMatches) {
     resolved = cursorMoveSelect.replaceAll(specialVariable, function (match) {
-      const temp = module.exports.resolveVariables(match, "cursorMoveSelect", combinedMatches, selection, null, index);
+      const temp = this.resolveVariables(match, "cursorMoveSelect", combinedMatches, selection, null, index);
       return temp;
     });
   };
@@ -186,25 +195,57 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
     try {
       resolved = resolved.replaceAll(re, function (match, p1, operation) {
         
-        if (/vscode\./.test(operation) && /path\./.test(operation))
-          return Function('vscode', 'path', 'require', 'document', `"use strict"; ${ operation }`)
-            (vscode, path, require, document);
-        else if (/vscode\./.test(operation))
-          return Function('vscode', 'require', 'document', `"use strict"; ${ operation }`)
-            (vscode, require, document);
-          // return await eval(`(async()=>{${ operation }})(vscode, require, document)`);
-        else if (/path\./.test(operation))
-          return Function('path', 'require', 'document', `"use strict"; ${ operation }`)
-            (path, require, document);
-        else
-          return Function('require', 'document', `"use strict"; ${ operation }`)
-            (require, document);
+        if (/\bawait\b/.test(operation)) {
+        
+          if (/vscode\./.test(operation) && /path\./.test(operation))
+            return Function('vscode', 'path', 'require', 'document', `"use strict"; (async function run (){${ operation }})()`)
+              (vscode, path, require, document);
+          else if (/vscode\./.test(operation))
+            return Function('vscode', 'require', 'document', `"use strict"; (async function run (){${ operation }})().then(res=>res)`)
+              (vscode, require, document);
+          else if (/path\./.test(operation))
+            return Function('path', 'require', 'document', `"use strict"; (async function run (){${ operation }})()`)
+              (path, require, document);
+          else {
+            Function('require', 'document', `"use strict"; return (async function run (){${ operation }})()`)
+              (require, document);
+            
+            // return await Function('require', 'document', `"use strict"; return (async function run (){${ operation }})().then(res => res)`)
+            //   (require, document);
+          
+            // const result = await eval(`return async function run (){${ operation }}`)();
+            // .then(res => {
+            //   console.log(res);
+            //   return res;
+            // });
+          
+            // result.then(res => {
+            //   console.log(res);
+            //   return res;
+            // });
+            // return await _resolve(result);
+            // const sayHello = Function('return async function () { return `Hello` }')();  // this works with func
+          }
+        }
+        else {
+          if (/vscode\./.test(operation) && /path\./.test(operation))
+            return Function('vscode', 'path', 'require', 'document', `"use strict"; ${ operation }`)
+              (vscode, path, require, document);
+          else if (/vscode\./.test(operation))
+            return Function('vscode', 'require', 'document', `"use strict"; ${ operation }`)
+              (vscode, require, document);
+          else if (/path\./.test(operation))
+            return Function('path', 'require', 'document', `"use strict"; ${ operation }`)
+              (path, require, document);
+          else {
+            return Function('require', 'document', `"use strict"; ${ operation }`)
+              (require, document);
+          }
+        }
       });
     }
     catch (jsOPError) {  // this doesn't run async
       resolved = 'Error: jsOPError';
-      
-      
       // const outputChannel = window.createOutputChannel("find-and-transform");
       // outputChannel.appendLine(`\n${ jsOPError.stack }\n`);
       // outputChannel.show(false);     
@@ -223,6 +264,11 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   //   resolved = this.resolveVariables(args, "replace");
   // }
   return resolved;
+};
+
+
+async function _resolve (func) {
+  return await (func())();
 };
 
 
@@ -254,8 +300,12 @@ exports.adjustValueForRegex = function(findValue, isRegex, matchWholeWord, madeF
   if (isRegex) {
     if (findValue === "^") findValue = "^(?!\n)";
     else if (findValue === "$") findValue = "$(?!\n)";
+    // else if (findValue === "^$") findValue = "(^\n$)";
   }
-
+  
+  // find a blank line: '^$' => '^\n$'
+  if (isRegex) findValue = findValue.replaceAll(/\^\$/g, "(\^\n\$)");  // TODO test this, add to README
+ 
 	return findValue;
 }
 

@@ -2,6 +2,10 @@ const { extensions } = require('vscode');
 const jsonc = require("jsonc-parser");
 const fs = require('fs');
 const path = require('path');
+// import { extensions } from 'vscode';
+// const jsonc = require("jsonc-parser");
+// import fs from 'fs';
+// import path from 'path';
 
 
 /**
@@ -35,20 +39,20 @@ exports.get = async function (langID, config) {
 
 	var langConfigFilePath = null;
 
-	for (const _ext of extensions.all) {
+	for (const extension of extensions.all) {
 		if (
-			_ext.packageJSON.contributes &&
-			_ext.packageJSON.contributes.languages
+			extension.packageJSON.contributes &&
+			extension.packageJSON.contributes.languages
 		) {
 			// Find language data from "packageJSON.contributes.languages" for the langID argument
 			// don't filter if you want them all
-			const packageLangData = _ext.packageJSON.contributes.languages.find(
+			const packageLangData = extension.packageJSON.contributes.languages.find(
 				_packageLangData => (_packageLangData.id === langID)
 			);
 			// If found, get the absolute config file path
 			if (!!packageLangData && packageLangData.configuration) {
 				langConfigFilePath = path.join(
-					_ext.extensionPath,
+					extension.extensionPath,
 					packageLangData.configuration
 				);
 				break;

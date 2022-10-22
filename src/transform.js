@@ -1,6 +1,9 @@
 const { window, Range, Position, Selection } = require('vscode');
 const commands = require('./commands');
 const resolve = require('./resolveVariables');
+// import { window, Range, Position, Selection } from 'vscode';
+// import commands from './commands';
+// import resolve from './resolveVariables';
 
 
 /**
