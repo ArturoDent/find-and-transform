@@ -107,8 +107,12 @@ exports.loadCommands = async function (findSettings, searchSettings, context, en
 		packageJSON.contributes.commands = builtins.concat(settingsCommands);
 		packageJSON.activationEvents = settingsEvents;
 
-		// fs.writeFileSync(path.join(context.extensionPath, 'package.json'), JSON.stringify(thisExtension.packageJSON, null, 1));
 		fs.writeFileSync(path.join(context.extensionPath, 'package.json'), JSON.stringify(packageJSON, null, 1));
+    
+    // below is necessary, see https://github.com/microsoft/vscode/issues/131208#issuecomment-903525999
+    // cache busting
+    const time = new Date();
+    fs.utimesSync(context.extensionPath, time, time);
 	}
 }
 
