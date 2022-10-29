@@ -112,7 +112,8 @@ exports.loadCommands = async function (findSettings, searchSettings, context, en
     // below is necessary, see https://github.com/microsoft/vscode/issues/131208#issuecomment-903525999
     // cache busting
     // const time = new Date();
-    // fs.utimesSync(context.extensionPath, time, time);
+    // C:\\Users\\Mark\\.vscode\extensions
+    // fs.utimesSync(path.dirname(context.extensionPath), time, time);  // does this work?
 	}
 }
 

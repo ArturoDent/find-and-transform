@@ -7,6 +7,7 @@ const searchCommands = require('./search');
 const providers = require('./completionProviders');
 const codeActions = require('./codeActions');
 const utilities = require('./utilities');
+
 // import { window, workspace, commands, env, Uri, Position, Selection } from 'vscode';
 
 // import drivers from './drivers';
