@@ -609,7 +609,10 @@ function _completeRestrictFindValues(position) {
 		_makeCompletionItem("document", new Range(position, position), "document", "01", "Find and replace in the current editor."),
 		_makeCompletionItem("selections", new Range(position, position), "document", "02", "Find and replace in selections only."),
 
-		_makeCompletionItem("once", new Range(position, position), "document", "03", "Find the first match on the current line **after the cursor** and replace, if any replacement specified."),
+    _makeCompletionItem("onceIncludeCurrentWord", new Range(position, position), "document", "03", "Find the first match on the current line from the beginning of the current word and replace, if any replacement specified."),
+    _makeCompletionItem("onceExcludeCurrentWord", new Range(position, position), "document", "031", "Find the first match on the current line **after the cursor** and replace, if any replacement specified.  Same as the previous value `once`, which is deprecated."),
+
+		// _makeCompletionItem("once", new Range(position, position), "document", "03", "Find the first match on the current line **after the cursor** and replace, if any replacement specified."),
 		_makeCompletionItem("line", new Range(position, position), "document", "04", "Find and replace all matches on the current line before and after the cursor."),
 
 		_makeCompletionItem("nextSelect", new Range(position, position), "document", "05", "Select the next match after replacing it (if you specify a replacement)."),

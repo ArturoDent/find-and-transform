@@ -18,7 +18,7 @@ const resolve = require('./resolveVariables');
 exports.getObjectFromArgs = async function (argsArray) {
   
   const args = {};
-
+  
 	// could be bad keys/values here
 	for (const [key, value] of Object.entries(argsArray)) {
     args[`${ key }`] = value;

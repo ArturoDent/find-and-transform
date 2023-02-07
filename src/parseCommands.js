@@ -97,7 +97,8 @@ exports.splitFindCommands = async function (editor, edit, args) {
       await findCommands.replaceInSelections(editor, edit, splitArgs);
     }
 
-    else if ((splitArgs.restrictFind === "line" || splitArgs.restrictFind === "once") && splitArgs.replace !== undefined) {
+    // else if ((splitArgs.restrictFind === "line" || splitArgs.restrictFind === "once") && splitArgs.replace !== undefined) {
+    else if ((splitArgs.restrictFind === "line" || splitArgs.restrictFind.startsWith("once")) && splitArgs.replace !== undefined) {
       await findCommands.replaceInLine(editor, edit, splitArgs);
     }
 
@@ -145,7 +146,8 @@ async function _buildFindArgs(args, index)  {
   else {
     // if multiple selections, isRegex must be true
     // if line/once don't call this here - do for each line
-    if (args.restrictFind !== "line" && args.restrictFind !== "once") {
+    // if (args.restrictFind !== "line" && args.restrictFind !== "once") {
+    if (args.restrictFind !== "line" && !args.restrictFind.startsWith("once")) {
       const findObject = resolve.makeFind(editor.selections, args);
       indexedArgs.find = findObject.find;
       indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;

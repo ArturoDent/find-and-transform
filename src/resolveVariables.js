@@ -37,11 +37,11 @@ exports.resolveFind = async function (editor, args, matchIndex, selection) {
   const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
   
   if (args.find && args.find.search(lineIndexNumberRE) !== -1)
-    resolvedFind = await this.resolveVariables(args, "find", null, selection ?? editor.selection, cursorIndex, null, matchIndex);
+    resolvedFind = module.exports.resolveVariables(args, "find", null, selection ?? editor.selection, cursorIndex, matchIndex);
   else
-    resolvedFind = await this.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, null, matchIndex);
+    resolvedFind = module.exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, matchIndex);
     
-  return this.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+  return module.exports.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 }
 
 /**
@@ -60,7 +60,7 @@ exports.resolveCursorMoveSelect = async function (cursorMoveSelect, numMatches, 
   
   while (n++ < numMatches) {
     resolved = cursorMoveSelect.replaceAll(specialVariable, function (match) {
-      const temp = this.resolveVariables(match, "cursorMoveSelect", combinedMatches, selection, null, index);
+      const temp = module.exports.resolveVariables(match, "cursorMoveSelect", combinedMatches, selection, null, index);
       return temp;
     });
   };
@@ -77,6 +77,7 @@ exports.resolveCursorMoveSelect = async function (cursorMoveSelect, numMatches, 
  * @param {string} caller - find/replace/cursorMoveSelect
  * @param {Array} groups - may be a single match
  * @param {import("vscode").Selection} selection - the current selection
+ * @param {number} selectionStartIndex
  * @param {number} matchIndex - which match is it
  * @returns {string} - the resolved string
  */
@@ -153,16 +154,22 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
     });
     
     // --------------------  caseTransform ----------------------------------------------------------
-    
+
     // --------------------  conditional ------------------------------------------------------------
     // if (caller !== "snippet") {  // because you can have a conditional like '${2:else}' which is a good snippet
-    re = new RegExp("(?<caseModifier>\\\\[UuLl])?(?<conditional>\\$\\{(\\d):([-+?]?)(.*?)\\})", "g");
+
+    // replace \\} here with !@#% and then replace it back at end
+    // or do a bracket count ${1:+${PWD\\}}${2:+$PWD} , regex above does not work!
+
+    // re = new RegExp("(?<caseModifier>\\\\[UuLl])?(?<conditional>\\$\\{(\\d):([-+?]?)(.*?)\\})", "g");
+    // can handle one \\} within the conditional
+    re = new RegExp("(?<caseModifier>\\\\[UuLl])?(?<conditional>(\\$\\{(\\d):([-+?]?)(.*?\\\\\}.*?|.*?))\\})", "g");
   
     // // if a '}' in a replacement? => '\\}' must be escaped
     // // ${1:+${2}}  ?  => ${1:+`$2`} or ${1:+`$2`} note the backticks or ${1:+$1 pardner}
     //  will check for capture groups inside _applyConditionalTransform
-    resolved = resolved.replaceAll(re, (match, p1, p2, p3, p4, p5, offset, string, namedGroups) => {
-      const variableToResolve = _applyConditionalTransform(match, p3, p4, p5, groups);
+    resolved = resolved.replaceAll(re, (match, p1, p2, p3, p4, p5, p6, offset, string, namedGroups) => {
+      const variableToResolve = _applyConditionalTransform(match, p4, p5, p6, groups);
       if (!namedGroups.caseModifier) return variableToResolve;
       else return _applyCaseModifier(namedGroups, groups, variableToResolve);
     });
@@ -209,22 +216,6 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
           else {
             Function('require', 'document', `"use strict"; return (async function run (){${ operation }})()`)
               (require, document);
-            
-            // return await Function('require', 'document', `"use strict"; return (async function run (){${ operation }})().then(res => res)`)
-            //   (require, document);
-          
-            // const result = await eval(`return async function run (){${ operation }}`)();
-            // .then(res => {
-            //   console.log(res);
-            //   return res;
-            // });
-          
-            // result.then(res => {
-            //   console.log(res);
-            //   return res;
-            // });
-            // return await _resolve(result);
-            // const sayHello = Function('return async function () { return `Hello` }')();  // this works with func
           }
         }
         else {
@@ -261,9 +252,11 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   // if still have a '${` or `$n` re-resolve
   // if (!error && caller !== "snippet" && resolved.search(/\$[\{\d]/) !== -1) {  // could this be replaced with a while loop up top?
   //   args.replace = resolved;
-  //   resolved = this.resolveVariables(args, "replace");
+  //   resolved = module.exports.resolveVariables(args, "replace");
   // }
-  return resolved;
+  // return resolved;
+  
+  return resolved.replace(/\\}/g, '}');  // mainly for conditionals like ${1:+${POW\\}}
 };
 
 
@@ -386,7 +379,8 @@ exports.replaceFindCaptureGroups = async function (findValue) {
       const range = document.getWordRangeAtPosition(pos);
       return _modifyCaseOfFindCaptureGroup(p1, document.getText(range));
     }
-    // escape regex characters above and below
+    // wrap each $n in a group () ?
+    // else return `(${_modifyCaseOfFindCaptureGroup(p1, document.getText(selections[p2 - 1]))})`;
     else return _modifyCaseOfFindCaptureGroup(p1, document.getText(selections[p2 - 1]));
   });
   
@@ -660,7 +654,7 @@ function _resolvePathVariables (variableToResolve, args, caller, selection, matc
            resolved = String(document.positionAt(selectionStartIndex).line); //  works for wholeDocument
          }
          else if (args.restrict === "document") resolved = String(document.positionAt(match.index).line);
-         else resolved = String(selection.active.line); // line/once find/replace
+         else resolved = String(selection.active.line); // line/once/onceFromStart/onceFromCursor find/replace
        }
        // "ignoreLineNumbers" will pass through unresolved
       break;
@@ -678,7 +672,7 @@ function _resolvePathVariables (variableToResolve, args, caller, selection, matc
           resolved = String(document.positionAt(selectionStartIndex).line + 1); //  works for wholeDocument
         }
         else if (args.restrict === "document") resolved = String(document.positionAt(match.index).line + 1); //  works for wholeDocument
-        else resolved = String(selection.active.line + 1); // line/once find/replace
+        else resolved = String(selection.active.line + 1); // line/once/onceFromStart/onceFromCursor find/replace
       }
       // "ignoreLineNumbers" will pass through unresolved
       break;
@@ -729,13 +723,15 @@ function _resolveSnippetVariables (variableToResolve, args, caller, selection, g
     case "$TM_CURRENT_LINE": case "${TM_CURRENT_LINE}":
       let textLine = "";
       const selectionOffset = document.offsetAt(selection.active);
-      if (caller === 'replace' && groups) {               // caller === replace
-        textLine = document.lineAt(document.positionAt(selectionOffset + groups?.index).line).text;
-      }
-      else {                                    // caller === find/ignoreLineNumbers/cursorMoveSelect
-        textLine = document.lineAt(document.positionAt(selectionOffset).line).text;
-      }
-      resolved = textLine;
+      // what is groups doing here?  replace in selections?
+      // if (caller === 'replace' && groups  && (args.restrictFind !== 'line')) {     // caller === replace
+      //   textLine = document.lineAt(document.positionAt(selectionOffset + groups?.index).line).text;
+      // }
+      // else {                                    // caller === find/ignoreLineNumbers/cursorMoveSelect
+      //   textLine = document.lineAt(document.positionAt(selectionOffset).line).text;
+      // }
+      // resolved = textLine;
+      resolved = document.lineAt(document.positionAt(selectionOffset).line).text;
     break; 
 
     case "$TM_CURRENT_WORD": case "${TM_CURRENT_WORD}":
@@ -1115,7 +1111,7 @@ function _checkForCaptureGroupsInConditionalReplacement(replacement, groups) {
  */
 exports.makeFind = function (selections, args) {
   
-  // should respect "restrictFind": "line/once" for example, make find only from selections in that line
+  // should respect "restrictFind": "line//onceFromStart/onceFromCursor" for example, make find only from selections in that line
   // would have to call makeFind per line
 
   const document = window.activeTextEditor.document;

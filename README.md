@@ -1,6 +1,8 @@
 # find-and-transform  
 
-## Highlights
+## Highlights  
+
+> Deprecated: `once` as a value for the `restrictFind` argument.  It is being replaced by `onceExcludeCurrentWord` which functions exactly as `once` does, and `onceIncludeCurrentWord` which works a little differently.  See more below within [once restrictFind Values](#details-on-the-restrictfind-and-cursormoveselect-arguments).
 
 1. &nbsp; Find and transform text in a single file with many kinds of transforms.  
 2. &nbsp; Search across files with pre-defined options.
@@ -267,7 +269,7 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
     "isRegex": true,                   // boolean, will apply to 'cursorMoveSelect' as well as the find query
     "matchWholeWord": true,            // boolean, same as above
     "matchCase": true,                 // boolean, same as above
-    "restrictFind": "selections",      // restrict find to document, selections, line, once on line or next
+    "restrictFind": "selections",      // restrict find to document, selections, line, once... on line or next
     
     "cursorMoveSelect": "^\\s*pa[rn]am"     // select this text/regexp after making the replacement
   }
@@ -1169,7 +1171,7 @@ These snippet variables are used just like the path variables mentioned above.  
 }
 ```
 
-Explanation: The above keybinding (or it could be a command) will insert the result of (current hour - 1) at the cursor, **if** the cursor is not at a word - so on a empty line or with a space separating the cursor from any other word.   Otherwise, if the cursor is on a word that word will be treated as the `find` and all its occurrences (within the `restrictFind` scope: entire document/selections/once/line/next..) will be replaced by (current hour - 1).  
+Explanation: The above keybinding (or it could be a command) will insert the result of (current hour - 1) at the cursor, **if** the cursor is not at a word - so on a empty line or with a space separating the cursor from any other word.   Otherwise, if the cursor is on a word that word will be treated as the `find` and all its occurrences (within the `restrictFind` scope: entire document/selections/onceIncludeCurrentWord/onceExcludeCurrentWord/line/next..) will be replaced by (current hour - 1).  
 
 Note that vscode can do fancy things with snippet comment variables like `${LINE_COMMENT}` by examining the language of individual tokens so that, for example, css in js would get its correct comment characters if within the css part of the code.  This extension cannot do that and will get the proper comment characters for the file type only.  
 
@@ -1426,9 +1428,20 @@ These will all **reveal** the replacement so you can see the change, but not nec
 You can use the `cursorMoveSelect` option with the below `restrictFind` options.  
 
 1. `"restrictFind": "document"` the **default**, make all replacements in the document, select all of them.  
-2. `"restrictFind": "once"` make the next replacement **after the cursor** on the **same line** only.  
-3. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
-4. `"restrictFind": "selections"` make all replacements in the selections only.  
+
+2. `"restrictFind": "onceIncludeCurrentWord"` make the next replacement from the beginning of the current word on the **same line** only.  
+3. `"restrictFind": "onceExcludeCurrentWord"` make the next replacement **after the cursor** on the **same line** only.  
+
+4. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
+5. `"restrictFind": "selections"` make all replacements in the selections only.  
+
+```plaintext
+ New `once...` restrictFind Values.  `once` deprecated:
+ ```
+
+The `once` argument to `restrictFind` is being **deprecated** in favor of two related values: `onceExcludeCurrentWord` and `onceIncludeCurrentWord`.  `onceExcludeCurrentWord` functions exactly as `once` does, the searched text begins strictly at the cursor position - even if that is in the middle of a word.  That does allow you to use that `${TM_CURRENT_WORD}` in a find or replace and not actually change the current word, but the next instance.  But sometimes you do want to change the current word and then `onceIncludeCurrentWord` is what you want.  Then the entire word at the cursor is part of the search text and it will be selected or replaced according to your keybinding/setting.  
+
+-------------
 
 The `cursorMoveSelect` option takes any text as its value, including anything that resolves to text, like `$` or any variable.  That text, which can be a result of a prior replacement, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp.  `matchCase` and `matchWholeWord` settings will be honored for both the `cursorMoveSelect` and `find` text.  
 
@@ -1464,7 +1477,7 @@ The `cursorMoveSelect` option takes any text as its value, including anything th
 }
 ```
 
-Note `^` and `$` work for `restrictFind` selections/line/once/document.  
+Note `^` and `$` work for `restrictFind` selections/line/onceIncludeCurrentWord/onceExcludeCurrentWord/document.  
 
 1. `cursorMoveSelect` will select **all** matches in each `selections` **only** if there was a match in the same selection.  
 
@@ -1476,7 +1489,7 @@ Note `^` and `$` work for `restrictFind` selections/line/once/document.
 
 <br/>
 
-> When you use the `cursorMoveSelect` argument for a `restrictFind: document` or the `nextMoveCursor` or `nextSelect` options for the `restrictFind` key, it is assumed that you actually want to go there and see the result.  So the editor will be scrolled to reveal the line of that match if it is not curently visible in the editor's viewport.  For `selections/line/once` no scolling will occur - it is assumed that you can see the resulting match already (the only way that wouldn't typically be true is if you had a long selection that went off-screen).  
+> When you use the `cursorMoveSelect` argument for a `restrictFind: document` or the `nextMoveCursor` or `nextSelect` options for the `restrictFind` key, it is assumed that you actually want to go there and see the result.  So the editor will be scrolled to reveal the line of that match if it is not curently visible in the editor's viewport.  For `selections/line/onceIncludeCurrentWord/onceExcludeCurrentWord` no scrolling will occur - it is assumed that you can see the resulting match already (the only way that wouldn't typically be true is if you had a long selection that went off-screen).  
 
 <br/>
 
@@ -1948,7 +1961,7 @@ Explanation for above: With no `find` value find all the words at the cursors or
     "find": ">",
     "replace": " class=\"@\">",
     "isRegex": true,
-    "restrictFind": "once", 
+    "restrictFind": "onceExcludeCurrentWord", 
     "cursorMoveSelect": "@"         // select the next '@'
   }
 }
@@ -1966,13 +1979,15 @@ Explanation for above: With no `find` value find all the words at the cursors or
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMoveSelect arg with restrictFind of 'once'"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMoveSelect arg with restrictFind of 'onceExcludeCurrentWord'"/>
 
 Explanation for above: Find the first `>` within selection(s) and replace them with ` class=\"@\">`.  Then move the cursor(s) to `@` and select it.  `cursorMoveSelect` value can be any text, even the regexp delimiters `^` and `$`.  
 
 <br/>
 
-* `"restrictFind": "once"` => find the FIRST instance of the `find` query AFTER the cursor (so if your cursor is in the middle of a word, only part of that word is **after** the cursor), replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.  
+* `"restrictFind": "onceExcludeCurrentWord"` => find the FIRST instance of the `find` query AFTER the cursor (so if your cursor is in the middle of a word, only part of that word is **after** the cursor), replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.  
+
+* `"restrictFind": "onceIncludeCurrentWord"` => find the FIRST instance of the `find` query from the BEGINNING of the current word (so if your cursor is in the middle of a word, that entire word will be searched), replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.
 
 * `"restrictFind": "line"` => find all instances of the `find` query on the entire line with the cursor, replace them and then go to and select All `cursorMoveSelect` values if any.  Works on each line if multiple cursors.  But it only considers the line where the cursor(s) is, so if there is a multi-line selection, only the line with the cursor is searched.  
 
@@ -2131,6 +2146,9 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 &emsp;&emsp; Check args of pre/postCommands works with command objects (i.e., with arguments).  
 
 * 4.2.0 Introduced `args.run` to run js code as a side effect and not necessarily a replacement.  
+
+* 4.3.0 Introduced `onceExcludeCurrentWord` and `onceIncludeCurrentWord` (`once` is deprecated).  
+&emsp;&emsp; Made lineNumber/lineIndex matches work with the `once...` values.  
 
 <br/>
 

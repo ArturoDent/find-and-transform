@@ -82,7 +82,7 @@ exports.findAndSelect = async function (editor, args) {
     }// this will not? remove all the original selections
   }
 
-  else {  // restrictFind === "selections/once/line"
+  else {  // restrictFind === "selections/once/onceIncludeCurrentWord/onceExcludeWord/line"
 
     let selectedRange;
     let matches;
@@ -150,41 +150,52 @@ exports.findAndSelect = async function (editor, args) {
         });
       }
 
-      else if (args.restrictFind === "once") {
+      // else if (args.restrictFind === "once") {
+      else if (args.restrictFind.startsWith("once")) {
 
         let lineIndex = 0;
         let subStringIndex;
+        const currentWordRange = document.getWordRangeAtPosition(selection.active);
 
         if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+          
           let lineRange = document.lineAt(selection.active.line).range;
-
-          let subLineRange = lineRange.with({ start: document.getWordRangeAtPosition(selection.active).start });
+          let subLineRange = lineRange.with({ start: selection.active });
+          
+          if ((args.restrictFind === "onceIncludeCurrentWord") && currentWordRange)
+            subLineRange = lineRange.with({ start: document.getWordRangeAtPosition(selection.active).start });
+          // else 
 
           matches = _buildLineNumberMatches(resolvedFind, subLineRange);
         }
 
         else if (resolvedFind?.length) {
           const fullLine = document.lineAt(selection.active.line).text;
-          // to not include the word under cursor:
-          // const wordRangeAtCursor = document.getWordRangeAtPosition(selection.end);
-          // if (wordRangeAtCursor) searchText = fullLine.substring(wordRangeAtCursor?.end?.character);
-          // else searchText = fullLine.substring(selection?.end?.character);
-          searchText = fullLine.substring(selection?.end?.character);
+          const wordRangeAtCursor = document.getWordRangeAtPosition(selection.active);
+          searchText = fullLine.substring(selection?.end?.character);  // once, onceExcludeCurrentWord
+          
+          if ((args.restrictFind === "onceIncludeCurrentWord") && wordRangeAtCursor?.start) {
+            searchText = fullLine.substring(wordRangeAtCursor?.start?.character);
+          }
 
           if (!searchText) return;
 
           matches = [...searchText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
-          lineIndex = document.offsetAt(new Position(selection.end.line, 0));
-          // this starts at the beginning of the current word:
-          // subStringIndex = document.getWordRangeAtPosition(selection.end)?.start?.character;
-          // // if no curent word = empty line or at spaces between words or at end of a line with a space
-          // if (subStringIndex === undefined) subStringIndex = selection.end?.character;
-          subStringIndex = selection.end?.character;
         }
+          
+        if (matches?.length) {
+          // lineIndex = document.offsetAt(new Position(selection.active.line, 0));
+          // subStringIndex = selection.end?.character;
+          subStringIndex = selection.active?.character;
+        
+          if ((args.restrictFind === "onceIncludeCurrentWord") && currentWordRange) {
+            subStringIndex = currentWordRange?.start?.character;
+          }
 
-        if (matches?.length) {  // just do once
-          const startPos = document.positionAt(lineIndex + subStringIndex + matches[0].index);
-          const endPos = document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
+          // const startPos = document.positionAt(lineIndex + subStringIndex + matches[0].index);
+          const startPos = document.positionAt(matches[0].index);
+          // const endPos = document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
+          const endPos = document.positionAt(matches[0].index + matches[0][0].length);
           foundSelections.push(new Selection(startPos, endPos));
         }
       }
@@ -215,17 +226,17 @@ exports.replaceInLine = async function (editor, edit, args) {
   let lines = [];  
   let uniqueSelections = [];
   
-    uniqueSelections.push(editor.selections[0]);
-    lines.push(uniqueSelections[0].active.line);
-    
-    editor.selections.forEach(selection => {
-      if (!lines.includes(selection.active.line)) {
-        uniqueSelections.push(selection);
-        lines.push(selection.active.line);
-      }
-    });
+  uniqueSelections.push(editor.selections[0]);
+  lines.push(uniqueSelections[0].active.line);
   
-    lines = [];
+  editor.selections.forEach(selection => {
+    if (!lines.includes(selection.active.line)) {
+      uniqueSelections.push(selection);
+      lines.push(selection.active.line);
+    }
+  });
+
+  lines = [];
 
   if (args.restrictFind === "line") {
 
@@ -340,8 +351,7 @@ exports.replaceInLine = async function (editor, edit, args) {
     });
   }
 
-  // change to: from beginning of current word to end of line?
-  else if (args.restrictFind === "once") {  // from cursor to end of line
+  else if (args.restrictFind.startsWith("once")) { 
 
     let fullLine = "";
     let lineIndex;
@@ -376,18 +386,28 @@ exports.replaceInLine = async function (editor, edit, args) {
         if (!resolvedFind && !args.replace) return;  // correct here or already handled in findAndSelect?
 
         const re = new RegExp(resolvedFind, args.regexOptions);
-        // get first match on line from cursor forward
         fullLine = document.getText(document.lineAt(selection.active.line).rangeIncludingLineBreak);
 
-        subStringIndex = selection.end?.character;
-        currentLine = fullLine.substring(selection.end.character);
+        let currentWordRange;
+        // if (!selection.isEmpty) currentWordRange = document.getWordRangeAtPosition(selection.active);
+        // else currentWordRange = selection;
+        
+        currentWordRange = document.getWordRangeAtPosition(selection.active) || selection;
+        
+        if (args.restrictFind === "onceIncludeCurrentWord") subStringIndex = currentWordRange.start.character;
+        else subStringIndex = currentWordRange.end.character;
+        
+        if (args.restrictFind === "onceIncludeCurrentWord") currentLine = fullLine.substring(subStringIndex);
+        else currentLine = fullLine.substring(subStringIndex);  // once/onceExcludeCurrentWord
 
         // use matchAll() to get index even though only using the first one
         matches = [...currentLine.matchAll(re)];
         
         if (matches.length) {  // just do once
-          
-          let selectionIndex = document.offsetAt(selection.end);
+
+          let selectionIndex;
+          if (args.restrictFind === "onceIncludeCurrentWord") selectionIndex = document.offsetAt(currentWordRange.start);
+          else selectionIndex = document.offsetAt(currentWordRange.end);
           
           const startPos = document.positionAt(selectionIndex + matches[0].index);
           const endPos = document.positionAt(selectionIndex + matches[0].index + matches[0][0].length);
@@ -621,8 +641,9 @@ function _buildLineNumberMatches(find, range) {
     const lineIndex = document.offsetAt(new Position(line, 0));
     let lineText = document.lineAt(line).text;
 
-    // for selections/once
+    // for selections/once/onceIncludeCurrentWord/onceExcludeCurrentWord
     // change lineText to start of wordAtCursor?
+    
     if (range.start.line === line) lineText = lineText.substring(range.start.character);
     else if (range.end.line === line) lineText = lineText.substring(0, range.end.character);
 
@@ -633,6 +654,7 @@ function _buildLineNumberMatches(find, range) {
     for (const match of lineMatches) {
       match["line"] = line;
       if (range.start.line === line) match["index"] = lineIndex + match.index + range.start.character;
+      // else match["index"] = lineIndex + match.index;  // don't add range.start.character to non-first line of selections
       else match["index"] = lineIndex + match.index;  // don't add range.start.character to non-first line of selections
       matches.push(match);
     }
@@ -946,7 +968,7 @@ exports.getValues = function () {
     title: "string", description: "string", find: "string", replace: "string", run: "string",
     preCommands: ["string", "object"], postCommands: ["string", "object"],
     isRegex: "boolean", matchCase: "boolean", matchWholeWord: "boolean",
-    restrictFind: ["document", "selections", "line", "once", "nextSelect", "nextMoveCursor", "nextDontMoveCursor",
+    restrictFind: ["document", "selections", "line", "once", "onceIncludeCurrentWord", "onceExcludeCurrentWord", "nextSelect", "nextMoveCursor", "nextDontMoveCursor",
       "previousSelect", "previousMoveCursor", "previousDontMoveCursor"],
     cursorMoveSelect: "string"
   };
