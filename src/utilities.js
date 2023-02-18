@@ -1,4 +1,4 @@
-const { window, workspace, env, extensions, commands, Uri } = require('vscode');
+const { window, workspace, Selection, Position, env, extensions, commands, Uri } = require('vscode');
 
 const languageConfigs = require('./getLanguageConfig');
 const path = require('path');
@@ -15,6 +15,18 @@ const globals = require('./extension');  // for outputChannel
 // import findCommands from './transform';
 // import searchCommands from './search';
 // import globals from './extension';  // for outputChannel
+
+
+/**
+ * Escape the glob characters '?*[]' for the 'files to include' input 
+ * from the 'find-and-transform.searchInFolder/File/Results' commands.
+ * @param {string} path
+ * @returns {Promise<String>}
+ */
+exports.escapePathsForFilesToInclude = async function (path) {
+  if (!path) return "";
+  return path.replace(/([?*[\]])/g, '[$1]');
+};
 
 /**
  * Get the full path to this extension  
@@ -105,7 +117,7 @@ exports.getSearchResultsFiles = async function (clipText) {
 
 		let pathArray = resultsArray.filter(result => result !== "");
 		pathArray = pathArray.map(path => this.getRelativeFilePath(path))
-		return pathArray.join(", ");
+		return await module.exports.escapePathsForFilesToInclude( pathArray.join(", ") );
 	}
 	else {
 		// notifyMessage?
@@ -244,6 +256,9 @@ exports.checkArgs = async function (args, fromWhere) {
       else if (key === 'restrictFind') {
         if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
       }
+      else if (key === 'reveal') {    // TODO check this
+        if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
+      }
       
       else if (Array.isArray(args[key])) {
         await Promise.all(args[key].map(async (value) => {
@@ -255,7 +270,6 @@ exports.checkArgs = async function (args, fromWhere) {
         // if (badValue && typeof goodValues[key][0] === "boolean") console.log(`"${ args[key] }" is not an accepted value of "${ key }".  The value must be a boolean true or false (not a string).`);
         // else if (badValue && typeof goodValues[key][0] === "string") console.log(`"${ args[key] }" is not an accepted value of "${ key }". Accepted values are "${ goodValues[key].join('", "') }".`);
       }
-      
     }
   }
 	if (badKeys.length || badValues.length) return { fromWhere: fromWhere, badKeys: badKeys, badValues: badValues}
@@ -339,4 +353,27 @@ exports.showBadKeyValueMessage = async function (badObject, modal, name) {
 		});
 	
 	return ignore;
+};
+
+/**
+ * Get the first/next after cursor/last selection from all matches/foundSelections.  Will wrap.
+ * @param {Array<Selection>} foundSelections 
+ * @param {Position} cursorPosition 
+ * @param {string} whichReveal - first/next/last
+ * @returns {Promise<Selection>}
+ */
+exports.getSelectionToReveal = async function (foundSelections, cursorPosition, whichReveal) {
+  
+  if (foundSelections.length === 1) return foundSelections[0];
+  
+  if (whichReveal === "first") return foundSelections[0];
+  else if (whichReveal === "last") return foundSelections.at(-1);
+  else if (whichReveal === "next") {   // so next = default, should wrap
+    const next = foundSelections.find(found => {
+      return (found.active.line > cursorPosition.line) ||
+        ((found.active.line === cursorPosition.line) && (found.active.character > cursorPosition.character));  // same line
+    });
+    return next || foundSelections[0];  // so it wraps
+  }
+  else if (!whichReveal) return null;
 };

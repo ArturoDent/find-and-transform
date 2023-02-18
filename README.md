@@ -87,6 +87,8 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 &emsp; &emsp; [15. `matchNumber` and `matchIndex`](#matchnumber-and-matchindex)  
 
+&emsp; &emsp; [16. `reveal` Options](#reveal-options)  
+
 <br/>
 
 -----------------
@@ -270,6 +272,8 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
     "matchWholeWord": true,            // boolean, same as above
     "matchCase": true,                 // boolean, same as above
     "restrictFind": "selections",      // restrict find to document, selections, line, once... on line or next
+    
+    "reveal": "first/next/last",       //  the default is for no reveal
     
     "cursorMoveSelect": "^\\s*pa[rn]am"     // select this text/regexp after making the replacement
   }
@@ -2041,6 +2045,22 @@ Explanation for above: The match in this case is "text$" ('text' at the end of a
 
 -------------------
 
+## `reveal` Options
+
+The `reveal` argument to the `findInCurrentFile` command can take three options:
+
+1. `"reveal": "first"`  scroll the viewport to show the first find match in the document, if necessary.
+2. `"reveal": "next"`   scroll the viewport to show the next find match in the document **after** the cursor, if necessary.
+3. `"reveal": "last "`  scroll the viewport to show the last find match in the document, if necessary.
+
+If you do not want the editor to scroll to reveal any find match, simply do not include a `reveal` option at all.  Certain other arguments like `"restrictFind": "nextMoveCursor/previousMoveCursor/previousSelect/nextSelect/nextDontMoveCursor/previousDontMoveCursor"` etc. will stil scroll to reveal.  
+
+* Note: The `reveal` argument will do nothing if you have a `cursorMoveSelect` argument in your keybinding or setting.  `cursorMoveSelect` will take precedence.  
+* Note: The `reveal` argument currently doesn't work if you use `restrictFind` with values `once` or `line`.  That functionality will be added later.  
+<br/>
+
+-------------------  
+
 <br/>
 
 > Note: Regex lookbehinds that are **not fixed-length** (also called fixed-width sometimes), like `(?<=^Art[\w]*)` are not supported in the Search Panel.  But non-fixed-length lookbehinds are supported in vscode's Find in a file (as in using the Find widget) so they can be used in `findInCurrentFile` settings or keybindings.  
@@ -2149,6 +2169,9 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 
 * 4.3.0 Introduced `onceExcludeCurrentWord` and `onceIncludeCurrentWord` (`once` is deprecated).  
 &emsp;&emsp; Made lineNumber/lineIndex matches work with the `once...` values.  
+
+* 4.4.0 Introduced `reveal` argument for `findInCurrentFile` command.  Reveal `first/next/last` options.  
+&emsp;&emsp; Escaped glob characters '?*[]' in file/folder names for `files to include` and `${resultsFiles}`.  
 
 <br/>
 

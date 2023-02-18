@@ -62,7 +62,7 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           else if (command.startsWith("findInCurrentFile")) find = true;
           else return undefined;
           
-					// ---------  $ for 'filesToInclude/filesToExclude/find/replace/restrictFind' completions  ------
+					// ---------  $ for 'filesToInclude/filesToExclude/find/replace/restrictFind/reveal' completions  ------
 
           // curLocation.path = [26, 'args', 'replace', 1], isAtPropertyKey = false
           
@@ -274,6 +274,11 @@ function _completeArgs(linePrefix, position, find, search, arg) {
   else if (find && arg === 'run') {
     return _completeReplaceJSOperation(position, '$');
   }
+  
+  // ---------------------  reveal ------------------------
+  if (find && arg === 'reveal') {
+    return _completeRevealValues(position);
+  }
 }
 
 
@@ -322,8 +327,9 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 		"matchCase": "023",
 		"matchWholeWord": "024",
 
-		"restrictFind": "03",
-		"cursorMoveSelect": "031",
+    "restrictFind": "03",
+    "reveal": "031",
+		"cursorMoveSelect": "032",
 
 		"triggerSearch": "04",
 		"triggerReplaceAll": "041",
@@ -353,7 +359,8 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, position) {
 		"matchCase": "Match only where the case is the same as the find query.",
 		"matchWholeWord": "Match the find query with word boundaries.  As in `\\b<query>\\b`.",
 
-		"restrictFind": "Find in the document, selection(s), line, one time on the current line or the next match after the cursor.",
+    "restrictFind": "Find in the document, selection(s), line, one time on the current line or the next match after the cursor.",
+    "reveal": "Scroll the editor viewport to show the first, next from cursor, or last match in the editor",
 		"cursorMoveSelect": "Any text to find and select after performing all find/replaces.  This text can be part of the replacement text or elsewhere in the document, line or selection.",
 
 		"triggerSearch": "Start the search automatically.",
@@ -622,6 +629,21 @@ function _completeRestrictFindValues(position) {
 		_makeCompletionItem("previousSelect", new Range(position, position), "document", "08", "Select the previous match after replacing it (if you specify a replacement)."),
 		_makeCompletionItem("previousMoveCursor", new Range(position, position), "document", "09", "Move the cursor to after the previous match and replace it, if any, but do not select it."),
 		_makeCompletionItem("previousDontMoveCursor", new Range(position, position), "document", "10", "Replace the previous match but leave cursor at original position.")
+  ];
+}
+
+/**
+ * Make completion items for 'reveal' values with priority
+ * 
+ * @param   {import("vscode").Position} position
+ * @returns {Array<CompletionItem>}
+ */
+function _completeRevealValues(position) {
+
+  return [
+    _makeCompletionItem("first", new Range(position, position), "", "01", "Reveal the first match in the editor."),
+    _makeCompletionItem("next", new Range(position, position), "", "02", "Reveal the next match from the current cursor in the editor."),
+    _makeCompletionItem("last", new Range(position, position), "", "03", "Reveal the last match in the editor."),
   ];
 }
 

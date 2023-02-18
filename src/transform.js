@@ -1,6 +1,7 @@
 const { window, Range, Position, Selection } = require('vscode');
 const commands = require('./commands');
 const resolve = require('./resolveVariables');
+const utilities = require('./utilities');
 // import { window, Range, Position, Selection } from 'vscode';
 // import commands from './commands';
 // import resolve from './resolveVariables';
@@ -78,11 +79,23 @@ exports.findAndSelect = async function (editor, args) {
         const endPos = document.positionAt(match.index + match[0].length);
         foundSelections[index] = new Selection(startPos, endPos);
       });
+      
+      // get cursor position first, before applying foundSelections to editor.Selections
+      // if madeFind then there was no find, and editor.selection.active will always be less than that same foundSelection
+      const cursorPosition = document.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
+
       if (foundSelections.length) editor.selections = foundSelections;
-    }// this will not? remove all the original selections
+      
+      // what if multiple cursors?
+
+      if (foundSelections.length && args.reveal) {
+        const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
+        editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
+      }
+    }
   }
 
-  else {  // restrictFind === "selections/once/onceIncludeCurrentWord/onceExcludeWord/line"
+  else {  // restrictFind === "selections/once/onceIncludeCurrentWord/onceExcludeCurrentWord/line"
 
     let selectedRange;
     let matches;
@@ -123,10 +136,10 @@ exports.findAndSelect = async function (editor, args) {
           const selectionStartIndex = document.offsetAt(selectedRange.start);
           const startPos = document.positionAt(selectionStartIndex + match.index);
           const endPos = document.positionAt(selectionStartIndex + match.index + match[0].length);
+          // reveal will use the **last** selection's foundSelections
           foundSelections.push(new Selection(startPos, endPos));
         });
-        // a very long off-screen selection?
-        if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
+        // if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
       }
 
       else if (args.restrictFind === "line") {
@@ -151,7 +164,7 @@ exports.findAndSelect = async function (editor, args) {
       }
 
       // else if (args.restrictFind === "once") {
-      else if (args.restrictFind.startsWith("once")) {
+      else if (args.restrictFind?.startsWith("once")) {
 
         let lineIndex = 0;
         let subStringIndex;
@@ -163,7 +176,7 @@ exports.findAndSelect = async function (editor, args) {
           let subLineRange = lineRange.with({ start: selection.active });
           
           if ((args.restrictFind === "onceIncludeCurrentWord") && currentWordRange)
-            subLineRange = lineRange.with({ start: document.getWordRangeAtPosition(selection.active).start });
+            subLineRange = lineRange.with({ start: document.getWordRangeAtPosition(selection.active)?.start });
           // else 
 
           matches = _buildLineNumberMatches(resolvedFind, subLineRange);
@@ -184,23 +197,31 @@ exports.findAndSelect = async function (editor, args) {
         }
           
         if (matches?.length) {
-          // lineIndex = document.offsetAt(new Position(selection.active.line, 0));
-          // subStringIndex = selection.end?.character;
+          lineIndex = document.offsetAt(new Position(selection.active.line, 0));
           subStringIndex = selection.active?.character;
         
           if ((args.restrictFind === "onceIncludeCurrentWord") && currentWordRange) {
             subStringIndex = currentWordRange?.start?.character;
           }
 
-          // const startPos = document.positionAt(lineIndex + subStringIndex + matches[0].index);
-          const startPos = document.positionAt(matches[0].index);
-          // const endPos = document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
-          const endPos = document.positionAt(matches[0].index + matches[0][0].length);
+          const startPos = document.positionAt(lineIndex + subStringIndex + matches[0].index);
+          const endPos = document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
           foundSelections.push(new Selection(startPos, endPos));
         }
       }
     }));
 
+    // get cursor position first, before applying foundSelections to editor.Selections
+    // if madeFind then there was no find, and editor.selection.active will always be less than that same foundSelection
+    
+    const cursorPosition = args.madeFind ? document.getWordRangeAtPosition(editor.selection.active)?.end : editor.selection.active;
+
+    if (foundSelections.length) editor.selections = foundSelections;
+
+    if (foundSelections.length && args.reveal) {
+      const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
+      editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
+    }
     if (foundSelections.length) editor.selections = foundSelections; // TODO this will not? remove all the original selections
   }
   if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
@@ -291,7 +312,8 @@ exports.replaceInLine = async function (editor, edit, args) {
           const endPos = document.positionAt(lineIndex + match.index + match[0].length);
           foundSelections[index] = new Selection(startPos, endPos);
         });
-        
+
+        // TODO?: utilities.getSelectionToReveal() after, get cursor here
         // only works for one line at a time
         if (foundSelections.length) editor.selections = foundSelections;
         if (args.run) resolve.resolveVariables(args, "run", null, foundSelections[index], null, null);
@@ -351,7 +373,7 @@ exports.replaceInLine = async function (editor, edit, args) {
     });
   }
 
-  else if (args.restrictFind.startsWith("once")) { 
+  else if (args.restrictFind?.startsWith("once")) { 
 
     let fullLine = "";
     let lineIndex;
@@ -489,8 +511,8 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, edit, arg
   let resolvedReplace;
   let matchEndPos;
 
-  let previous = args.restrictFind.startsWith('previous') || false;
-  let next = args.restrictFind.startsWith('next') || false;
+  let previous = args.restrictFind?.startsWith('previous') || false;
+  let next = args.restrictFind?.startsWith('next') || false;
 
   let nextMatches;
   let previousMatches;
@@ -613,7 +635,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, edit, arg
 
     else if (args.restrictFind === "nextDontMoveCursor" || args.restrictFind === "previousDontMoveCursor") {
       // 2 = vscode.TextEditorRevealType.InCenterIfOutsideViewport
-      editor.revealRange(new Range(matchStartPos, matchEndPos), 2);
+      editor.revealRange(new Range(matchStartPos, matchEndPos), 2); // why reveal if nextDontMoveCursor
     }   // do nothing, edit already made
 
     if ((nextMatches.length || previousMatches.length) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, null);  // TODO
@@ -673,7 +695,8 @@ function _buildLineNumberMatches(find, range) {
 exports.replaceInWholeDocument = async function (editor, edit, args) {
 
   const document = editor.document;
-
+  const cursorPosition = document.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
+  
   let docRange;
   let fullText;
   let foundSelections = [];
@@ -779,9 +802,14 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
           }
         }
       }
-      if (foundSelections.length) editor.selections = foundSelections;
+      
       if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);
       index++;
+    }
+    
+    if (foundSelections.length && args.reveal && !args.cursorMoveSelect) {
+      const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
+      editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
     }
     if (matches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", matches[0], editor.selection);
   });
@@ -916,6 +944,7 @@ exports.replaceInSelections = async function (editor, edit, args) {
           index++;
         }
       }));
+      // TODO: utilities.getSelectionToReveal() if no cms or it fails
       if (foundSelections.length) editor.selections = foundSelections;
       if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
     }
@@ -954,7 +983,7 @@ exports.getKeys = function () {
   // preserveCase ?
   // return ["title", "description", "preCommands", "find", "replace", "run\": [\n\t\"$${\",\n\t\t\"operation;\",\n\t\"}$$\",\n],", "isRegex", "postCommands",
   return ["title", "description", "preCommands", "find", "replace", "run", "isRegex", "postCommands",
-    "matchCase", "matchWholeWord", "restrictFind", "cursorMoveSelect"];
+    "matchCase", "matchWholeWord", "restrictFind", "reveal", "cursorMoveSelect"];
 };
 
 
@@ -970,7 +999,7 @@ exports.getValues = function () {
     isRegex: "boolean", matchCase: "boolean", matchWholeWord: "boolean",
     restrictFind: ["document", "selections", "line", "once", "onceIncludeCurrentWord", "onceExcludeCurrentWord", "nextSelect", "nextMoveCursor", "nextDontMoveCursor",
       "previousSelect", "previousMoveCursor", "previousDontMoveCursor"],
-    cursorMoveSelect: "string"
+    reveal: ["first", "next", "last"], cursorMoveSelect: "string"
   };
 };
 
@@ -990,6 +1019,7 @@ exports.getDefaults = function () {
     "matchCase": "false",
     "matchWholeWord": "false",
     "restrictFind": "document",
+    "reveal": "next",
     "cursorMoveSelect": ""
   };
   // "preserveCase": "false" ?

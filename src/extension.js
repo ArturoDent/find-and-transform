@@ -64,7 +64,8 @@ async function activate(context) {
       Object.assign(args, Object.fromEntries(argsArray))
     }
 
-    args.filesToInclude = await parseCommands.parseArgs(commandArgs, "folder");
+    args.filesToInclude = await parseCommands.parseArgs(commandArgs, "folder");  // ould be multiple?, then loop
+    args.filesToInclude = await utilities.escapePathsForFilesToInclude(args.filesToInclude);
     args.triggerSearch = true;
     await searchCommands.runAllSearches(args);
 	});
@@ -87,6 +88,8 @@ async function activate(context) {
     }
 
     args.filesToInclude = await parseCommands.parseArgs(commandArgs, "file");
+    args.filesToInclude = await utilities.escapePathsForFilesToInclude(args.filesToInclude);
+
     args.triggerSearch = true;
     await searchCommands.runAllSearches(args);
 	});
@@ -117,6 +120,7 @@ async function activate(context) {
     
     args.triggerSearch = true;
     args.filesToInclude = await utilities.getSearchResultsFiles(args.clipText);  // isn't this done in useSearchPanel() TODO
+    args.filesToInclude = await utilities.escapePathsForFilesToInclude(args.filesToInclude);
 
     // pre/postCommands?
     await searchCommands.runAllSearches(args);

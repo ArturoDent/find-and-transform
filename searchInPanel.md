@@ -148,7 +148,7 @@ You can run a series of searches across files.  All the arguments can take one o
 }
 ```
 
-There is really no point in having multiple replaces as there is no api for stopping the process to wait for the first search and replace to finish before going on to the next.  Therefore, use as many `find`'s as you want and only one replace - which will be used for that final search and replace.  Use `${resultsFiles}` to progressively narrrow down the searches to those files with the previous `find`'s.  Likewise, you only need one `"filesToInclude": "${resultsFiles}"` to accomplish this.
+There is really no point in having multiple `replaces` as there is no api for stopping the process to wait for the first search and replace to finish before going on to the next.  Therefore, use as many `find`'s as you want and **only one replace** - which will be used for that final search and replace.  Use `${resultsFiles}` to progressively narrrow down the searches to those files with the previous `find`'s.  Likewise, you only need one `"filesToInclude": "${resultsFiles}"` to accomplish this.
 
 You can clear any existing search results - which would populate `${resultsFiles}` for the **first** find, which you may not want to have, in two ways:
 
@@ -467,7 +467,7 @@ ${selectedText}
 ${CLIPBOARD}           // added by this extension  
 ${pathSeparator}
 ${lineNumber}
-${resultsFiles}        // added by this extension
+${resultsFiles}        // added by this extension, will be escaped
 ```
 
 In addition, the`find` and `replace` arguments in the `runInSearchPanel` also support these **snippet** variables:
@@ -724,6 +724,8 @@ Other usages:
 <br/>
 
 ## `${resultsFiles}` in a &nbsp; `runInSearchPanel` &nbsp; setting (in settings.json)  
+
+* The `resultsFiles` will be escaped, so that you can use files or folders like `folder/[subFolder]` or `[folder]/myFile*[name]`.  Specifically, the characters `?*[]` are glob characters so they must be escaped if they appear in a file or folder name to be added to the `files to include` search input box.  The result is a little ugly but works, so that `folder/[subFolder]` will be inserted as `folder/[[]subFolder[]]` - brackets will appear around each of the four characters `?*[]`.  
 
 <br/>
 
