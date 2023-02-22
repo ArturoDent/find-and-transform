@@ -2056,7 +2056,7 @@ The `reveal` argument to the `findInCurrentFile` command can take three options:
 If you do not want the editor to scroll to reveal any find match, simply do not include a `reveal` option at all.  Certain other arguments like `"restrictFind": "nextMoveCursor/previousMoveCursor/previousSelect/nextSelect/nextDontMoveCursor/previousDontMoveCursor"` etc. will stil scroll to reveal.  
 
 * Note: The `reveal` argument will do nothing if you have a `cursorMoveSelect` argument in your keybinding or setting.  `cursorMoveSelect` will take precedence.  
-* Note: The `reveal` argument currently doesn't work if you use `restrictFind` with values `once` or `line`.  That functionality will be added later.  
+
 <br/>
 
 -------------------  
@@ -2171,7 +2171,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 &emsp;&emsp; Made lineNumber/lineIndex matches work with the `once...` values.  
 
 * 4.4.0 Introduced `reveal` argument for `findInCurrentFile` command.  Reveal `first/next/last` options.  
-&emsp;&emsp; Escaped glob characters '?*[]' in file/folder names for `files to include` and `${resultsFiles}`.  
+&emsp;&emsp; Escaped glob characters '?*[]' in file/folder names for `files to include` and `${resultsFiles}`.
+&emsp;&emsp; 4.4.5 `reveal` argument works for `"restrictFind": "line/once" now.  
 
 <br/>
 

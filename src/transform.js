@@ -238,6 +238,8 @@ exports.findAndSelect = async function (editor, args) {
 exports.replaceInLine = async function (editor, edit, args) {
 
   const document = editor.document;
+  const cursorPosition = document.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
+
   const findArg = args.find;
   
   let currentLine = "";
@@ -363,10 +365,20 @@ exports.replaceInLine = async function (editor, edit, args) {
           }
           if (!foundSelections.length) emptySelections.push(new Selection(new Position(line, 0), new Position(line, 0)));
         }
+        // reveal the first match on the line, if cms foundSelections
+        if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);
       }
-      // these are inaccurate TODO
+      
       if (args.cursorMoveSelect && foundSelections.length) editor.selections = foundSelections;
       else editor.selections = emptySelections;  // clear all selections
+      
+      if (foundSelections.length && args.reveal && !args.cursorMoveSelect) {
+        const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
+        editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
+      }
+      else if (foundSelections.length && !args.cursorMoveSelect) {
+        editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);
+      }
       
       if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
       if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, null);
@@ -489,11 +501,18 @@ exports.replaceInLine = async function (editor, edit, args) {
         }
       }
       if (args.cursorMoveSelect && foundSelections.length) editor.selections = foundSelections;
+      // if cursorMoveSelect, always reveal the first cms foundSelection
+      editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);
+      
       // takes only one selection from the editor
       if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
       if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, editor.selection);
     });
-  }
+    if (foundSelections.length && !args.cursorMoveSelect) {
+      const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, "next");
+      editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
+    }
+  }  // end of "once"
 };
 
 /**
@@ -802,7 +821,6 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
           }
         }
       }
-      
       if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);
       index++;
     }
