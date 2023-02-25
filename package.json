@@ -3,7 +3,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "4.5.1",
+ "version": "4.5.2",
  "engines": {
   "vscode": "^1.69.0"
  },
@@ -31,8 +31,7 @@
   "path variable"
  ],
  "activationEvents": [
-  "onStartupFinished",
-  "onCommand:findInCurrentFile.AddTimeStampWithTimeZoneOffset"
+  "onStartupFinished"
  ],
  "contributes": {
   "menus": {
@@ -99,11 +98,6 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.AddTimeStampWithTimeZoneOffset",
-    "title": "Insert a timestamp with timezone offest",
     "category": "Find-Transform"
    }
   ],
