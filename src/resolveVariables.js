@@ -788,7 +788,8 @@ function _resolveSnippetVariables (variableToResolve, args, caller, selection, g
       resolved = String(Math.floor(_date?.getTime() / 1000));
       break;
       
-    // This code is thanks to https://github.com/microsoft/vscode/pull/170518 and @MonadChains 
+    // This code is thanks to https://github.com/microsoft/vscode/pull/170518 and @MonadChains
+    // https://github.com/MonadChains
     case "$CURRENT_TIMEZONE_OFFSET": case "${CURRENT_TIMEZONE_OFFSET}": case "${ CURRENT_TIMEZONE_OFFSET }":
       const currentDate = new Date();
       const rawTimeOffset = currentDate.getTimezoneOffset();

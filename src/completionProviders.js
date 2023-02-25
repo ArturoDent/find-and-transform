@@ -496,7 +496,8 @@ function _completeSnippetVariables(position, trigger) {
     _makeCompletionItem("${CURRENT_MINUTE}", replaceRange, "", "0621", "The current minute as two digits."),
     _makeCompletionItem("${CURRENT_SECOND}", replaceRange, "", "0622", "The current second as two digits."),
     _makeCompletionItem("${CURRENT_SECONDS_UNIX}", replaceRange, "", "0623", "The number of seconds since the Unix epoch."),
- 
+    _makeCompletionItem("${CURRENT_TIMEZONE_OFFSET}", replaceRange, "", "0624", "The timezone offset for the local time. In the form of '+7:00:00' or '-7:00:00'."),
+
     _makeCompletionItem("${RANDOM}", replaceRange, "", "0624", "Six random Base-10 digits."),
     _makeCompletionItem("${RANDOM_HEX}", replaceRange, "", "0625", "Six random Base-16 digits."),
     // _makeCompletionItem("${UUID}", replaceRange, "", "0626", "A Version 4 UUID."),

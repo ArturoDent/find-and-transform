@@ -1158,7 +1158,8 @@ ${CURRENT_SECOND}                The current second as two digits.
 ${CURRENT_SECONDS_UNIX}          The number of seconds since the Unix epoch.
 ${CURRENT_TIMEZONE_OFFSET}       Modified from Date.prototype.getTimezoneOffset() 
                                      and see https://github.com/microsoft/vscode/issues/151220  
-                                     Thanks to https://github.com/microsoft/vscode/pull/170518 and @MonadChains  
+                                     Thanks to https://github.com/microsoft/vscode/pull/170518 and 
+                                     https://github.com/MonadChains 
                                      
 ${RANDOM}                        Six random Base-10 digits.
 ${RANDOM_HEX}                    Six random Base-16 digits.  
@@ -1182,11 +1183,43 @@ These snippet variables are used just like the path variables mentioned above.  
 
 Explanation: The above keybinding (or it could be a command) will insert the result of (current hour - 1) at the cursor, **if** the cursor is not at a word - so on a empty line or with a space separating the cursor from any other word.   Otherwise, if the cursor is on a word that word will be treated as the `find` and all its occurrences (within the `restrictFind` scope: entire document/selections/onceIncludeCurrentWord/onceExcludeCurrentWord/line/next..) will be replaced by (current hour - 1).  
 
-Note that vscode can do fancy things with snippet comment variables like `${LINE_COMMENT}` by examining the language of individual tokens so that, for example, css in js would get its correct comment characters if within the css part of the code.  This extension cannot do that and will get the proper comment characters for the file type only.  
+To insert a timestamp try this keybinding:
 
-<br/>
+```jsonc
+ 
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    "replace": "${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}T${CURRENT_HOUR}:${CURRENT_MINUTE}:${CURRENT_SECOND}${CURRENT_TIMEZONE_OFFSET}",
+  }
+}
+```
 
-* ### Case modifier transforms
+Result for the above would be `2023-02-24T03:52:55-08:00` for a locale with UTC-8.  Since there is no `find` argument just make sure your cursor is not at a word when this is triggered (or that word will be replaced, which may be what you want in some cases).  
+
+And the same as a setting in your `settings.json`:
+
+```jsonc
+"findInCurrentFile": {
+  "AddTimeStampWithTimeZoneOffset": {  // this line cannot have spaces
+
+    // this will appear in the Command Palette as 'Find-Transform: Insert a timestamp with timezone offset'
+    "title": "Insert a timestamp with timezone offest",   // whatever you want here
+    "replace": "${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}T${CURRENT_HOUR}:${CURRENT_MINUTE}:${CURRENT_SECOND}${CURRENT_TIMEZONE_OFFSET}"
+  }
+}
+```
+
+The above will, after a reload, appear in the Command Palette as 'Find-Transform: Insert a timestamp with timezone offset' which text you can change as you want.  
+
+-----------
+
+* Note that vscode can do fancy things with snippet comment variables like `${LINE_COMMENT}` by examining the language of individual tokens so that, for example, css in js would get its correct comment characters if within the css part of the code.  This extension cannot do that and will get the proper comment characters for the file type only.  
+
+-----------
+
+### Case modifier transforms
 
 <br/>
 
