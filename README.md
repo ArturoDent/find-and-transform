@@ -1156,8 +1156,13 @@ ${CURRENT_HOUR}                  The current hour in 24-hour clock format.
 ${CURRENT_MINUTE}                The current minute as two digits.
 ${CURRENT_SECOND}                The current second as two digits.
 ${CURRENT_SECONDS_UNIX}          The number of seconds since the Unix epoch.
+${CURRENT_TIMEZONE_OFFSET}       Modified from Date.prototype.getTimezoneOffset() 
+                                     and see https://github.com/microsoft/vscode/issues/151220  
+                                     Thanks to https://github.com/microsoft/vscode/pull/170518 and @MonadChains  
+                                     
 ${RANDOM}                        Six random Base-10 digits.
-${RANDOM_HEX}                    Six random Base-16 digits.
+${RANDOM_HEX}                    Six random Base-16 digits.  
+
 ${BLOCK_COMMENT_START}           Example output: in PHP `/*` or in HTML `<!--`.
 ${BLOCK_COMMENT_END}             Example output: in PHP `*/` or in HTML `-->`.
 ${LINE_COMMENT}                  Example output: in PHP `//`.
@@ -2173,6 +2178,8 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 4.4.0 Introduced `reveal` argument for `findInCurrentFile` command.  Reveal `first/next/last` options.  
 &emsp;&emsp; Escaped glob characters '?*[]' in file/folder names for `files to include` and `${resultsFiles}`.
 &emsp;&emsp; 4.4.5 `reveal` argument works for `"restrictFind": "line/once" now.  
+
+* 4.5.0 Added `$CURRENT_TIMEZONE_OFFSET` and `${CURRENT_TIMEZONE_OFFSET}` and `${ CURRENT_TIMEZONE_OFFSET }`.
 
 <br/>
 

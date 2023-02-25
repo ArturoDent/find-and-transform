@@ -23,14 +23,14 @@ exports.addEmptySelectionMatches = async function (editor) {
     // if selection start = end then just a cursor no actual selected text
     if (selection.isEmpty) {
 
-      const wordRange = document.getWordRangeAtPosition(selection.start);
+      const wordRange = document?.getWordRangeAtPosition(selection.start);
       if (!wordRange) return;
 
-      emptySelections.push(new Selection(wordRange.start, wordRange.end));
+      emptySelections.push(new Selection(wordRange?.start, wordRange?.end));
 
       // filter out the original empty selection
-      editor.selections = editor.selections.filter(oldSelection => oldSelection !== selection);
-      editor.selections = emptySelections.concat(editor.selections);
+      editor.selections = editor.selections?.filter(oldSelection => oldSelection !== selection);
+      editor.selections = emptySelections?.concat(editor.selections);
     }
   }));
 };
@@ -62,8 +62,8 @@ exports.findAndSelect = async function (editor, args) {
 
       if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
         // lineCount is 1-based, so need to subtract 1 from it
-        const lastLineRange = document.lineAt(document.lineCount - 1).range;
-        docRange = new Range(0, 0, document.lineCount - 1, lastLineRange.end.character);
+        const lastLineRange = document?.lineAt(document.lineCount - 1).range;
+        docRange = new Range(0, 0, document?.lineCount - 1, lastLineRange?.end?.character);
         matches = _buildLineNumberMatches(resolvedFind, docRange);
       }
 
@@ -75,14 +75,14 @@ exports.findAndSelect = async function (editor, args) {
 
       // Any way to designate a capture group to select, like '\\$1(\\d+)' ?
       matches?.forEach((match, index) => {
-        const startPos = document.positionAt(match.index);
-        const endPos = document.positionAt(match.index + match[0].length);
+        const startPos = document?.positionAt(match.index);
+        const endPos = document?.positionAt(match.index + match[0].length);
         foundSelections[index] = new Selection(startPos, endPos);
       });
       
       // get cursor position first, before applying foundSelections to editor.Selections
       // if madeFind then there was no find, and editor.selection.active will always be less than that same foundSelection
-      const cursorPosition = document.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
+      const cursorPosition = document?.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
 
       if (foundSelections.length) editor.selections = foundSelections;
       
@@ -90,7 +90,7 @@ exports.findAndSelect = async function (editor, args) {
 
       if (foundSelections.length && args.reveal) {
         const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
-        editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
+        editor?.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
       }
     }
   }
@@ -296,7 +296,7 @@ exports.replaceInLine = async function (editor, edit, args) {
 
         const re = new RegExp(resolvedFind, args.regexOptions);
         currentLine = document.getText(document.lineAt(selection.active.line).rangeIncludingLineBreak);
-        currentLine = currentLine.replace(/\r?\n/g, ''); // probably handled below
+        currentLine = currentLine?.replace(/\r?\n/g, ''); // probably handled below
 
         if (resolvedFind)
           matches = [...currentLine.matchAll(re)];
@@ -622,7 +622,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, edit, arg
       resolvedReplace = resolve.resolveVariables(args, "replace", match, editor.selection, cursorIndex + match.index, index);
       index++;
 
-      if (args.isRegex) resolvedReplace = resolvedReplace.replace(/(?<!\r)\n/g, "\r\n");
+      if (args.isRegex) resolvedReplace = resolvedReplace?.replace(/(?<!\r)\n/g, "\r\n");
 
       const startPos = document.positionAt(cursorIndex + match.index);
       const endPos = document.positionAt(cursorIndex + match.index + match[0].length);
@@ -636,7 +636,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, edit, arg
 
     const matchStartPos = document.positionAt(cursorIndex + match.index);
     if (args.replace) {
-      matchEndPos = document.positionAt(cursorIndex + match.index + resolvedReplace.length);
+      matchEndPos = document.positionAt(cursorIndex + match.index + resolvedReplace?.length);
     }
     else matchEndPos = document.positionAt(cursorIndex + match.index + match[0].length);
 
@@ -688,7 +688,7 @@ function _buildLineNumberMatches(find, range) {
     if (range.start.line === line) lineText = lineText.substring(range.start.character);
     else if (range.end.line === line) lineText = lineText.substring(0, range.end.character);
 
-    let resolved = find.replaceAll("${lineNumber}", String(line + 1)).replaceAll("${lineIndex}", String(line));
+    let resolved = find?.replaceAll("${lineNumber}", String(line + 1))?.replaceAll("${lineIndex}", String(line));
     // resolved = await resolve.resolveExtensionDefinedVariables(resolved, {}, "find");  // TODO
     const lineMatches = [...lineText.matchAll(new RegExp(resolved, "g"))];
 
@@ -770,7 +770,7 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
 
       if (resolvedReplace === "Error: jsOPError") return;    // abort
 
-      if (args.isRegex) resolvedReplace = resolvedReplace.replace(/(?<!\r)\n/g, "\r\n");  // might be unnecessary
+      if (args.isRegex) resolvedReplace = resolvedReplace?.replace(/(?<!\r)\n/g, "\r\n");  // might be unnecessary
 
       const matchStartPos = document.positionAt(match.index);
       const matchEndPos = document.positionAt(match.index + match[0].length);
@@ -778,10 +778,10 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
       editBuilder.replace(matchRange, resolvedReplace);
 
       if (args.cursorMoveSelect) {  // to be useed in cursorMoveSelect below to build matching text
-        matches[index].range = new Range(matchStartPos, new Position(matchStartPos.line, matchStartPos.character + resolvedReplace.length));
+        matches[index].range = new Range(matchStartPos, new Position(matchStartPos.line, matchStartPos.character + resolvedReplace?.length));
         matches[index].lastMatchLengthDiff = lastMatchLengthDiff;
-        lastMatchLengthDiff += (resolvedReplace.length - match[0].length);
-        matches[index].replaceLength = resolvedReplace.length;
+        lastMatchLengthDiff += (resolvedReplace?.length - match[0].length);
+        matches[index].replaceLength = resolvedReplace?.length;
       }
       
       index++;
@@ -815,8 +815,8 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
           const cmsMatches = [...textOfMatch.matchAll(re)];
 
           for (const cmsMatch of cmsMatches) {
-            const startPos = document.positionAt(document.offsetAt(matchRangeAfterReplacement.start) + cmsMatch.index);
-            const endPos = document.positionAt(document.offsetAt(matchRangeAfterReplacement.start) + cmsMatch.index + cmsMatch[0].length);
+            const startPos = document.positionAt(document.offsetAt(matchRangeAfterReplacement?.start) + cmsMatch.index);
+            const endPos = document.positionAt(document.offsetAt(matchRangeAfterReplacement?.start) + cmsMatch?.index + cmsMatch[0]?.length);
             foundSelections.push(new Selection(startPos, endPos));
           }
         }
@@ -886,7 +886,7 @@ exports.replaceInSelections = async function (editor, edit, args) {
       
       for (const match of matches) {
 
-        resolvedReplace = resolve.resolveVariables(args, "replace", match, selection, selectionStartIndex, index);
+        resolvedReplace = resolve?.resolveVariables(args, "replace", match, selection, selectionStartIndex, index);
         index++;
 
         const startPos = document.positionAt(selectionStartIndex + match.index);
@@ -943,7 +943,7 @@ exports.replaceInSelections = async function (editor, edit, args) {
               foundSelections.push(new Selection(selection.start, selection.start));
             }
             else if (cursorMoveSelect === "$(?!\n)") {  // args.cursorMoveSelect === "$"
-              const diff = resolvedFind.length - resolvedReplace.length;
+              const diff = resolvedFind.length - resolvedReplace?.length;
               const selPos = new Position(selection.end.line, Math.abs(selection.end.character - (matchesPerSelection[index] * diff)));
               foundSelections.push(new Selection(selPos, selPos));
             }
