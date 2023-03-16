@@ -133,7 +133,7 @@ async function activate(context) {
 	// make a generic "run" command for keybindings args using find in current file only
   const runDisposable = commands.registerTextEditorCommand('findInCurrentFile', async (editor, edit, args) => {
 
-    // get this from keybinding:  { find: "(document)", replace: "\\U$1" }
+    // get this from keybinding:  { find: "(howdy)", replace: "\\U$1" }
     
     drivers.startFindInCurrentFile(args, editor, edit, enableWarningDialog);
 	});

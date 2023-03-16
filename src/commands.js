@@ -82,38 +82,26 @@ exports.loadCommands = async function (findSettings, searchSettings, context, en
   
   const packageJSON = await utilities.getPackageJSON();
 
-  // const thisExtension = extensions.getExtension('ArturoDent.find-and-transform');
-  // thisExtension.extensionPath
-	// const packageCommands = thisExtension.packageJSON.contributes.commands;
 	const packageCommands = packageJSON.contributes.commands;
 
   const builtins = _makeCommandsFromPackageCommands();
-  
-  // if ('isUnderDevelopment' in thisExtension.packageJSON) {
-  //   delete thisExtension.packageJSON.isUnderDevelopment;
-  // }
   
 	const findSettingsCommands   =  await _makePackageCommandsFromFindSettings(findSettings, enableWarningDialog);
 	const searchSettingsCommands =  await _makePackageCommandsFromSearchSettings(searchSettings, enableWarningDialog);
 	const settingsCommands       =  findSettingsCommands.concat(searchSettingsCommands);
 
+  // const packageEvents  =  packageJSON.activationEvents;
+	// const settingsEvents =  _makeSettingsEventsFromSettingsCommands(settingsCommands);
 
-  const packageEvents  =  packageJSON.activationEvents;
-	const settingsEvents =  _makeSettingsEventsFromSettingsCommands(settingsCommands);
-
-	if (!_commandArraysAreEquivalent(settingsCommands, packageCommands) ||
-		!_activationEventArraysAreEquivalent(settingsEvents, packageEvents)) {
+	// if (!_commandArraysAreEquivalent(settingsCommands, packageCommands) ||
+	// 	!_activationEventArraysAreEquivalent(settingsEvents, packageEvents)) {
+    
+  if (!_commandArraysAreEquivalent(settingsCommands, packageCommands)) {
 
 		packageJSON.contributes.commands = builtins.concat(settingsCommands);
-		packageJSON.activationEvents = settingsEvents;
+		// packageJSON.activationEvents = settingsEvents;
 
 		fs.writeFileSync(path.join(context.extensionPath, 'package.json'), JSON.stringify(packageJSON, null, 1));
-    
-    // below is necessary, see https://github.com/microsoft/vscode/issues/131208#issuecomment-903525999
-    // cache busting
-    // const time = new Date();
-    // C:\\Users\\Mark\\.vscode\extensions
-    // fs.utimesSync(path.dirname(context.extensionPath), time, time);  // does this work?
 	}
 }
 
@@ -233,28 +221,28 @@ function _makeCommandsFromPackageCommands() {
 };
 
 
-/**
- * Transform the settings (already transformed to package.json-style commands)
- * into package.json 'activationEvents' : 'onCommand:<some command>'
- *
- * @param {object} settingsCommands
- * @returns {Array<String>} - an array of strings for package.json activationEvents
- */
-function _makeSettingsEventsFromSettingsCommands (settingsCommands) {
+// /**
+//  * Transform the settings (already transformed to package.json-style commands)
+//  * into package.json 'activationEvents' : 'onCommand:<some command>'
+//  *
+//  * @param {object} settingsCommands
+//  * @returns {Array<String>} - an array of strings for package.json activationEvents
+//  */
+// function _makeSettingsEventsFromSettingsCommands (settingsCommands) {
 
-  // "activationEvents": [
-  //   "onStartupFinished",
-  //   "onCommand:find-and-transform.findInCurrentFile.upcaseKeywords",
-  // ],
+//   // "activationEvents": [
+//   //   "onStartupFinished",
+//   //   "onCommand:find-and-transform.findInCurrentFile.upcaseKeywords",
+//   // ],
 
-  let settingsJSON = [];
-  settingsJSON.push("onStartupFinished");
+//   let settingsJSON = [];
+//   settingsJSON.push("onStartupFinished");
 
-  for (const command of settingsCommands) {
-    settingsJSON.push(`onCommand:${ command.command }`);
-  }
-  return settingsJSON;
-};
+//   for (const command of settingsCommands) {
+//     settingsJSON.push(`onCommand:${ command.command }`);
+//   }
+//   return settingsJSON;
+// };
 
 
 /**
@@ -279,23 +267,23 @@ function _commandArraysAreEquivalent(settings, packages) {
 }
 
 
-/**
- * Are the settings and package.json activationEvents the same?
- *
- * @param {Array<String>} settings - activationEvents constructed from the settings.json 'command aliases'
- * @param {Array<String>} packages - the pre-existing activationEvents from package.json
- * @returns {boolean}
- */
-function _activationEventArraysAreEquivalent(settings, packages) {
+// /**
+//  * Are the settings and package.json activationEvents the same?
+//  *
+//  * @param {Array<String>} settings - activationEvents constructed from the settings.json 'command aliases'
+//  * @param {Array<String>} packages - the pre-existing activationEvents from package.json
+//  * @returns {boolean}
+//  */
+// function _activationEventArraysAreEquivalent(settings, packages) {
 
-  //   "onCommand:find-and-transform.upcaseKeywords",
+//   //   "onCommand:find-and-transform.upcaseKeywords",
 
-  if (settings.length !== packages.length) return false;
+//   if (settings.length !== packages.length) return false;
 
-  return settings.every(setting => packages.some(pevent => {
-    return (pevent === setting);
-  }));
-}
+//   return settings.every(setting => packages.some(pevent => {
+//     return (pevent === setting);
+//   }));
+// }
 
 
 /**

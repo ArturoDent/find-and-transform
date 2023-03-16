@@ -227,6 +227,33 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 ],
 ```
 
+These forms work for newlines in a jsOperation `replace` or `run`:  
+1. ``` `\\n` ``` inside backticks
+2. ``` `\n` ```  inside backticks
+3. `'\\n'` inside single quotes, double-escaped
+
+* `'\n'` (inside single quotes) **DOES NOT Work** in a `"replace": "$${ jsOperation }$$"` or `"run": "$${ jsOperation }$$"` (but will in a simple `replace`).  This is because `\n` needs  to be double-escaped in a jsOperation, unless it is in backticks.  
+
+```jsonc
+// a simple replace, i.e., no $${ some jsOp }$$ // use \n only
+"replace": "seed\nhow\ndy more\t\t\ttstuff",  // only single-esacped \n and \t work in a simple replace
+```
+
+Newline examples that work and don't work:  
+
+```js
+  "replace": "howdy\nthere",  // works, a simple replace
+  
+  "replace": "$${return 'first line \n second line'; }$$",  // \n does not work surrounded by single quotes in a jsOp
+  "replace": "$${return 'first line \\n second line'; }$$", // \\n works surrounded by single quotes
+  "replace": "$${return `first line \n second line`; }$$",  // \n works surrounded by backticks
+  "replace": "$${return `first line \\n second line`; }$$", // \\n works surrounded by backticks
+  ```
+  
+  I suggest using backticks whenever there is a newline or tab, `\t`, involved or the resolved variable could contain newlines or tabs.  
+
+--------
+
 * If you use newlines in a replace, the `cursorMoveSelect` option will not be able to properly calculate the new selection position.  
 
 <br/>  
@@ -725,8 +752,9 @@ Do not do `const vscode = require('vscode');` it has already been declared and y
 ```jsonc
 "replace": [
   "$${",
-    // print a list of open file names 
-    "const tabs = vscode.tabGroups.all.tabs;",
+    "let str = '';",
+        // print a list of open file names in the active tabGroup
+    "const tabs = vscode.window.tabGroups.activeTabGroup.tabs;",
     "tabs.forEach(tab => str += tab.label + '\\n');",  // note double-escaped newline
     "return str;",
   "}$$"
@@ -734,36 +762,38 @@ Do not do `const vscode = require('vscode');` it has already been declared and y
 ```
 
 ```jsonc
-"replace": [   // print a list of full paths for open text documents by editor group
-  "$${",
-  
-    "let str = '';",
-    "const groups = vscode.window.tabGroups.all;",
-    
-    "groups.map((group, index) => {",
-      "str += 'Group ' + (index+1) + '\\n';",   // double-escaped newlines and tabs
-      "group.tabs.map(tab => {",
-        "if (tab.input instanceof vscode.TabInputText) str += '\\t' + tab.input.uri.fsPath + '\\n';",
-      "});",
-    "str += '\\n';",
-    "});",
-    
-    "vscode.env.clipboard.writeText( str );",  // copy the resolved 'str' to the clipboard 
-    
-    "return '';",                              // return empty string
-    // "return str;"                // return the str if you want to insert it somewhere
+{
+  "key": "alt+c",
+  "command": "findInCurrentFile",  
+  "args": {
+    "replace": [   // print a list of full paths for open text documents by editor group
+      "$${",
 
-  "}$$",
-  
-  // create a new file and paste into it
-  "postCommands": ["workbench.action.files.newUntitledFile", "editor.action.clipboardPasteAction"]
-  
-],
+        "let str = '';",
+        "const groups = vscode.window.tabGroups.all;",
+        "groups.map((group, index) => {",
+          "str += 'Group ' + (index+1) + '\\n';", 
+          "group.tabs.map(tab => {",
+            "if (tab.input instanceof vscode.TabInputText) str += '\\t' + tab.input.uri.fsPath + '\\n';",
+            // "str += tab.label + '\\n';",
+          "});",
+        "str += '\\n';",
+        "});",
+        "vscode.env.clipboard.writeText( str );",
+        "return '';",
+        
+      "}$$",
+    ],
+      
+    // create a new file and paste into it
+    "postCommands": ["workbench.action.files.newUntitledFile", "editor.action.clipboardPasteAction"]
+  }
+}
 ```
 
 > For the above example which prints out the full path, there is no `find` so the replacement - just an empty string - will just be inserted at the cursor.  So make sure the cursor is not in or at a word boundary or that word will be treated as the `find` query and be replaced by an empty string.  There must be a `return` of some kind for a `replace` javascript operation.  
 
-> It probably makes more sense to put the above javascript operation into a `"run"` argument if you are going to use it as a side effect, like here where you store it in the clipboard to paste into a different file.  Then you don't care where the cursor is or whether there is any selected text already.  
+> It probably makes more sense to put the above javascript operation into a `"run"` argument if you are only going to use it as a side effect, like here where you store it in the clipboard to paste into a different file.  Then you don't care where the cursor is or whether there is any selected text already.  
 
 Output of above replacement in a newly created file:
 
@@ -1292,7 +1322,7 @@ Examples:
     "replace": "${3:-yada3} \\U$1",       // if no group 3, add "yada3" then upcase group 1
     
                                           // groups within conditionals must be surrounded by backticks `$2`
-    "replace": "${1:+abcd `\\U$2` efgh}",      // if group 1, add capitalized group 2 plus surrounding text
+    "replace": "${2:+abcd `\\U$2` efgh}",      // if group 2, add capitalized group 2 plus surrounding text
     
     "replace": "${1:+aaa\\}bbb}",         // must double-escape closing brackets if want it as text
     
@@ -2143,12 +2173,13 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?  
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
-* Add a `cursorMove` option (like `cursorMoveSelect` without the selection).  
 * Consider how `cursorMoveSelect` should work in full document search?  
 * Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.  
 * `async/await` all code so `postCommands` are more reliable.  
-* How to handle backticks in resolved find inside backticks.  
 * Prevent OutputChannel from appearing in Output when not being actively used.  
+* Deal with redundant "Extensions have been modifieed on disk.  Please reload..." notification.  
+* Make `run` work for each selection.  
+* Investigate arg keys in package.json rather than completionProvider.  
 
 ## Release Notes
 
@@ -2209,10 +2240,14 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 &emsp;&emsp; Made lineNumber/lineIndex matches work with the `once...` values.  
 
 * 4.4.0 Introduced `reveal` argument for `findInCurrentFile` command.  Reveal `first/next/last` options.  
-&emsp;&emsp; Escaped glob characters '?*[]' in file/folder names for `files to include` and `${resultsFiles}`.
+&emsp;&emsp; Escaped glob characters '?*[]' in file/folder names for `files to include` and `${resultsFiles}`.  
 &emsp;&emsp; 4.4.5 `reveal` argument works for `"restrictFind": "line/once" now.  
 
-* 4.5.0 Added `$CURRENT_TIMEZONE_OFFSET` and `${CURRENT_TIMEZONE_OFFSET}` and `${ CURRENT_TIMEZONE_OFFSET }`.
+* 4.5.0 Added `$CURRENT_TIMEZONE_OFFSET` and `${CURRENT_TIMEZONE_OFFSET}` and `${ CURRENT_TIMEZONE_OFFSET }`.  
+
+* 4.6.0 Handling of backslashes for `\n`, `\\n`, `\t` and `\\t` improved significantly in jsOperations.  
+&emsp;&emsp; Fixed `lineNumber/Index` bug for `next...` and `previous...` `restrictFind` options.  
+&emsp;&emsp; Removed activationEvents checking and updating - unnecessary now.  
 
 <br/>
 

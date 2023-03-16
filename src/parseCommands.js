@@ -50,6 +50,7 @@ exports.buildJSOperationsFromArgs = async function (arg) {
       arg.splice(start, end+1 - start, operation);
     }
     arg[index] = arg[index].replace(/\$\$\{\s*;/g, '$$${');
+    
     // replace '\n` with '\\n` and '\t' with '\\t'
     // arg[index] = arg[index].replace(/(?<!\\)[\\]([nt])/g, '*****$1');  // doesn't work
   }

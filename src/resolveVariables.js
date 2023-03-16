@@ -75,7 +75,7 @@ exports.resolveCursorMoveSelect = async function (cursorMoveSelect, numMatches, 
  *
  * @param {Object} args - keybinding/settings args
  * @param {string} caller - find/replace/cursorMoveSelect
- * @param {Array} groups - may be a single match
+ * @param {Object} groups - may be a single match
  * @param {import("vscode").Selection} selection - the current selection
  * @param {number} selectionStartIndex
  * @param {number} matchIndex - which match is it
@@ -91,6 +91,24 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   else if (caller === "run") replaceValue = args?.run;
   else if (caller === "cursorMoveSelect") replaceValue = args;
   else if (caller === "snippet") replaceValue = args?.snippet;
+  
+  // if jsOp replace all \w => \\w
+  if (groups?.length && (caller === "replace" || caller === "run")) {
+    
+    let jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+    if (jsOpRE.test(args.replace) || jsOpRE.test(args.run)) {
+    
+      const tempIndex = groups.index;
+      
+      // loop through groups[1,2, etc.]
+      groups = groups.map((item, index) => {
+        if (index === 0) return item;
+        else return item?.replace(/(?<!\\)\\(?!\\)/g, "\\$&");  // only 1 \
+      });
+      
+      groups.index = tempIndex;
+    }
+  }
     
   if (!replaceValue) return replaceValue;
   const specialVariable = new RegExp('\\$[\\{\\d]');
@@ -123,7 +141,6 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   
   // --------------------  extension-defined variables -------------------------------------------
   vars = variables.getExtensionDefinedVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-  // vars = variables.getExtensionDefinedVariables().join("|");
   re = new RegExp(`(?<varCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
 
   resolved = resolved?.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
@@ -200,6 +217,7 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
     // can have multiple $${...}$$ in a replace
     re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
     try {
+      
       resolved = resolved?.replaceAll(re, function (match, p1, operation) {
         
         if (/\bawait\b/.test(operation)) {
@@ -256,6 +274,7 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   // }
   // return resolved;
   
+  // resolved = resolved?.replaceAll(/([\\])/g, '$1$1');
   return resolved?.replace(/\\}/g, '}');  // mainly for conditionals like ${1:+${POW\\}}
 };
 
@@ -637,37 +656,37 @@ function _resolvePathVariables (variableToResolve, args, caller, selection, matc
       break;
        
      case "${lineIndex}": case "${ lineIndex }":    // 0-based
-       if (caller === "cursorMoveSelect" && args.restrict !== "document") resolved = String(match);
-       else if (caller === "cursorMoveSelect" && args.restrict === "document") resolved = resolved;
+       if (caller === "cursorMoveSelect" && args.restrictFind !== "document") resolved = String(match);
+       else if (caller === "cursorMoveSelect" && args.restrictFind === "document") resolved = resolved;
 
        else if (caller !== "ignoreLineNumbers") {
       //  else if (caller !== "ignoreLineadasdbers") {
-         if (args.restrict === "selections") {
+         if (args.restrictFind === "selections") {
            const line = document?.positionAt(match.index + selectionStartIndex).line;
            resolved = String(line);
          }
-         else if (args.restrict === "next") {
+         else if (args.restrictFind.startsWith("next") || args.restrictFind.startsWith("previous")) {
            resolved = String(document?.positionAt(selectionStartIndex).line); //  works for wholeDocument
          }
-         else if (args.restrict === "document") resolved = String(document?.positionAt(match.index).line);
+         else if (args.restrictFind === "document") resolved = String(document?.positionAt(match.index).line);
          else resolved = String(selection?.active?.line); // line/once/onceFromStart/onceFromCursor find/replace
        }
        // "ignoreLineNumbers" will pass through unresolved
       break;
 
     case "${lineNumber}":  case "${ lineNumber }":   // 1-based
-      if (caller === "cursorMoveSelect" && args.restrict !== "document") resolved = String(match + 1);
-      else if (caller === "cursorMoveSelect" && args.restrict === "document") resolved = resolved;
+      if (caller === "cursorMoveSelect" && args.restrictFind !== "document") resolved = String(match + 1);
+      else if (caller === "cursorMoveSelect" && args.restrictFind === "document") resolved = resolved;
 
       else if (caller !== "ignoreLineNumbers") {
-        if (args.restrict === "selections") {
+        if (args.restrictFind === "selections") {
           const line = document?.positionAt(match.index + selectionStartIndex).line;
           resolved = String(line + 1);
         }
-        else if (args.restrict === "next") {
+        else if (args.restrictFind.startsWith("next") || args.restrictFind.startsWith("previous")) {
           resolved = String(document?.positionAt(selectionStartIndex).line + 1); //  works for wholeDocument
         }
-        else if (args.restrict === "document") resolved = String(document?.positionAt(match?.index).line + 1); //  works for wholeDocument
+        else if (args.restrictFind === "document") resolved = String(document?.positionAt(match?.index).line + 1); //  works for wholeDocument
         else resolved = String(selection?.active?.line + 1); // line/once/onceFromStart/onceFromCursor find/replace
       }
       // "ignoreLineNumbers" will pass through unresolved
@@ -1134,7 +1153,7 @@ exports.makeFind = function (selections, args) {
   let emptyPointSelections = new Set();
 
   // only use the first selection for these options: nextSelect/nextMoveCursor/nextDontMoveCursor
-  if (args?.restrictFind?.substring(0, 4) === "next" || args?.restrictFind?.substring(0, 8) === "previous") {
+  if (args?.restrictFind?.startsWith("next") || args?.restrictFind?.startsWith("previous")) {
     selections = [selections[0]];
   }
 

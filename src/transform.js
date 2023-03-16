@@ -48,12 +48,14 @@ exports.findAndSelect = async function (editor, args) {
 
   const document = editor.document;
   const foundSelections = [];
+  let matches;
+  
 
   if (args.restrictFind === "document") {
 
     let docRange;
     let fullText;
-    let matches;
+    // let matches;
 
     // an undefined find will be converted to the empty string already, find = ''
     const resolvedFind = await resolve.resolveFind(editor, args, null, null);
@@ -98,7 +100,7 @@ exports.findAndSelect = async function (editor, args) {
   else {  // restrictFind === "selections/once/onceIncludeCurrentWord/onceExcludeCurrentWord/line"
 
     let selectedRange;
-    let matches;
+    // let matches;
 
     await Promise.all(editor.selections.map(async (selection) => {
 
@@ -224,9 +226,16 @@ exports.findAndSelect = async function (editor, args) {
     }
     if (foundSelections.length) editor.selections = foundSelections; // TODO this will not? remove all the original selections
   }
-  if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
+  // if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
+  
+  // TODO: should run for all of the matches of each selection for 'line' or 'document' for example?  Would have to loop here
+  
+  // run does no replacement, just runs the $${ operation }$$
+  // double escape all "groups" here/matches[0]
+  if (args.run) resolve.resolveVariables(args, "run", matches[0], editor.selection, null, null);
   if ((foundSelections.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, editor.selection);
 };
+
 
 /**
  * Replace find matches on the current line.
@@ -559,14 +568,14 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, edit, arg
     nextMatches = [...restOfDocument.matchAll(re)];
     
     // TODO test: skip first match if it is the current find location
-    if (nextMatches[0].index === 0) nextMatches.shift();
+    if (nextMatches[0]?.index === 0) nextMatches.shift();
 
     const documentBeforeCursor = docString.substring(0, cursorIndex);
     previousMatches = [...documentBeforeCursor.matchAll(re)];
     
     // TODO test: skip last match if it is the current find location
     const { selection } = window.activeTextEditor;
-    if (previousMatches.at(-1).index === document.offsetAt(selection.active)) previousMatches.pop();
+    if (previousMatches.at(-1)?.index === document.offsetAt(selection.active)) previousMatches.pop();
   }
 
   // refactor to a function
