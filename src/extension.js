@@ -150,54 +150,8 @@ async function activate(context) {
 
 	context.subscriptions.push(runInSearchPanelDisposable);
 
-	// ----------------------------------------------------------------------------------------------------------------------
-
-	// select the 'n' in completionItems like '${n:/upcase}' or '${n:+add text}'
-	// not exposed in package.json
-  let selectDigitInCompletion = commands.registerCommand('find-and-transform.selectDigitInCompletion', async (completionText, completionRange) => {
-
-    const editor = window.activeTextEditor;
-    // args = [completionText, Range]
-    // if completionText startsWith '\\U$n' or '${n'
-    let keyLength;
-    if (completionText?.startsWith("${n")) keyLength = 3;
-    else if (completionText?.search(/^\\\\[UuLl]\$n/m) === 0) keyLength = 5;
-    else if (completionText?.search(/^\$\{getTextLines:n/m) === 0) keyLength = 16;
-    else return;
-
-    if (completionRange?.start) {
-      const digitStart = new Position(completionRange.start.line, completionRange.start.character + keyLength - 1);
-      const digitEnd = new Position(completionRange.start.line, completionRange.start.character + keyLength);
-      editor.selection = new Selection(digitStart, digitEnd);
-    }
-  });
-
-  context.subscriptions.push(selectDigitInCompletion);
-
 	// ---------------------------------------------------------------------------------------------------------------------
   
-  // select 'operation' in completionItems like '$${operation}$$'
-	// not exposed in package.json
-  let selectOperationInCompletion = commands.registerCommand('find-and-transform.selectOperationInCompletion', async (completionText, completionRange) => {
-
-    const editor = window.activeTextEditor;
-		// args = [completionText, Range]
-		// if completionText startsWith '$${operation'
-		let keyLength;
-		if (completionText?.startsWith("$${operation")) keyLength = 12;
-		else return;
-
-		if (completionRange?.start) {
-			const operationStart = new Position(completionRange.start.line, completionRange.start.character + keyLength - 9);
-			const operationEnd = new Position(completionRange.start.line, completionRange.start.character + keyLength);
-			editor.selection = new Selection(operationStart, operationEnd);
-		}
-	});
-
-	context.subscriptions.push(selectOperationInCompletion);
-
-	// ---------------------------------------------------------------------------------------------------------------------
-
 	context.subscriptions.push(workspace.onDidChangeConfiguration(async (event) => {
 		
 		if (event.affectsConfiguration("find-and-transform.enableWarningDialog")

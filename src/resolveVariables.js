@@ -196,6 +196,8 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
     // --------------------  capGroupOnly ----------------------------------------------------------
     re = new RegExp("(?<capGroupOnly>(?<!\\$)\\$\{(\\d)\\}|(?<!\\$)\\$(\\d))", "g");
     
+    // TODO deal with octal literals here
+    
     resolved = resolved?.replaceAll(re, function (match, p1, p2, p3, offset) {
       
       // So can use 'replace(/.../, '$nn?')` in a jsOp and use the replace's capture group
@@ -214,11 +216,18 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
     // --------------------  capGroupOnly ----------------------------------------------------------
     
     // -------------------  jsOp ------------------------------------------------------------------
+    
+    // TODO: deal with octal literals here ?? 003 interpreted as an octal literal, not allowed in strict mode
+    // parseInt($1, 10)
+    
+    
     // can have multiple $${...}$$ in a replace
     re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
     try {
       
       resolved = resolved?.replaceAll(re, function (match, p1, operation) {
+        
+        // operation = operation.replace(/(0+\d*)/g, (match) => parseInt(match));  // works but lose the leading zero's, if any
         
         if (/\bawait\b/.test(operation)) {
         
@@ -237,6 +246,7 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
           }
         }
         else {
+          
           if (/vscode\./.test(operation) && /path\./.test(operation))
             return Function('vscode', 'path', 'require', 'document', `"use strict"; ${ operation }`)
               (vscode, path, require, document);
@@ -248,6 +258,7 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
               (path, require, document);
           else {
             return Function('require', 'document', `"use strict"; ${ operation }`)
+            // return Function('require', 'document', `${ operation }`)  // works, but lose strict mode
               (require, document);
           }
         }
@@ -273,6 +284,7 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   //   resolved = module.exports.resolveVariables(args, "replace");
   // }
   // return resolved;
+  
   
   // resolved = resolved?.replaceAll(/([\\])/g, '$1$1');
   return resolved?.replace(/\\}/g, '}');  // mainly for conditionals like ${1:+${POW\\}}

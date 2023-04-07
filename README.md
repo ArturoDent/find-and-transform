@@ -2,7 +2,7 @@
 
 ## Highlights  
 
-> Deprecated: `once` as a value for the `restrictFind` argument.  It is being replaced by `onceExcludeCurrentWord` which functions exactly as `once` does, and `onceIncludeCurrentWord` which works a little differently.  See more below within [once restrictFind Values](#details-on-the-restrictfind-and-cursormoveselect-arguments).
+> Option deprecated: `once` as a value for the `restrictFind` argument.  It is being replaced by `onceExcludeCurrentWord` which functions exactly as `once` does, and `onceIncludeCurrentWord` which works a little differently.  See more below within [once restrictFind Values](#details-on-the-restrictfind-and-cursormoveselect-arguments).
 
 1. &nbsp; Find and transform text in a single file with many kinds of transforms.  
 2. &nbsp; Search across files with pre-defined options.
@@ -1090,7 +1090,9 @@ ${getTextLines:n,p,q,r}    get the text from line `n`, column `p` through line `
                            example  ${getTextLines:2,0,4,15}      
 ```
 
-You will get intellisense in the keybinding or setting showing where the variables can be used.  
+> INTELLISENSE: can be used in the keybindings or settings showing where the variables can be used. You will also get intellisense for any unused args (like `find`, `isRegex`, `matchCase`, etc.).  You can always get more intellisense by triggering it manually with <kbd>Ctrl/Cmd</kbd>+<kbd>Space</kbd> at many locations in your keybindings or settings.  
+
+<br/> 
 
 > ` ${resultsFiles}` is a specially created variable that will scope the next search to those files in the previous search's results. In this way you can run successive searches narrowing the scope each time to the previous search results files.  See &nbsp;  [Search using the Panel](searchInPanel.md).
 
@@ -2175,11 +2177,12 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
 * Consider how `cursorMoveSelect` should work in full document search?  
 * Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.  
-* `async/await` all code so `postCommands` are more reliable.  
+* `async/await` all code so `postCommands` are more reliable (and can use built-in `runCommands`).    
 * Prevent OutputChannel from appearing in Output when not being actively used.  
-* Deal with redundant "Extensions have been modifieed on disk.  Please reload..." notification.  
+* Deal with redundant "Extensions have been modified on disk.  Please reload..." notification.  
 * Make `run` work for each selection.  
 * Investigate arg keys in package.json rather than completionProvider.  
+* Should all argument completions have commas at end?  
 
 ## Release Notes
 
@@ -2248,6 +2251,7 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * 4.6.0 Handling of backslashes for `\n`, `\\n`, `\t` and `\\t` improved significantly in jsOperations.  
 &emsp;&emsp; Fixed `lineNumber/Index` bug for `next...` and `previous...` `restrictFind` options.  
 &emsp;&emsp; Removed activationEvents checking and updating - unnecessary now.  
+&emsp;&emsp; 4.6.1 Reworked completionProvider for more intellisense, especially when manually invoked.   
 
 <br/>
 

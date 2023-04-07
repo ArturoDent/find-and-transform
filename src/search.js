@@ -270,22 +270,22 @@ exports.getValues = function () {    // removed "isCaseSensitive" in favor of "m
 exports.getDefaults = function () {
 	return {
     "title": "",
+    "description": "",
     "preCommands": "",
 		"find": "",
     "replace": "",
-    "delay": 0,
+    "delay": 2000,
     "postCommands": "",
-		"restrictFind": "document",   	      
 		"triggerSearch": true,
-		"triggerReplaceAll": 'false',
-		// "isRegex": true,
+		"triggerReplaceAll": false,
+		"isRegex": true,
 		"filesToInclude": "",          // default is current workspace
-		// "preserveCase": false,
-		// "useExcludeSettingsAndIgnoreFiles": true,
-		// "isCaseSensitive": false,
-		// "matchWholeWord": false,
-		// "matchCase": false
-		// "filesToExclude": ""
-		// "onlyOpenEditors": false
+		"preserveCase": false,
+		"useExcludeSettingsAndIgnoreFiles": true,
+		"isCaseSensitive": false,
+		"matchWholeWord": false,
+		"matchCase": false,
+		"filesToExclude": "",
+		"onlyOpenEditors": false
 	};
 }

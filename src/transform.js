@@ -231,8 +231,7 @@ exports.findAndSelect = async function (editor, args) {
   // TODO: should run for all of the matches of each selection for 'line' or 'document' for example?  Would have to loop here
   
   // run does no replacement, just runs the $${ operation }$$
-  // double escape all "groups" here/matches[0]
-  if (args.run) resolve.resolveVariables(args, "run", matches[0], editor.selection, null, null);
+  if (args.run) resolve.resolveVariables(args, "run", matches ? matches[0] : null, editor.selection, null, null);
   if ((foundSelections.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, editor.selection);
 };
 
@@ -247,7 +246,7 @@ exports.findAndSelect = async function (editor, args) {
 exports.replaceInLine = async function (editor, edit, args) {
 
   const document = editor.document;
-  const cursorPosition = document.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
+  const cursorPosition = document.getWordRangeAtPosition(editor.selection?.active)?.end || editor.selection?.end;
 
   const findArg = args.find;
   
@@ -763,6 +762,7 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
     
   if (foundSelections.length) editor.selections = foundSelections;  // and so postCommands work on selections
   if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
+  // if (args.run) resolve.resolveVariables(args, "run", matches[0], editor.selection, null, null);
   
   let lastMatchLengthDiff = 0;
 
@@ -1008,7 +1008,6 @@ async function _combineMatches(matches) {
  */
 exports.getKeys = function () {
   // preserveCase ?
-  // return ["title", "description", "preCommands", "find", "replace", "run\": [\n\t\"$${\",\n\t\t\"operation;\",\n\t\"}$$\",\n],", "isRegex", "postCommands",
   return ["title", "description", "preCommands", "find", "replace", "run", "isRegex", "postCommands",
     "matchCase", "matchWholeWord", "restrictFind", "reveal", "cursorMoveSelect"];
 };
@@ -1038,13 +1037,15 @@ exports.getValues = function () {
 exports.getDefaults = function () {
   return {
     "title": "",
+    "description": "",
     "preCommands": "",
     "find": "",
     "replace": "",
+    "run": "",
     "postCommands": "",
-    "isRegex": "false",
-    "matchCase": "false",
-    "matchWholeWord": "false",
+    "isRegex": false,
+    "matchCase": false,
+    "matchWholeWord": false,
     "restrictFind": "document",
     "reveal": "next",
     "cursorMoveSelect": ""

@@ -8,6 +8,7 @@ exports.getExtensionDefinedVariables = function() {
 }
 
 
+
 /**
  * @returns {Array} - all the available path variables
  */
