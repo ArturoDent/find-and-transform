@@ -18,37 +18,18 @@ const utilities = require('./utilities');
  * Execute the pre/post commands, which are vscode commands and may have args
  * @param {string | string[] | object} userCommands
  * @param {string}  preOrPost - "preCommands" or "postCommands"
- * @param {object} groups
- * @param {Selection} selection
  */
-exports.runPrePostCommands = async function (userCommands, preOrPost, groups, selection) {
+exports.runPrePostCommands = async function (userCommands, preOrPost) {
   
-  // resolve variables here (but not capture groups - except in a choice), fill choices with array items, e.g.
-  if (preOrPost === "postCommands") await new Promise(r => setTimeout(r, 300));
+  if (preOrPost === "postCommands") await new Promise(r => setTimeout(r, 300));  // slight pause before postCommands
   
   if (typeof userCommands === 'string') await commands.executeCommand(userCommands);
   
-  // does this handle multiple commands/args TODO
-  else if (typeof userCommands === 'object' && !Array.isArray(userCommands)) {
-    if (userCommands.args?.snippet?.search(/\$[\{\d]/) !== -1) {
-      // first null is 'groups'
-      userCommands.args.snippet = resolve.resolveVariables(userCommands.args, "snippet", groups, selection, null, null);
-    }
+  else if (typeof userCommands === 'object' && !Array.isArray(userCommands)) 
     await commands.executeCommand(userCommands.command, userCommands.args);
-  }
-
-  else if (Array.isArray(userCommands) && userCommands.length) {
-    for (const command of userCommands) {
-      if (typeof command === 'string') await commands.executeCommand(command);
-      // else if (typeof command === 'object')
-      else if (typeof command === 'object' && command.args?.snippet?.search(/\$[\{\d]/) !== -1) {
-        command.args.snippet = resolve.resolveVariables(command.args, "snippet", groups, selection, null, null);
-        await commands.executeCommand(command.command, command.args);
-      } 
-      else if (typeof command === 'object')
-        await commands.executeCommand(command.command, command.args);
-    }
-  }
+  
+  else if (Array.isArray(userCommands) && userCommands.length) 
+    await commands.executeCommand('runCommands', { commands: userCommands })
 }
 
 

@@ -2180,7 +2180,7 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * `async/await` all code so `postCommands` are more reliable (and can use built-in `runCommands`).    
 * Prevent OutputChannel from appearing in Output when not being actively used.  
 * Deal with redundant "Extensions have been modified on disk.  Please reload..." notification.  
-* Make `run` work for each selection.  
+* Make `run` work for each selection?  
 * Investigate arg keys in package.json rather than completionProvider.  
 * Should all argument completions have commas at end?  
 
@@ -2252,6 +2252,7 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 &emsp;&emsp; Fixed `lineNumber/Index` bug for `next...` and `previous...` `restrictFind` options.  
 &emsp;&emsp; Removed activationEvents checking and updating - unnecessary now.  
 &emsp;&emsp; 4.6.1 Reworked completionProvider for more intellisense, especially when manually invoked.   
+&emsp;&emsp; 4.6.2 Incorporated `runCommands` for pre/postCommands.  
 
 <br/>
 

@@ -226,13 +226,12 @@ exports.findAndSelect = async function (editor, args) {
     }
     if (foundSelections.length) editor.selections = foundSelections; // TODO this will not? remove all the original selections
   }
-  // if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
   
   // TODO: should run for all of the matches of each selection for 'line' or 'document' for example?  Would have to loop here
   
   // run does no replacement, just runs the $${ operation }$$
   if (args.run) resolve.resolveVariables(args, "run", matches ? matches[0] : null, editor.selection, null, null);
-  if ((foundSelections.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, editor.selection);
+  if ((foundSelections.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
 };
 
 
@@ -389,7 +388,8 @@ exports.replaceInLine = async function (editor, edit, args) {
       }
       
       if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
-      if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, null);
+      // if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
+      if ((lineMatches.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
     });
   }
 
@@ -514,7 +514,8 @@ exports.replaceInLine = async function (editor, edit, args) {
       
       // takes only one selection from the editor
       if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
-      if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, editor.selection);
+      // if (lineMatches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
+      if ((lineMatches.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
     });
     if (foundSelections.length && !args.cursorMoveSelect) {
       const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, "next");
@@ -665,7 +666,8 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, edit, arg
       editor.revealRange(new Range(matchStartPos, matchEndPos), 2); // why reveal if nextDontMoveCursor
     }   // do nothing, edit already made
 
-    if ((nextMatches.length || previousMatches.length) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", null, null);  // TODO
+    // can args.run appear here and run?
+    if ((nextMatches.length || previousMatches.length) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
   });
 };
 
@@ -761,6 +763,7 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
   });
     
   if (foundSelections.length) editor.selections = foundSelections;  // and so postCommands work on selections
+  // TODO: make run work for all matches?
   if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
   // if (args.run) resolve.resolveVariables(args, "run", matches[0], editor.selection, null, null);
   
@@ -838,7 +841,11 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
       const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
       editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
     }
-    if (matches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands", matches[0], editor.selection);
+    
+    // args.run?
+    if (matches.length && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
+    // if ((matches.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
+    
   });
 };
 
@@ -977,7 +984,8 @@ exports.replaceInSelections = async function (editor, edit, args) {
     }
     // runs after all finds in all selections, and uses only the first selection
     if (args.run) resolve.resolveVariables(args, "run", null, editor.selection, null, null);
-    if (args.postCommands && isSelectionWithMatch) await commands.runPrePostCommands(args.postCommands, "postCommands", null, null);
+    if (args.postCommands && isSelectionWithMatch) await commands.runPrePostCommands(args.postCommands, "postCommands");
+    // if ((isSelectionWithMatch || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
   });
 };
 

@@ -24,7 +24,7 @@ exports.startFindInCurrentFile = async function (args, editor, edit, enableWarni
   
   let continueRun = true;
     
-  if (args?.preCommands) await extensionCommands.runPrePostCommands(args.preCommands, "preCommands", null, null);
+  if (args?.preCommands) await extensionCommands.runPrePostCommands(args.preCommands, "preCommands");
     
   let replacement = "";
   if (Array.isArray(args?.replace)) replacement = args?.replace.join(' ');
@@ -72,7 +72,7 @@ exports.startRunInSearchPanel = async function (args, enableWarningDialog) {
   let continueRun = true;
 
   if (args?.preCommands) {
-    await extensionCommands.runPrePostCommands(args.preCommands, "preCommands", null, null);
+    await extensionCommands.runPrePostCommands(args.preCommands, "preCommands");
   }
 
   const argsBadObject = await utilities.checkArgs(args, "searchBinding");
@@ -93,5 +93,5 @@ exports.startRunInSearchPanel = async function (args, enableWarningDialog) {
     await searchCommands.runAllSearches(args);
   }
   
-  if (args?.postCommands) await extensionCommands.runPrePostCommands(args.postCommands, "postCommands", null, null);
+  if (args?.postCommands) await extensionCommands.runPrePostCommands(args.postCommands, "postCommands");
 }
