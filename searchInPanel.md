@@ -37,6 +37,8 @@ This extension will generate a command for each of the settings, they will appea
 
 "find": <string or regexp or array[strings]>,    // if no find key or empty value, will use the selected text (as vscode does natively)
 
+"ignoreWhiteSpace": <boolean>                    // default = false, makes the find work across newlines and other whitespace 
+
 "replace": <string or array[strings]>,
 
 "triggerSearch": <boolean or array[booleans]>,      // searches and shows the results
@@ -447,9 +449,15 @@ In the demo below, text with a ***blue background*** is selected:
 ------------  
 <br/>
 
-The `filesToInclude`, `filesToExclude`, `find` and `replace` arguments in the `runInSearchPanel` support these **path** variables:  
+The `find` argument in `runInSearchPanel` supports this variable (see more at &nbsp;  [README.md : getFindInput](README.md#variables-defined-by-this-extension-for-use-in-args) &nbsp;): 
 
-```text
+```plaintext
+${getFindInput}        trigger an input box to enter the search query (a string or regex)
+```
+
+The `filesToInclude`, `filesToExclude`, `find` and `replace` arguments in `runInSearchPanel` support these **path** variables:  
+
+```plaintext
 ${file}
 ${fileBasename}
 ${fileBasenameNoExtension}
@@ -472,7 +480,7 @@ ${resultsFiles}        // added by this extension, will be escaped
 
 In addition, the`find` and `replace` arguments in the `runInSearchPanel` also support these **snippet** variables:
 
-```text
+```plaintexttext
 ${TM_CURRENT_LINE}
 ${TM_CURRENT_WORD} 
 
@@ -488,6 +496,7 @@ ${CURRENT_HOUR}
 ${CURRENT_MINUTE}
 ${CURRENT_SECOND}
 ${CURRENT_SECONDS_UNIX}
+${CURRENT_TIMEZONE_OFFSET}
 
 ${RANDOM}
 ${RANDOM_HEX}
@@ -535,6 +544,31 @@ Explanation: find the uppercased version of the selection(s).  So if you select 
 ```
 
 Explanation: find the uppercased version of the first selection and the lower-cased version of the second selection and swap their cases.  
+
+<br/>
+
+---------------------  
+
+The `ignoreWhiteSpace` argument, a boolean, will change the `find` value so that any whitespace in the `find` will be treated as if it is `\s*`.  And the `find` regex will otherwise be modified so that you do not need to explicity specify a `\n` character to get newlines be recognized.  In other words, any whitespace characters in the `find` value will result in the `find` regex working across lines.  With these arguments:
+
+```jsonc
+"find": "someWord-A someWord-B",  
+"ignoreWhiteSpace": true,  
+"isRegex": true
+```
+
+text like these will be matched:
+
+```plaintext
+someWord-A        someWord-B
+```
+
+```plaintext
+  someWord-A
+
+  someWorb-B
+```
+ So it will match any consecutive someWord-A and someWord-B as long as there is only any kind of whitespace between them, be that spaces, tabs, newlines, etc.  
 
 <br/>
 

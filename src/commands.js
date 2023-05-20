@@ -5,13 +5,6 @@ const path = require('path');
 const drivers = require('./drivers');
 const resolve = require('./resolveVariables');
 const utilities = require('./utilities');
-// import { workspace, commands, extensions, Selection} from 'vscode';
-// import fs from 'fs';
-// import path from 'path';
-
-// import drivers from './drivers';
-// import resolve from './resolveVariables';
-// import utilities from './utilities';
 
 
 /**

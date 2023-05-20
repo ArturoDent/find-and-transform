@@ -56,7 +56,7 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           else if (command.startsWith("findInCurrentFile")) find = true;
           else return undefined;
                    
-					// ---------  $ for 'filesToInclude/filesToExclude/find/replace/restrictFind/reveal' completions  ------
+					// ---------  $ for 'filesToInclude/filesToExclude/find/replace/restrictFind/reveal/runWhen' completions  ------
 
           // curLocation.path = [26, 'args', 'replace', 1], isAtPropertyKey = false
           
@@ -78,7 +78,6 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
               return [trueItem, falseItem];
             }
           }
-          
           
           if (curLocation.path[2] && !curLocation.isAtPropertyKey) {
             const argCompletions = _completeArgs(linePrefix, position, find, search, curLocation);
@@ -273,12 +272,12 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
   }
 
  // ---------------------  find  ------------------------
-  if (arg === 'find') {
+  else if (arg === 'find') {
     if (linePrefix.endsWith('$'))
       return [..._completePathVariables(position, '$'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '$')];
       
     else if (linePrefix.endsWith('${'))
-      return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '${')];
+      return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "${", search), ..._completeSnippetVariables(position, '${')];
       
     
     else if (linePrefix.endsWith('\\\\'))
@@ -289,8 +288,9 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
   }
   
 // ---------------------  replace  ------------------------
-  if (arg === 'replace') {
-  
+  // else if (arg === 'replace') {
+  else if (arg === 'replace') {
+    
     if (find && linePrefix.endsWith('$${')) 
       return _completeReplaceFindVariables(position, '$${');
     
@@ -313,13 +313,12 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
     else if (search && linePrefix.endsWith('$'))
       return [..._completePathVariables(position, '$'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '$')];
       
-
 		else if (search && linePrefix.endsWith('${'))
-      return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '${')];
+      return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "${", search), ..._completeSnippetVariables(position, '${')];
   }
 
 // -------------------  cursorMoveSelect  ----------------------
-  if (arg === 'cursorMoveSelect') {
+  else if (arg === 'cursorMoveSelect') {
     if (find && linePrefix.endsWith('$')) 
       return _completeReplaceFindVariables(position, '$');
     
@@ -330,18 +329,29 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
       return _completeReplaceCaseTransforms(position, '\\');
   }
 
-// ---------------------  restrictFind ------------------------
-  if (find && arg === 'restrictFind' && !curLocation.isAtPropertyKey) {
+  // ---------------------  restrictFind ------------------------
+  else if (find && arg === 'restrictFind' && !curLocation.isAtPropertyKey) {
     return _completeRestrictFindValues(position);
   }
-// ---------------------    run    ------------------------
+  // ---------------------    run    ------------------------
   else if (find && arg === 'run') {
-    return _completeReplaceJSOperation(position, '$');
+    // return _completeReplaceJSOperation(position, '$');
+    
+    if (linePrefix.endsWith('$'))
+      return _completeReplaceFindVariables(position, "$");
+    
+    else if (linePrefix.endsWith('${'))
+      return _completeReplaceFindVariables(position, "${");
+  }
+  
+  // -------------------    runWhen    ------------------------
+  else if (find && arg === 'runWhen') {
+    return _completeRunWhen(position);
   }
   
   // ---------------------  reveal ------------------------
   // add line prefix info here: "    \"reveal\": \"next"
-  if (find && arg === 'reveal') {
+  else if (find && arg === 'reveal') {
     return _completeRevealValues(position);
   }
 }
@@ -387,6 +397,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, replaceRange, positi
     "find": "012",
     "delay": "0121",
     "run": "0122",
+    "runWhen": "0123",
     "replace": "013",
     "isRegex": "014",
     "postCommands": "015",
@@ -415,9 +426,10 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, replaceRange, positi
     "description": "Any string describing what this keybinding does.",
     
     "preCommands": "A single command, as a string, or an array of commands to run before any find occurs.",
-    "find": "Query to find or search.  Can be a regexp or plain text.",
+    "find": "Query to find or search.  Can be a regexp, plain text or `${getFindInput}`.",
     "delay": "Pause, in millisceonds, between searches when you have defined an array of searches.  Usually needed to allow the prior search to complete and populate the search results if you want to use those results files in a subsequent search with: .",
     "run": "Run a javascript operation after the find (and before any replace).",
+    "runWhen": "When to trigger the `run` operation:",
     
     "replace": "Replacement text.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
     "isRegex": "Is the find query a regexp.",
@@ -458,9 +470,9 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, replaceRange, positi
  */
 function _completeExtensionDefinedVariables(position, trigger, search) {
 
-  // triggered by 1 '$', so include it to complete w/o two '$${file}'
+  // triggered by '$' or '${'}, so include them to complete w/o two '$${file}'
   let replaceRange;
-  let addResultFiles = undefined;
+  let searchCompletions = undefined;
   
   const text = `
   
@@ -478,17 +490,21 @@ Replace ***n, o, p, q*** with some number 0-x.
 	if (trigger) replaceRange = new Range(position.line, position.character - trigger.length, position.line, position.character);
 	else replaceRange = new Range(position, position);
 
-	if (search)
-		addResultFiles = _makeValueCompletionItem("${resultsFiles}", replaceRange, "", "052", `A comma-separated list of the files in the current search results.`);
-
+  if (search)
+    searchCompletions = [
+      _makeValueCompletionItem("${resultsFiles}", replaceRange, "", "052", `A comma-separated list of the files in the current search results.`),
+      // _makeValueCompletionItem("${getFindInput}", replaceRange, "", "0544", `Trigger an input box for the find query.`)
+    ]
+  
 	const completionItems =  [
 		_makeValueCompletionItem("${getDocumentText}", replaceRange, "", "053", `The complete text of the current document.`),
     _makeValueCompletionItem("${getTextLines:n}", replaceRange, "", "0541", `Line and character numbers are 0-based. ${ text }`),
     _makeValueCompletionItem("${getTextLines:n-p}", replaceRange, "", "0542", `Line and character numbers are 0-based. ${ text }`),
     _makeValueCompletionItem("${getTextLines:n,o,p,q}", replaceRange, "", "0543", `Line and character numbers are 0-based. ${ text }`),
+    _makeValueCompletionItem("${getFindInput}", replaceRange, "", "0544", `Trigger an input box for the find query.`)
 	];
 
-	if (search) return completionItems.concat(addResultFiles);
+	if (search) return completionItems.concat(searchCompletions);
 	else return completionItems;
 }
 
@@ -686,6 +702,8 @@ function _completeRestrictFindValues(position) {
 		_makeValueCompletionItem("document", replaceRange, "document", "01", "Find and replace in the current editor."),
 		_makeValueCompletionItem("selections", replaceRange, "document", "02", "Find and replace in selections only."),
 
+		_makeValueCompletionItem("matchAroundCursor", replaceRange, "document", "021", "Use the find regex to get the match in which the cursor is contained."),
+    
     _makeValueCompletionItem("onceIncludeCurrentWord", replaceRange, "document", "03", "Find the first match on the current line from the beginning of the current word and replace, if any replacement specified."),
     _makeValueCompletionItem("onceExcludeCurrentWord", replaceRange, "document", "031", "Find the first match on the current line **after the cursor** and replace, if any replacement specified.  Same as the previous value `once`, which is deprecated."),
 
@@ -698,6 +716,22 @@ function _completeRestrictFindValues(position) {
 		_makeValueCompletionItem("previousSelect", replaceRange, "document", "08", "Select the previous match after replacing it (if you specify a replacement)."),
 		_makeValueCompletionItem("previousMoveCursor", replaceRange, "document", "09", "Move the cursor to after the previous match and replace it, if any, but do not select it."),
 		_makeValueCompletionItem("previousDontMoveCursor", replaceRange, "document", "10", "Replace the previous match but leave cursor at original position.")
+  ];
+}
+
+/**
+ * Make completion items for 'runWhen' values with priority
+ * 
+ * @param   {import("vscode").Position} position
+ * @returns {Array<CompletionItem>}
+ */
+function _completeRunWhen(position) {
+
+  const replaceRange = new Range(position, position);
+  return [
+    _makeValueCompletionItem("onceIfAMatch", replaceRange, "onceIfAMatch", "01", "Do the `run` operation only one time for all matches, if there was at least one find match."),
+    _makeValueCompletionItem("onEveryMatch", replaceRange, "onceIfAMatch", "02", "Do the `run` operation once for each find match."),
+    _makeValueCompletionItem("onceOnNoMatches", replaceRange, "onceIfAMatch", "03", "Do the `run` operation one time when there were no find matches.")
   ];
 }
 
@@ -844,14 +878,22 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
   
   const postCommandText = `"postCommands": "editor.action.selectFromAnchorToCursor"
 "postCommands": ["cursorHome", "editor.action.clipboardCopyAction"]`;
+  
+  const runWhenText = ` "onceIfAMatch":  "one time only for all find matches"
+ "onEveryMatch":  "one time for each match"
+ "onceOnNoMatches":   "when there are no matches run one time"`;
 
+  // TODO implement getDocumentation()/getCodeBlock() and possibly an array/object loading here rather than if/elses
   if (documentation) {
-    if (key === 'delay')
+    if (key === 'runWhen')
+      item.documentation = new MarkdownString(documentation).appendCodeblock(runWhenText, 'jsonc');
+    else if (key === 'delay')
       item.documentation = new MarkdownString(documentation).appendCodeblock(delayText, 'jsonc');
     else if (key === 'preCommands')
       item.documentation = new MarkdownString(documentation).appendCodeblock(preCommandText, 'jsonc');
     else if (key === 'postCommands')
       item.documentation = new MarkdownString(documentation).appendCodeblock(postCommandText, 'jsonc');
+      
     else item.documentation = new MarkdownString(documentation);
   }
   
@@ -881,6 +923,7 @@ function _makeValueCompletionItem(value, replaceRange, defaultValue, sortText, d
   if (defaultValue) item.detail = `default: ${ defaultValue }`;
 
   if (sortText) item.sortText = sortText;
+  if (documentation) item.documentation = documentation;
   
   // to select all the n's and text to be replaced
   if (value.substring(0, 3) === "${n:/") { // // ${n:/upcase} 

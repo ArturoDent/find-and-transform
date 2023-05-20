@@ -7,15 +7,6 @@ const variables = require('./variables');
 const path = require('path');        
 const os = require('os');     
 const utilities = require('./utilities'); 
-// import vscode from 'vscode';
-// import { window, workspace, Range } from 'vscode';
-
-// import globals from './extension';  // for outputChannel
-
-// import variables from './variables'; 
-// import path from 'path';        
-// import os from 'os';     
-// import utilities from './utilities';     
 
 
 /**
@@ -38,8 +29,10 @@ exports.resolveFind = async function (editor, args, matchIndex, selection) {
   
   if (args.find && args?.find?.search(lineIndexNumberRE) !== -1)
     resolvedFind = module.exports.resolveVariables(args, "find", null, selection ?? editor.selection, cursorIndex, matchIndex);
+    // resolvedFind = await module.exports.resolveVariables(args, "find", null, selection ?? editor.selection, cursorIndex, matchIndex);
   else
     resolvedFind = module.exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, matchIndex);
+    // resolvedFind = await module.exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, matchIndex);
     
   return module.exports.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
 }
@@ -51,6 +44,8 @@ exports.resolveFind = async function (editor, args, matchIndex, selection) {
  * @param {array} combinedMatches 
  * @param {vscode.Selection} selection 
  * @param {number} index 
+ * 
+ * @returns {Promise<string>}
  */
 exports.resolveCursorMoveSelect = async function (cursorMoveSelect, numMatches, combinedMatches, selection, index) {
   
@@ -88,7 +83,11 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   
   if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
   else if (caller === "replace") replaceValue = args?.replace;
-  else if (caller === "run") replaceValue = args?.run;
+
+  // else if (caller === "run") replaceValue = args?.run;
+  else if (caller === "run")
+    replaceValue = Array.isArray(args?.run) ? args?.run[0] : args?.run;
+    
   else if (caller === "cursorMoveSelect") replaceValue = args;
   else if (caller === "snippet") replaceValue = args?.snippet;
   
@@ -96,6 +95,7 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   if (groups?.length && (caller === "replace" || caller === "run")) {
     
     let jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+    
     if (jsOpRE.test(args.replace) || jsOpRE.test(args.run)) {
     
       const tempIndex = groups.index;
@@ -150,7 +150,6 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   });
   // --------------------  extension-defined variables ----------------------------------------------
 
-  // caller = snippet? TODO
   // if (caller !== "find") {  // caller === "find"  caseModifier and capGroups handled in replaceFindCaptureGroups
   if (caller !== "find" && caller !== "snippet") {  // caller === "find"  caseModifier and capGroups handled in replaceFindCaptureGroups
   
@@ -196,8 +195,6 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
     // --------------------  capGroupOnly ----------------------------------------------------------
     re = new RegExp("(?<capGroupOnly>(?<!\\$)\\$\{(\\d)\\}|(?<!\\$)\\$(\\d))", "g");
     
-    // TODO deal with octal literals here
-    
     resolved = resolved?.replaceAll(re, function (match, p1, p2, p3, offset) {
       
       // So can use 'replace(/.../, '$nn?')` in a jsOp and use the replace's capture group
@@ -217,17 +214,11 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
     
     // -------------------  jsOp ------------------------------------------------------------------
     
-    // TODO: deal with octal literals here ?? 003 interpreted as an octal literal, not allowed in strict mode
-    // parseInt($1, 10)
-    
-    
     // can have multiple $${...}$$ in a replace
     re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
     try {
       
       resolved = resolved?.replaceAll(re, function (match, p1, operation) {
-        
-        // operation = operation.replace(/(0+\d*)/g, (match) => parseInt(match));  // works but lose the leading zero's, if any
         
         if (/\bawait\b/.test(operation)) {
         
@@ -258,7 +249,6 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
               (path, require, document);
           else {
             return Function('require', 'document', `"use strict"; ${ operation }`)
-            // return Function('require', 'document', `${ operation }`)  // works, but lose strict mode
               (require, document);
           }
         }
@@ -289,7 +279,6 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   // resolved = resolved?.replaceAll(/([\\])/g, '$1$1');
   return resolved?.replace(/\\}/g, '}');  // mainly for conditionals like ${1:+${POW\\}}
 };
-
 
 
 /**
@@ -532,9 +521,9 @@ function _resolveExtensionDefinedVariables (variableToResolve, args, caller) {
  * 
  * @param {string} variableToResolve 
  * @param {number} replaceIndex  - for a find/replace/filesToInclude value?
- * @returns {string} - resolvedVariable with matchIndex/Number replaced
+ * @returns {Promise<string>} - resolvedVariable with matchIndex/Number replaced
  */
-exports.resolveMatchVariable = function (variableToResolve, replaceIndex) {
+exports.resolveMatchVariable = async function (variableToResolve, replaceIndex) {
   
   if (typeof variableToResolve !== 'string') return variableToResolve;
 
@@ -550,9 +539,9 @@ exports.resolveMatchVariable = function (variableToResolve, replaceIndex) {
  * 
  * @param {string} variableToResolve 
  * @param {number} index  - match.index
- * @returns {string} - resolvedVariable with matchIndex/Number replaced
+ * @returns {Promise<string>} - resolvedVariable with matchIndex/Number replaced
  */
-exports.resolveLineVariable = function (variableToResolve, index) {
+exports.resolveLineVariable = async function (variableToResolve, index) {
 
   const document = window.activeTextEditor?.document;
   
@@ -1183,14 +1172,17 @@ exports.makeFind = function (selections, args) {
     if ( selectedText.length ) textSet.add(selectedText);
   });
 
-  for (let item of textSet) find += `${ item }|`; // Sets are unique, so this de-duplicates any selected text
+  for (let item of textSet) {
+    // how to deal with multiple finds/ignoreWhiteSpace's (an array)
+    if (args.ignoreWhiteSpace && args.ignoreWhiteSpace[0]) item = item.trim();
+    find += `${ item }|`;
+  } // Sets are unique, so this de-duplicates any selected text
   find = find?.substring(0, find.length - 1);  // remove the trailing '|'
 
   // if .size of the set is greater than 1 then isRegex must be true
   if (textSet?.size > 1) mustBeRegex = true;
   // if (args.isRegex && find.length) find = `\\b(${ find })\\b`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
   if (args.isRegex && find.length) find = `(${ find })`;  // e.g. "(word|some words|more)"
-  
 
   return { find, mustBeRegex, emptyPointSelections };
-}
+};

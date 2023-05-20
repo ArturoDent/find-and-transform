@@ -2,7 +2,9 @@
 
 ## Highlights  
 
-> Option deprecated: `once` as a value for the `restrictFind` argument.  It is being replaced by `onceExcludeCurrentWord` which functions exactly as `once` does, and `onceIncludeCurrentWord` which works a little differently.  See more below within [once restrictFind Values](#details-on-the-restrictfind-and-cursormoveselect-arguments).
+> Option deprecated: `once` as a value for the `restrictFind` argument.  It is being replaced by `onceExcludeCurrentWord` which functions exactly as `once` does, and `onceIncludeCurrentWord` which works a little differently.  See more below within [once restrictFind Values](#details-on-the-restrictfind-and-cursormoveselect-arguments).  
+
+> New for v4.7: `runWhen` and `ignoreWhiteSpace` arguments, the `"restrictFind": "matchAroundCursor"` option and the `"find": "${getFindInput}"` variable.  
 
 1. &nbsp; Find and transform text in a single file with many kinds of transforms.  
 2. &nbsp; Search across files with pre-defined options.
@@ -10,7 +12,7 @@
 4. &nbsp; Do a series of finds and a replace across files, using only the results files from previous searches. See [Multiple searches across files.](searchInPanel.md#multiple-searches).  
 
 5. &nbsp; Execute javascript code, like math or string operations, on replacements.  
-&nbsp;&nbsp;Execute standalone javascript code for side effects, see example below.  **New in preview in v4.2.0.**  
+&nbsp;&nbsp;Execute standalone javascript code for side effects, see example below.  
 
 6. &nbsp; Use the vscode api or node packages like `path`, `os`, `fs`, etc. in a replacement.  
 
@@ -26,6 +28,7 @@
 
 13. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#using-numbered-capture-groups-in-a-find).  
 14. `${getDocumentText}` and `${getTextLines:n}` to get text anywhere in the document to use for replacement terms.  
+15. `${getFindInput}`: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `"find": "${getFindInput}"` will trigger an input box for the `find` query where you enter a string or a regular expression.  
 
 -----------------
 
@@ -67,13 +70,15 @@ Below you will find information on using the `findInCurrentFile` command - which
 &emsp; &emsp; &emsp; [e. Snippet Transforms: `${3:/capitalize}`](#snippet-like-transforms-replacements-in-findincurrentfile-commands-or-keybindings)  
 &emsp; &emsp; &emsp; [f. More Examples of Variable Transforms](#examples)  
 
-&emsp; &emsp; [11. Using `restrictFind` and `cursorMoveSelect`](#details-on-the-restrictfind-and-cursormoveselect-arguments)  
+&emsp; &emsp; [11. Using `restrictFind` with the `matchAroundCursor` option](#using-restrictFind-with-the-matchAroundCursor-option)  
+
+&emsp; &emsp; [12. Using `restrictFind` and `cursorMoveSelect`](#details-on-the-restrictfind-and-cursormoveselect-arguments)  
 
 &emsp; &emsp; &emsp; [a. Some `"restrictFind": "next...` option examples](#some-restrictfind-next-option-examples)  
 
-&emsp; &emsp; [12. Settings Examples](#sample-settings)  
+&emsp; &emsp; [13. Settings Examples](#sample-settings)  
 
-&emsp; &emsp; [13. Keybinding Examples](#sample-keybindings)  
+&emsp; &emsp; [14. Keybinding Examples](#sample-keybindings)  
 
 &emsp; &emsp; &emsp; [a. `lineNumber` and `lineIndex`](#using-linenumber-or-lineindex-in-the-find)  
 &emsp; &emsp; &emsp; [b. Nearest Words at Cursors](#nearest-words-at-cursors)  
@@ -83,11 +88,13 @@ Below you will find information on using the `findInCurrentFile` command - which
 &emsp; &emsp; &emsp; &emsp; [i. find, no replace, restrictFind: selections](#find-and-no-replace-with-restrictfind-selections)  
 &emsp; &emsp; &emsp; [f. no find argument but with a replace](#with-a-replace-key-but-no-find-key)  
 
-&emsp; &emsp; [14. Demonstrating `cursorMoveSelect` after replacement](#demonstrating-cursormoveselect-after-replacement)  
+&emsp; &emsp; [15. Demonstrating `cursorMoveSelect` after replacement](#demonstrating-cursormoveselect-after-replacement)  
 
-&emsp; &emsp; [15. `matchNumber` and `matchIndex`](#matchnumber-and-matchindex)  
+&emsp; &emsp; [16. `matchNumber` and `matchIndex`](#matchnumber-and-matchindex)  
 
-&emsp; &emsp; [16. `reveal` Options](#reveal-options)  
+&emsp; &emsp; [17. `reveal` Options](#reveal-options)  
+
+&emsp; &emsp; [18. `ignoreWhiteSpace` Option](#using-the-ignorewhitespace-argument)  
 
 <br/>
 
@@ -274,6 +281,8 @@ Newline examples that work and don't work:
     
     "find": "(trouble)",               // can be plain text, a regexp or a special variable
     
+    "ignoreWhiteSpace": true,           // default = false, makes the find work across newlines and other whitespace 
+    
     "replace": "\\U$1",                // text, variables, conditionals, case modifiers, operations, etc.
     
     "replace": "$${ someOperation }$$",
@@ -294,6 +303,10 @@ Newline examples that work and don't work:
         "operation;",
       "}$$",
     ],
+    
+    "runWhen": "onceIfAMatch",         // default, trigger the "run" operation only once no matter how many matches
+    "runWhen": "onEveryMatch",         // trigger the "run" operation for each successful find match
+    "runWhen": "onceOnNoMatches",      // only trigger the "run" operation if there is no find match
     
     "isRegex": true,                   // boolean, will apply to 'cursorMoveSelect' as well as the find query
     "matchWholeWord": true,            // boolean, same as above
@@ -463,7 +476,7 @@ Explanation for above:  In the first case, the cursor is placed on `Chapter`, so
 
 ## Running multiple finds and replaces with a single keybinding or setting
 
-The `find` and `replace` fields can either be a string of one find or an array of strings.  Examples:  
+The `find` and `replace` fields can either be one string or an array of strings.  Examples:  
 
 ```jsonc
 {
@@ -488,7 +501,7 @@ The `find` and `replace` fields can either be a string of one find or an array o
 ```
   
 1. If there are more `find` strings than `replace` strings: then the last `replace` value will be used for any remaining runs.  
-2. If there are more `replace`'s than `find`'s: then a generated find (see more at the "words at cursors" discussion below) using the cursor selections will be used for any remaining runs.  
+2. If there are more `replace`'s than `find`'s: then a generated find (see more at the "words at cursors" discussion below) using the cursor selections will be used for any remaining runs.  This is usually the prior replacement text.    
 
 ```jsonc
 {
@@ -858,8 +871,8 @@ To capitalize only the preceding line:
     
     "find": "(${getTextLines:(${lineIndex}-1)})",
     "replace": "\\U$1",
-    "restrictFind": "previousSelect",  // this makes it work on the preceding line only, will wrap
-    // "restrictFind": "nextSelect",   // capitalize next instance of the find, will wrap
+    "restrictFind": "previousSelect",  // this makes it work on the preceding line only, will wrap at top of file
+    // "restrictFind": "nextSelect",   // capitalize next instance of the find, will wrap at end of file
     "isRegex": true                    // must be here to treat the find as a regex
   }
 }
@@ -927,7 +940,7 @@ Better is to use the built-in `vscode.workspace.fs` for file operations:
 
 <br/>
 
-> There **must be one or more `return` statements** inside the ` $${...}$$ ` for whatever you want returned.  
+> In a `replace` there **must be one or more `return` statements** inside the ` $${...}$$ ` for whatever you want returned.  
 
 > Remember if you want a variable or capture group treated as a string, surround it with ticks or single quotes.  
 
@@ -1021,7 +1034,7 @@ Explanation for above: Find `>` and add `class="uppercased filename">` to it.
 
 ## Running Javascript Code as a side effect  
 
-You may want to run some javascript code, including the vscode api's, but **NOT** to replace anything.  You may want to construct a string to paste somewhere for example.  Consider this example (in your `settings.json`):
+You may want to run some javascript code, including the vscode api's, but **NOT** to replace anything.  You may want to construct a string to paste somewhere or gather filenames for example.  Consider this example (in your `settings.json`):
 
 ```jsonc
 "findInCurrentFile": {
@@ -1060,11 +1073,11 @@ This setting will select all the headers with 2 or more `##`'s, and then the `ru
 
 And lastly, the `postCommands` will move the cursor to the top, insert 2 blank lines and then paste the table of contents.  
 
-This can be seen demonstrated at [Stack Overflow: run custom code on selected text](https://stackoverflow.com/questions/64748430/is-there-a-way-to-run-custom-js-code-on-the-selected-text-in-vscode), with a keybinding shown as well.  
+This is demonstrated at [Stack Overflow: run custom code on selected text](https://stackoverflow.com/questions/64748430/is-there-a-way-to-run-custom-js-code-on-the-selected-text-in-vscode), with a keybinding shown as well.  
 
-> In all cases except when using `"restrictFind": "selections"` the `run` argument will be performed after any `find` and before any replacements.  So you could, for example, use the `vscode.window.activeTextEditor.selections` that your `find` finds and selects automatically to manipulate those new selections.  For the `"restrictFind": "selections"` case, `args.run` is run after both the find and replace and uses only the first resulting selection in the file.  
+This pattern of a `find` - which will select all the matches as limited by the `restrictFind` option - and then those selections (or the capture groups from the `find` regex, can be acted on in a `run` operation is a very powerful method.  
 
-> As of v4.2.0, `args.run` will only run once with `"restrictFind": "line"`, NOT once for each line.  
+> The `run` argument will be performed after any `find` and after any `replace`.  So you could, for example, use the `vscode.window.activeTextEditor.selections` that your `find` matches and selects and manipulate those new selections.  
 
 ------------------------
 
@@ -1075,7 +1088,9 @@ This can be seen demonstrated at [Stack Overflow: run custom code on selected te
 * ### Variables defined by this extension for use in args  
 
 ```text
-${resultsFiles}            ** explained below ** Only available with a 'runInSearchPanel' command
+${resultsFiles}            ** explained below ** Only available in a 'runInSearchPanel' command
+
+${getFindInput}            to enter the Find query via an input box rather than in the keybinding/setting
 
 ${getDocumentText}         get the entire text of the current document
   
@@ -1096,7 +1111,7 @@ ${getTextLines:n,p,q,r}    get the text from line `n`, column `p` through line `
 
 > ` ${resultsFiles}` is a specially created variable that will scope the next search to those files in the previous search's results. In this way you can run successive searches narrowing the scope each time to the previous search results files.  See &nbsp;  [Search using the Panel](searchInPanel.md).
 
-Here is an example using `${getDocumentText}`:  
+* Here is an example using `${getDocumentText}`:  
 
 ```jsonc
 {
@@ -1129,7 +1144,31 @@ Here is an example using `${getDocumentText}`:
 
 Notice there is no `find`, so that the result of the `replace` will be inserted at the cursor(s).  In this case, the `replace` will get the entire text and then `match` it looking for a certain class name as a capture group.  If found, it will be added to a value that is returned.  See this [Stack Overflow question](https://stackoverflow.com/questions/55281939/snippets-in-vs-code-that-use-text-found-in-the-file-with-a-regular-expression/55291542#55291542) to see this in action.  
 
-The `${getDocumentText}` variable allows you to look anywhere in a document for any text or groups of text that you can find with a regex.  You are not limited  to the current line or the clipboard or selection for example.  
+The `${getDocumentText}` variable allows you to look anywhere in a document for any text or groups of text that you can find with a regex.  You are not limited  to the current line or the clipboard or selection for example. 
+
+* Here is an example using `${getFindInput}`:  
+
+```jsonc
+{
+  "key": "alt+c",
+  "command": "findInCurrentFile",  
+  "args": {
+    "description": "I want to enter the Find query in an input box.",  // whatever text you want
+    
+    "find": "${getFindInput}",     // you might enter plain text or a regular expression in the input box that pops up
+    
+    // "find": "${getFindInput} stuff ${getFindInput}",   // you can have multiple ${getFindInput} variables in a find
+                                                          // but all ${getFindInput} variable will be replaced by the one input
+                                                          // so the resultant find might be "myInput stuff myInput"
+
+    // you can mix text with what you will input
+    // "find": "before ${getFindInput} after",   // this works
+
+    "isRegex": true,               // if you want that input treated as a regular expression
+    
+    "replace": "everything is fine",
+  }
+```
   
 <br/>
 
@@ -1458,7 +1497,58 @@ The above works by performing 2 replacements (with no find).  First, insert at t
 
 You would effectively be replacing the match `trouble` with nothing, so all matches would disappear from your code.  This **is** the correct result, since you have chosen to match something and replace it with something else that may not exist.  
 
-> If `isRegex` is set to `false` (the same as not setting it at all), the replace value, even one like `\\U$2` will be interpreted as literal plain text.  
+> If `isRegex` is set to `false` (the same as not setting it at all), the replace value, even one like `\\U$2` will be interpreted as literal plain text. 
+
+---------------
+
+<br/>
+
+## Using `restrictFind` with the `matchAroundCursor` option  
+
+ Example keybinding:  
+
+```jsonc
+{
+  "key": "alt+r",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "<(Element)(>[\\s\n\\S]*?<\/)(Element)>",  // $1 and $3 capture groups = Element
+    "isRegex": true,
+    "replace": "<\\U$1$2\\U$3>",                       // \\U$1 = capitalize group 1
+    "restrictFind": "matchAroundCursor"
+  }
+}
+```
+
+The above keybinding would select the entire Element and capitalize groups 1 and 3, so the result would look like   
+
+```plaintext
+<ELEMENT>
+  stuff
+  more stuff
+</ELEMENT>
+```
+
+* `matchAroundCursor` will select any find match that surrounds the cursor.  In the above example the cursor only needs to be somewhere within the text that matches the find.  Ths option can be used for quickly extracting a block of text with a SINGLE regular expression.  And then that block of text can be manipulated in a `replace` or `run` argument. 
+
+For example this `run` argument will take the selected text - like from the `find` match - and create a new file with that text pasted in:
+
+```jsonc
+    "run": [
+      "$${",
+        "let block = '```';",
+        "block += document.languageId;",
+        "block += `\\n\\t${selectedText}\\n`;",  // strip off trailing newline(s)?
+        "block += '```';",
+        "vscode.env.clipboard.writeText(block);", 
+        "vscode.commands.executeCommand('workbench.action.files.newUntitledFile');",
+        "vscode.commands.executeCommand('editor.action.clipboardPasteAction');",
+        
+        // go back to original file
+        "vscode.commands.executeCommand('workbench.action.openPreviousRecentlyUsedEditor');",
+      "}$$",
+    ],
+```
 
 ---------------
 
@@ -2131,6 +2221,35 @@ If you do not want the editor to scroll to reveal any find match, simply do not 
 
 -------------------  
 
+## Using the `ignoreWhiteSpace` argument  
+
+The `ignoreWhiteSpace` argument, a boolean, will change the `find` value so that any whitespace in the `find` will be treated as if it is `\s*`.  And the `find` regex will otherwise be modified so that you do not need to explicity specify a `\n` character to get newlines to be recognized.  In other words, any whitespace characters in the `find` value will result in the `find` regex working across lines.  With these arguments:
+
+```jsonc
+"find": "someWord-A someWord-B",  
+"ignoreWhiteSpace": true,  
+"isRegex": true
+```
+
+text like these will be matched:
+
+```plaintext
+someWord-A        someWord-B
+```
+
+```plaintext
+  someWord-A
+
+  someWorb-B
+```
+ So it will match any consecutive 'someWord-A' and 'someWord-B' as long as there is only some kind of whitespace between them, be that spaces, tabs, newlines, etc.  
+ 
+ And the `ignoreWhiteSpace` argument can be used in a search across files too.  
+
+<br/>
+
+-------------------
+
 <br/>
 
 > Note: Regex lookbehinds that are **not fixed-length** (also called fixed-width sometimes), like `(?<=^Art[\w]*)` are not supported in the Search Panel.  But non-fixed-length lookbehinds are supported in vscode's Find in a file (as in using the Find widget) so they can be used in `findInCurrentFile` settings or keybindings.  
@@ -2180,79 +2299,18 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * `async/await` all code so `postCommands` are more reliable (and can use built-in `runCommands`).    
 * Prevent OutputChannel from appearing in Output when not being actively used.  
 * Deal with redundant "Extensions have been modified on disk.  Please reload..." notification.  
-* Make `run` work for each selection?  
 * Investigate arg keys in package.json rather than completionProvider.  
 * Should all argument completions have commas at end?  
+* Implement successive `${getFindInput}` input boxes.  
 
 ## Release Notes
 
-* 0.9.7 Added error checking for arguments.  Added support for `onlyOpenEditors` argument.  
-* 0.9.8 Added more `lineNumber/Index` support.  Added `matchNumber/Index` variable.  
+See [CHANGELOG](CHANGELOG.md) for notes on prior releases.  
 
-* 1.0.0 Added ability to do math and string operations on `findInCurrentFile` replacements.  
-&emsp;&emsp; Can do multiple finds and replaces in a single keybinding or setting.  
-
-* 1.1.0 Work on ` $${<operation>} `, adding `return`.  **Breaking change**.  
-
-* 2.0.0 Work on ` $${<operation>}$$ `, adding `$$` to the end for parsing.  **Breaking change**.  
-&emsp;&emsp; Added snippet-like cursor replacements.  
-&emsp;&emsp; Added ability to have an **array of code** for jsOp `replace`.  
-&emsp;&emsp; Added snippet variables like `${CURRENT_HOUR}`, `${LINE_COMMENT}`, `${TM_CURRENT_LINE}`, etc.  
-
-* 2.1.0 Added intellisense for `find` snippet variables.  
-&emsp;&emsp;Fixed `find` `${TM_CURRENT_LINE}` resolution.  
-
-* 2.2.0  Added the ability to run vscode commands **before** performing the find.  
-&emsp;&emsp; Improved `^` and `$` regex line delimiter handling in `cursorMoveSelect`.  
-
-* 2.3.0  Can now execute vscode commands with arguments.  
-
-* 2.4.0  Use capture groups in `find`.  
-&emsp;&emsp; 2.4.2 Restrict number of capture groups to 9.  
-&emsp;&emsp; 2.4.3 Fixed `cursorMoveSelect` and once/line.  Added ignore langID's.  
-
-* 3.0.0  Enable multiple searches in `runInSearchPanel`.  
-&emsp;&emsp; Added snippet variable resolution to  `runInSearchPanel`.  
-&emsp;&emsp; Added a `delay` arg to `runInSearchPanel`.  
-&emsp;&emsp; 3.1.0 Escape /'s in a replace.  Added outputChannel.  
-
-* 3.2.0  Added the variables `${getDocumentText}` and `${getLineText:n}`.  
-&emsp;&emsp; 3.2.5 Rename `${getLineText:n}` and add `${getLineText:n-p}` and `${getLineText:n,o,p,q}`.  
-&emsp;&emsp; 3.2.6 Fix setting `filesToInclude` to  resolved `${resultsFiles}`.  
-
-* 3.3.0  Move `postCommands` into individual transform functions.  Run them only if a find match.  
-&emsp;&emsp; `cursorMoveSelect` in whole document restricted to find match ranges.  
-
-* 3.4.0  Refactor jsOPeration command parsing.  Bug fixes on search in file/folder commands.  
-
-* 4.0.0 Added `previous...` options to `restrictFind`.  
-&emsp;&emsp; Added the ability to use the vscode api in a javascript operation.  
-&emsp;&emsp; More use of outputChannel, to check arguments.  
-&emsp;&emsp; Can use `${getTextLines:(${lineIndex/Number}+-/*%n)}}`.  
-&emsp;&emsp; Replace `forEach` with `await Promise.all(editor.selections.map(async (selection) => {` to get async.  
-
-* 4.1.0 Made all `next..` and `previous...` `restrictFind` options reveal.  
-&emsp;&emsp; Made `cursorMoveSelect` work better with alternate-like regexes: `"$1|$2"` for example.  
-&emsp;&emsp; Added `{n:/snakecase}` transform.  
-&emsp;&emsp; Can do case modifications on conditionals and case transforms now.  `\\U${1:add this text}`.  
-&emsp;&emsp; Check args of pre/postCommands works with command objects (i.e., with arguments).  
-
-* 4.2.0 Introduced `args.run` to run js code as a side effect and not necessarily a replacement.  
-
-* 4.3.0 Introduced `onceExcludeCurrentWord` and `onceIncludeCurrentWord` (`once` is deprecated).  
-&emsp;&emsp; Made lineNumber/lineIndex matches work with the `once...` values.  
-
-* 4.4.0 Introduced `reveal` argument for `findInCurrentFile` command.  Reveal `first/next/last` options.  
-&emsp;&emsp; Escaped glob characters '?*[]' in file/folder names for `files to include` and `${resultsFiles}`.  
-&emsp;&emsp; 4.4.5 `reveal` argument works for `"restrictFind": "line/once" now.  
-
-* 4.5.0 Added `$CURRENT_TIMEZONE_OFFSET` and `${CURRENT_TIMEZONE_OFFSET}` and `${ CURRENT_TIMEZONE_OFFSET }`.  
-
-* 4.6.0 Handling of backslashes for `\n`, `\\n`, `\t` and `\\t` improved significantly in jsOperations.  
-&emsp;&emsp; Fixed `lineNumber/Index` bug for `next...` and `previous...` `restrictFind` options.  
-&emsp;&emsp; Removed activationEvents checking and updating - unnecessary now.  
-&emsp;&emsp; 4.6.1 Reworked completionProvider for more intellisense, especially when manually invoked.   
-&emsp;&emsp; 4.6.2 Incorporated `runCommands` for pre/postCommands.  
+* 4.7.0 Added `ignoreWhiteSpace` argument.  
+&emsp;&emsp; Added `${getFindInput}` variable for `find` queries.  
+&emsp;&emsp; Added `runWhen` argument to control when the `run` operation is triggered.  
+&emsp;&emsp; Added `"restrictFind": "matchAroundCursor"` option.  
 
 <br/>
 

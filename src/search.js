@@ -4,11 +4,6 @@ const utilities = require('./utilities');
 const resolve = require('./resolveVariables');
 // const delay = require('node:timers/promises');
 
-// import { window, env, commands } from 'vscode';
-
-// import utilities from './utilities';
-// import resolve from './resolveVariables';
-// // import delay from 'node:timers/promises';
 
 /**
  * Input argsArray is an object from runInSearchPanel keybindings or settings
@@ -84,9 +79,22 @@ async function _buildSearchArgs(args, index)  {
 
   indexedArgs.resultsFiles = await utilities.getSearchResultsFiles(args.clipText);
 
+  // get multiple getFindInput's sequentially?
+  if (indexedArgs.find.includes('${getFindInput}')) {
+    
+    const input = await utilities.getFindInput(index);
+    const re = new RegExp(`\\$\\{getFindInput\\}`, 'g');
+    
+    if (input || input === '')  // accept inputBox with nothing in it = ''
+      indexedArgs.find = indexedArgs.find?.replaceAll(re, input);
+    else {
+      // escaped out of inputBox : input = undefined
+      indexedArgs.find = indexedArgs.find?.replaceAll(re, '');
+    }
+  }
   // find = "" is allowable and does a makeFind
-  if (!indexedArgs.find) {
-    // if multiple selections, isRegex must be true  TODO
+  else if (!indexedArgs.find) {
+    // if multiple selections, isRegex must be true
     const findObject = resolve.makeFind(editor.selections, args);
     indexedArgs.find = findObject.find;
     indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
@@ -147,6 +155,12 @@ async function _buildSearchArgs(args, index)  {
   if (!indexedArgs.delay && indexedArgs.triggerReplaceAll) indexedArgs.delay = 2000;
 
   indexedArgs.query = indexedArgs.find;
+  
+  if (args.ignoreWhiteSpace && indexedArgs.query) {
+    indexedArgs.query = indexedArgs.query.trim();
+    indexedArgs.query = `\\n{0}` + indexedArgs.query.replace(/\s+/g, '\\s*');
+  }
+  
 	return indexedArgs;
 }
 
@@ -224,6 +238,7 @@ async function _returnArgsByIndex(args, index) {
 exports.useSearchPanel = async function (args) {
 
   if (args.triggerReplaceAll) args.triggerSearch = true;
+  
   if (args.matchCase) {
     args.isCaseSensitive = args.matchCase;  // because workbench.action.findInFiles does not use "matchCase"!!
     delete args.matchCase;
@@ -245,8 +260,9 @@ exports.useSearchPanel = async function (args) {
  * @returns {Array}
  */
 exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "matchCase"
-  return ["title", "preCommands", "find", "replace", "delay", "postCommands", "triggerSearch", "triggerReplaceAll", "isRegex", "filesToInclude",  
-		"preserveCase", "useExcludeSettingsAndIgnoreFiles", "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors", "clipText"];
+  return ["title", "preCommands", "find", "replace", "delay", "postCommands", "triggerSearch", "triggerReplaceAll",
+    "isRegex", "ignoreWhiteSpace", "filesToInclude", "preserveCase", "useExcludeSettingsAndIgnoreFiles",
+    "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors", "clipText"];
 }
 
 /**
@@ -255,8 +271,8 @@ exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "match
  */
 exports.getValues = function () {    // removed "isCaseSensitive" in favor of "matchCase"
 	return {
-    title: "string", find: "string", replace: "string", isRegex: "boolean", matchCase: "boolean",
-    preCommands: "string", postCommands: "string", delay: "number", clipText: "string",
+    title: "string", find: "string", replace: "string", isRegex: "boolean", ignoreWhiteSpace: "boolean",
+    matchCase: "boolean", preCommands: "string", postCommands: "string", delay: "number", clipText: "string",
 		matchWholeWord: "boolean", triggerSearch: "boolean", triggerReplaceAll: "boolean",
     useExcludeSettingsAndIgnoreFiles: "boolean", preserveCase: "boolean",
 		filesToInclude: "string", filesToExclude: "string", onlyOpenEditors: "boolean"
@@ -278,7 +294,8 @@ exports.getDefaults = function () {
     "postCommands": "",
 		"triggerSearch": true,
 		"triggerReplaceAll": false,
-		"isRegex": true,
+    "isRegex": true,
+    "ignoreWhiteSpace": false,
 		"filesToInclude": "",          // default is current workspace
 		"preserveCase": false,
 		"useExcludeSettingsAndIgnoreFiles": true,

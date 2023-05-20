@@ -2,10 +2,6 @@ const extensionCommands = require('./commands');
 const parseCommands = require('./parseCommands');
 const searchCommands = require('./search');
 const utilities = require('./utilities');
-// import extensionCommands from './commands';
-// import parseCommands from './parseCommands';
-// import searchCommands from './search';
-// import utilities from './utilities';
 
 
 /**

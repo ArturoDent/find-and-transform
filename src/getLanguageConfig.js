@@ -2,10 +2,6 @@ const { extensions } = require('vscode');
 const jsonc = require("jsonc-parser");
 const fs = require('fs');
 const path = require('path');
-// import { extensions } from 'vscode';
-// const jsonc = require("jsonc-parser");
-// import fs from 'fs';
-// import path from 'path';
 
 
 /**

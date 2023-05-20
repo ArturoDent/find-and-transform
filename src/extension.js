@@ -8,16 +8,6 @@ const providers = require('./completionProviders');
 const codeActions = require('./codeActions');
 const utilities = require('./utilities');
 
-// import { window, workspace, commands, env, Uri, Position, Selection } from 'vscode';
-
-// import drivers from './drivers';
-// import extensionCommands from './commands';
-// import parseCommands from './parseCommands';
-// import searchCommands from './search';
-// import providers from './completionProviders';
-// import codeActions from './codeActions';
-// import utilities from './utilities';
-
 
 exports.outputChannel = window.createOutputChannel("find-and-transform");
 // module.exports.outputChannel.hide();

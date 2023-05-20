@@ -1,22 +1,27 @@
 const { window, workspace, Selection, Position, env, extensions, commands, Uri } = require('vscode');
 
-
-
 const languageConfigs = require('./getLanguageConfig');
 const path = require('path');
 const os = require('os');
-// import { window, workspace, env, extensions, commands, Uri } from 'vscode';
-
-// import languageConfigs from './getLanguageConfig';
-// import path from 'path';
-// import os from 'os';
 
 const findCommands = require('./transform');
 const searchCommands = require('./search');
 const globals = require('./extension');  // for outputChannel
-// import findCommands from './transform';
-// import searchCommands from './search';
-// import globals from './extension';  // for outputChannel
+
+
+/**
+ * Trigger a QuickInput to get args.find from the user.
+ * @param {number} index - may be an array of find's, which one
+ * @returns {Promise<String>}
+ */
+exports.getFindInput= async function (index) {
+
+  // add index message here
+  const options = {title: "Find", prompt: "Enter the text to search for.", placeHolder: "\t\t a string or regex to find"};
+  const findArg = await window.showInputBox(options);
+
+  return findArg;
+};
 
 
 /**
@@ -255,10 +260,13 @@ exports.checkArgs = async function (args, fromWhere) {
           if (!goodValues[key].includes(value)) badValues.push({ [key]: value });
         }));
       }
-      else if (key === 'restrictFind') {
+      else if (key === 'restrictFind') {  // combine these next 3?
         if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
       }
       else if (key === 'reveal') {    // TODO check this
+        if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
+      }
+      else if (key === 'runWhen') {    // TODO check this
         if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
       }
       

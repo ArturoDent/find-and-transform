@@ -3,11 +3,6 @@ const { window, workspace, env, Uri } = require('vscode');
 const findCommands = require('./transform');
 const resolve = require('./resolveVariables');
 const utilities = require('./utilities');
-// import { window, workspace, env, Uri } from 'vscode';
-
-// import findCommands from './transform';
-// import resolve from './resolveVariables';
-// import utilities from './utilities';
 
 
 /**
@@ -135,10 +130,27 @@ async function _buildFindArgs(args, index)  {
 		clipText = string;
   });
   
+  // indexedArgs = defaults
 	let  indexedArgs = { restrictFind: "document", isRegex: false, cursorMoveSelect: "", matchWholeWord: false, matchCase: false };
-	Object.assign(indexedArgs, args);
+  Object.assign(indexedArgs, args);
+  
+  // get multiple getFindInput's sequentially?
+  if (indexedArgs.find?.includes('${getFindInput}')) {
+  
+    const input = await utilities.getFindInput(index);
+    const re = new RegExp(`\\$\\{getFindInput\\}`, 'g');
+    
+    if (input || input === '')  // accept inputBox with nothing in it = ''
+      indexedArgs.find = indexedArgs.find?.replaceAll(re, input);
+    else {
+      // escaped out of inputBox : input = undefined
+      indexedArgs.find = indexedArgs.find?.replaceAll(re, '');
+    }
+  }
 
-	if (!Array.isArray(args.find) && args.find && index === 0) indexedArgs.find = args.find;
+	// if (!Array.isArray(args.find) && args.find && index === 0) indexedArgs.find = args.find;
+	else if (!Array.isArray(args.find) && args.find && index === 0) indexedArgs.find = args.find;
+  // else if (Array.isArray(args.find) && args.find.length > index) indexedArgs.find = args.find[index];
   else if (Array.isArray(args.find) && args.find.length > index) indexedArgs.find = args.find[index];
 
 	// if no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
@@ -147,8 +159,8 @@ async function _buildFindArgs(args, index)  {
   else {
     // if multiple selections, isRegex must be true
     // if line/once don't call this here - do for each line
-    // if (args.restrictFind !== "line" && args.restrictFind !== "once") {
-    if (args.restrictFind !== "line" && !args.restrictFind?.startsWith("once")) {
+    // if selections, do later for each selection
+    if (args.restrictFind !== "line" && args.restrictFind !== "selections" && !args.restrictFind?.startsWith("once")) {
       const findObject = resolve.makeFind(editor.selections, args);
       indexedArgs.find = findObject.find;
       indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
@@ -172,17 +184,15 @@ async function _buildFindArgs(args, index)  {
   if (!Array.isArray(args.run) && (args.run || args.run === "")) indexedArgs.run = args.run;
   else if (Array.isArray(args.run) && args.run.length > index) indexedArgs.run = args.run[index];
     
-  // necessary?
-	// else if (!args.find) {  // no find and no replace
-		// replaceValue = "$1";
-		// indexedArgs.isRegex = true;
-		// findValue = `(${findValue})`;
-	// }
-
   const currentLanguageConfig = await utilities.getlanguageConfigComments(indexedArgs);
 
 	let regexOptions = "gmi";
 	if (indexedArgs.matchCase) regexOptions = "gm";
+  
+  if (indexedArgs.ignoreWhiteSpace && indexedArgs.find) {
+    indexedArgs.find = indexedArgs.find.trim();
+    indexedArgs.find = `\\n{0}` + indexedArgs.find.replace(/\s+/g, '\\s*');
+  }
 
 	let resolvedArgs = { regexOptions, madeFind, clipText, currentLanguageConfig };
 	resolvedArgs = Object.assign(indexedArgs, resolvedArgs);
@@ -224,4 +234,6 @@ exports.parseArgs = async function (commandArgs, resourceType) {
     }
   }
 };
+
+
 

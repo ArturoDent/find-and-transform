@@ -1,5 +1,5 @@
 const { languages, CodeAction, CodeActionKind} = require('vscode');
-// import { languages, CodeAction, CodeActionKind} from 'vscode';
+
 
 /**
  * Create codeActions to use on save from settings
