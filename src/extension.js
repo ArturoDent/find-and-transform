@@ -142,6 +142,22 @@ async function activate(context) {
 
 	// ---------------------------------------------------------------------------------------------------------------------
   
+  // 
+  let openReadmeAnchor = commands.registerCommand('find-and-transform.openReadmeAnchor', async (args) => {
+      
+    // add an arg for seachInPanel.md ?
+    const readmePath = context.asAbsolutePath("README.md");
+    let gotoUri = Uri.file(readmePath);
+    
+    // if (args.anchor) gotoUri = gotoUri.with({ fragment: 'using-the-ignorewhitespace-argument' });  // no # here
+    if (args.anchor) gotoUri = gotoUri.with({ fragment: args.anchor });  // no # here
+    commands.executeCommand("markdown.showPreview", gotoUri);
+  });
+  
+  context.subscriptions.push(openReadmeAnchor);
+  
+    // ---------------------------------------------------------------------------------------------------------------------
+  
 	context.subscriptions.push(workspace.onDidChangeConfiguration(async (event) => {
 		
 		if (event.affectsConfiguration("find-and-transform.enableWarningDialog")

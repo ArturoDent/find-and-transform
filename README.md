@@ -70,7 +70,7 @@ Below you will find information on using the `findInCurrentFile` command - which
 &emsp; &emsp; &emsp; [e. Snippet Transforms: `${3:/capitalize}`](#snippet-like-transforms-replacements-in-findincurrentfile-commands-or-keybindings)  
 &emsp; &emsp; &emsp; [f. More Examples of Variable Transforms](#examples)  
 
-&emsp; &emsp; [11. Using `restrictFind` with the `matchAroundCursor` option](#using-restrictFind-with-the-matchAroundCursor-option)  
+&emsp; &emsp; [11. Using `restrictFind` with the `matchAroundCursor` option](#using-restrictfind-with-the-matcharoundcursor-option)  
 
 &emsp; &emsp; [12. Using `restrictFind` and `cursorMoveSelect`](#details-on-the-restrictfind-and-cursormoveselect-arguments)  
 
@@ -123,15 +123,17 @@ Below you will find information on using the `findInCurrentFile` command - which
     // and you can 'find' text that you might have inserted in the preCommands
     
     "postCommands": "editor.action.insertCursorAtEndOfEachLineSelected",
+    
+    "runPostCommands": "onceIfAMatch/onceOnNoMatches/onEveryMatch"  // default is "onceIfAMatch"
   }
 }    
 ```
 
-Above is an example of the `preCommands` and `postCommands` arguments.  This functionality is in preview as of v2.3.0, particularly the `postCommands` as a lot of asynchronous code runs after the `preCommands` have finished.  So be very cautious with the `postCommands` for now.  
+Above is an example of the `preCommands` and `postCommands` arguments.  
 
 `preCommands` are run before any `find` or `replace` occurs.  It can be a single string or an object or an array of strings/objects.  The arguments `preCommands` and `postCommands` can appear anywhere in the arguments.  All the arguments can be in any order.  
 
-`postCommands` are run after the find and replace has occurred.  And will only run **if** there has been a successful find match or there is a `run` argument.  So if there is no find match and no `run` argument, no `postCommand` will run.  
+`postCommands` are run after the find and any replace has occurred.  The `runPostCommands` argument controls how the `postCommands` are run: one time no matter how many find matches there may be (this is the default), one time only if there were no find matches, or run the `postCommands` once for each find match - this last option is currently **EXPERIMENTAL** and will not work in all possible situations.  
 
 Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command ID` - the same command ID's you would use in a keybinding.  And the same for the `args` of each of those commands - see the `type` example above.  
 
@@ -235,8 +237,11 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 ```
 
 These forms work for newlines in a jsOperation `replace` or `run`:  
+
 1. ``` `\\n` ``` inside backticks
+
 2. ``` `\n` ```  inside backticks
+
 3. `'\\n'` inside single quotes, double-escaped
 
 * `'\n'` (inside single quotes) **DOES NOT Work** in a `"replace": "$${ jsOperation }$$"` or `"run": "$${ jsOperation }$$"` (but will in a simple `replace`).  This is because `\n` needs  to be double-escaped in a jsOperation, unless it is in backticks.  
@@ -501,7 +506,7 @@ The `find` and `replace` fields can either be one string or an array of strings.
 ```
   
 1. If there are more `find` strings than `replace` strings: then the last `replace` value will be used for any remaining runs.  
-2. If there are more `replace`'s than `find`'s: then a generated find (see more at the "words at cursors" discussion below) using the cursor selections will be used for any remaining runs.  This is usually the prior replacement text.    
+2. If there are more `replace`'s than `find`'s: then a generated find (see more at the "words at cursors" discussion below) using the cursor selections will be used for any remaining runs.  This is usually the prior replacement text.  
 
 ```jsonc
 {
@@ -1107,7 +1112,7 @@ ${getTextLines:n,p,q,r}    get the text from line `n`, column `p` through line `
 
 > INTELLISENSE: can be used in the keybindings or settings showing where the variables can be used. You will also get intellisense for any unused args (like `find`, `isRegex`, `matchCase`, etc.).  You can always get more intellisense by triggering it manually with <kbd>Ctrl/Cmd</kbd>+<kbd>Space</kbd> at many locations in your keybindings or settings.  
 
-<br/> 
+<br/>  
 
 > ` ${resultsFiles}` is a specially created variable that will scope the next search to those files in the previous search's results. In this way you can run successive searches narrowing the scope each time to the previous search results files.  See &nbsp;  [Search using the Panel](searchInPanel.md).
 
@@ -1144,7 +1149,7 @@ ${getTextLines:n,p,q,r}    get the text from line `n`, column `p` through line `
 
 Notice there is no `find`, so that the result of the `replace` will be inserted at the cursor(s).  In this case, the `replace` will get the entire text and then `match` it looking for a certain class name as a capture group.  If found, it will be added to a value that is returned.  See this [Stack Overflow question](https://stackoverflow.com/questions/55281939/snippets-in-vs-code-that-use-text-found-in-the-file-with-a-regular-expression/55291542#55291542) to see this in action.  
 
-The `${getDocumentText}` variable allows you to look anywhere in a document for any text or groups of text that you can find with a regex.  You are not limited  to the current line or the clipboard or selection for example. 
+The `${getDocumentText}` variable allows you to look anywhere in a document for any text or groups of text that you can find with a regex.  You are not limited  to the current line or the clipboard or selection for example.  
 
 * Here is an example using `${getFindInput}`:  
 
@@ -1497,7 +1502,7 @@ The above works by performing 2 replacements (with no find).  First, insert at t
 
 You would effectively be replacing the match `trouble` with nothing, so all matches would disappear from your code.  This **is** the correct result, since you have chosen to match something and replace it with something else that may not exist.  
 
-> If `isRegex` is set to `false` (the same as not setting it at all), the replace value, even one like `\\U$2` will be interpreted as literal plain text. 
+> If `isRegex` is set to `false` (the same as not setting it at all), the replace value, even one like `\\U$2` will be interpreted as literal plain text.  
 
 ---------------
 
@@ -1520,7 +1525,7 @@ You would effectively be replacing the match `trouble` with nothing, so all matc
 }
 ```
 
-The above keybinding would select the entire Element and capitalize groups 1 and 3, so the result would look like   
+The above keybinding would select the entire Element and capitalize groups 1 and 3, so the result would look like  
 
 ```plaintext
 <ELEMENT>
@@ -1529,7 +1534,7 @@ The above keybinding would select the entire Element and capitalize groups 1 and
 </ELEMENT>
 ```
 
-* `matchAroundCursor` will select any find match that surrounds the cursor.  In the above example the cursor only needs to be somewhere within the text that matches the find.  Ths option can be used for quickly extracting a block of text with a SINGLE regular expression.  And then that block of text can be manipulated in a `replace` or `run` argument. 
+* `matchAroundCursor` will select any find match that surrounds the cursor.  In the above example the cursor only needs to be somewhere within the text that matches the find.  Ths option can be used for quickly extracting a block of text with a SINGLE regular expression.  And then that block of text can be manipulated in a `replace` or `run` argument.  
 
 For example this `run` argument will take the selected text - like from the `find` match - and create a new file with that text pasted in:
 
@@ -2242,8 +2247,9 @@ someWord-A        someWord-B
 
   someWorb-B
 ```
+
  So it will match any consecutive 'someWord-A' and 'someWord-B' as long as there is only some kind of whitespace between them, be that spaces, tabs, newlines, etc.  
- 
+
  And the `ignoreWhiteSpace` argument can be used in a search across files too.  
 
 <br/>
@@ -2296,7 +2302,7 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
 * Consider how `cursorMoveSelect` should work in full document search?  
 * Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.  
-* `async/await` all code so `postCommands` are more reliable (and can use built-in `runCommands`).    
+* `async/await` all code so `postCommands` are more reliable (and can use built-in `runCommands`).  
 * Prevent OutputChannel from appearing in Output when not being actively used.  
 * Deal with redundant "Extensions have been modified on disk.  Please reload..." notification.  
 * Investigate arg keys in package.json rather than completionProvider.  
@@ -2311,6 +2317,7 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 &emsp;&emsp; Added `${getFindInput}` variable for `find` queries.  
 &emsp;&emsp; Added `runWhen` argument to control when the `run` operation is triggered.  
 &emsp;&emsp; Added `"restrictFind": "matchAroundCursor"` option.  
+&emsp;&emsp; 4.7.1 Added `runPostCommands` and `resolvePostCommandVariables`.  Added a command to enable opening readme anchors from completion details.  
 
 <br/>
 

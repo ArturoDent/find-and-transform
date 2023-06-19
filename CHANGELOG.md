@@ -1,4 +1,4 @@
-<br/>
+# CHANGELOG  
 
 ## Release Notes
 
@@ -67,12 +67,13 @@
 * 4.6.0 Handling of backslashes for `\n`, `\\n`, `\t` and `\\t` improved significantly in jsOperations.  
 &emsp;&emsp; Fixed `lineNumber/Index` bug for `next...` and `previous...` `restrictFind` options.  
 &emsp;&emsp; Removed activationEvents checking and updating - unnecessary now.  
-&emsp;&emsp; 4.6.1 Reworked completionProvider for more intellisense, especially when manually invoked.   
+&emsp;&emsp; 4.6.1 Reworked completionProvider for more intellisense, especially when manually invoked.  
 &emsp;&emsp; 4.6.2 Incorporated `runCommands` for pre/postCommands.  
 
 * 4.7.0 Added `ignoreWhiteSpace` argument.  
 &emsp;&emsp; Added `${getFindInput}` variable for `find` queries.  
 &emsp;&emsp; Added `runWhen` argument to control when the `run` operation is triggered.  
-&emsp;&emsp; Added `"restrictFind": "matchAroundCursor"` option.  
+&emsp;&emsp; Added `"restrictFind": "matchAroundCursor"` option.
+&emsp;&emsp; 4.7.1 Added `runPostCommands` and `resolvePostCommandVariables`.  Added a command to enable opening readme anchors from completion details.  
 
 -----------------------

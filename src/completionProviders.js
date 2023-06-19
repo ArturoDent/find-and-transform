@@ -1,4 +1,4 @@
-const { languages, extensions, window, Range, Position, CompletionItem, CompletionItemKind, CompletionTriggerKind, MarkdownString, SnippetString } = require('vscode');
+const { commands, languages, extensions, window, Uri, Range, Position, CompletionItem, CompletionItemKind, CompletionTriggerKind, MarkdownString, SnippetString } = require('vscode');
 const jsonc = require("jsonc-parser");
 
 const searchCommands = require('./search');
@@ -124,10 +124,10 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           }
             
           if (find) {
-            return _filterCompletionsItemsNotUsed(runFindArgs, argsText, replaceRange, position, invoked);
+            return _filterCompletionsItemsNotUsed(context, runFindArgs, argsText, replaceRange, position, invoked);
           }
           else if (search) {
-            return _filterCompletionsItemsNotUsed(runSearchArgs, argsText, replaceRange, position, invoked);
+            return _filterCompletionsItemsNotUsed(context, runSearchArgs, argsText, replaceRange, position, invoked);
           }
 					return undefined;
 				}
@@ -212,8 +212,11 @@ exports.makeSettingsCompletionProvider = async function(context) {
 					keysText = document.getText(keysRange);
 				}
 
-				const runFindArgs   = findCommands.getKeys().slice(0, -1);     // remove clipText from end
-        const runSearchArgs = searchCommands.getKeys().slice(0, -1);   // remove clipText from end
+				// const runFindArgs   = findCommands.getKeys().slice(0, -1);     // remove clipText from end
+        // const runSearchArgs = searchCommands.getKeys().slice(0, -1);   // remove clipText from end
+        
+        const runFindArgs   = findCommands.getKeys();
+        const runSearchArgs = searchCommands.getKeys();
 
         let replaceRange = new Range(position, position);
         const textLine = document.lineAt(position);
@@ -230,13 +233,13 @@ exports.makeSettingsCompletionProvider = async function(context) {
         
 				// eliminate any options already used
         if (linePrefix.search(/^\s*$/m) !== -1)
-          return _filterCompletionsItemsNotUsed(keyArgs, keysText, replaceRange, position, true);
+          return _filterCompletionsItemsNotUsed(context, keyArgs, keysText, replaceRange, position, true);
         
         else if (linePrefix.search(/^\s*"$/m) !== -1)
-          return _filterCompletionsItemsNotUsed(keyArgs, keysText, replaceRange, position, false);
+          return _filterCompletionsItemsNotUsed(context, keyArgs, keysText, replaceRange, position, false);
         
         else if (curLocation.isAtPropertyKey && !curLocation.previousNode) 
-					return _filterCompletionsItemsNotUsed(keyArgs, keysText, replaceRange, position, true);
+					return _filterCompletionsItemsNotUsed(context, keyArgs, keysText, replaceRange, position, true);
           
 				else return undefined;
       }
@@ -348,8 +351,13 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
   else if (find && arg === 'runWhen') {
     return _completeRunWhen(position);
   }
+    
+  // ---------------    runPostCommands    --------------------
+  else if (find && arg === 'runPostCommands') {
+    return _completeRunPostCommands(position);
+  }
   
-  // ---------------------  reveal ------------------------
+  // ---------------------  reveal ----------------------------
   // add line prefix info here: "    \"reveal\": \"next"
   else if (find && arg === 'reveal') {
     return _completeRevealValues(position);
@@ -376,14 +384,14 @@ function _findConfig(rootNode, offset)  {
 
 /**
  * Make CompletionItem arrays, eliminate already used option keys found in the args text
- *
+ * @param   {import("vscode").ExtensionContext} context
  * @param   {string[]} argArray - 
  * @param   {string} argsText - text of the 'args' options:  "args": { .... }
  * @param   {import("vscode").Position} position - cursor position
  * @param   {Boolean} [invoked]
  * @returns {Array<CompletionItem>}
  */
-function _filterCompletionsItemsNotUsed(argArray, argsText, replaceRange, position, invoked) {
+function _filterCompletionsItemsNotUsed(context, argArray, argsText, replaceRange, position, invoked) {
 
   const searchDefaults = searchCommands.getDefaults();
   const findDefaults = findCommands.getDefaults();  
@@ -395,12 +403,14 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, replaceRange, positi
     
     "preCommands": "011",
     "find": "012",
-    "delay": "0121",
-    "run": "0122",
-    "runWhen": "0123",
+    "ignoreWhiteSpace": "0121",
+    "delay": "0122",
+    "run": "0123",
+    "runWhen": "0124",
     "replace": "013",
     "isRegex": "014",
     "postCommands": "015",
+    "runPostCommands": "0151",
 
 		"isCaseSensitive": "022",
 		"matchCase": "023",
@@ -421,12 +431,14 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, replaceRange, positi
 		"preserveCase": "07"
   };
   
-	const description = {
+	const documentation = {
 		"title": "This will appear in the Command Palette as `Find-and-Transform:<title>`. Can include spaces.",
     "description": "Any string describing what this keybinding does.",
     
     "preCommands": "A single command, as a string, or an array of commands to run before any find occurs.",
     "find": "Query to find or search.  Can be a regexp, plain text or `${getFindInput}`.",
+    // "ignoreWhiteSpace": "Any whitespace in the `find` will be treated as if it is `\\s*`. And will match across lines without the need to specify a `\\n` in the find regex. See [using the ignoreWhiteSpace option](Readme.md#using-the-ignorewhitespace-argument)",
+    "ignoreWhiteSpace": "Any whitespace in the `find` will be treated as if it is `\\s*`. And will match across lines without the need to specify a `\\n` in the find regex.",
     "delay": "Pause, in millisceonds, between searches when you have defined an array of searches.  Usually needed to allow the prior search to complete and populate the search results if you want to use those results files in a subsequent search with: .",
     "run": "Run a javascript operation after the find (and before any replace).",
     "runWhen": "When to trigger the `run` operation:",
@@ -434,6 +446,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, replaceRange, positi
     "replace": "Replacement text.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
     "isRegex": "Is the find query a regexp.",
     "postCommands": "A single command, as a string, or an array of commands to run after any replace occurs.",
+    "runPostCommands": "When to trigger the `postCommands`:",
     
 		"isCaseSensitive": "Do you want the search to be case-senstive.",
 		"matchCase": "Match only where the case is the same as the find query.",
@@ -457,7 +470,7 @@ function _filterCompletionsItemsNotUsed(argArray, argsText, replaceRange, positi
   return argArray
     .filter(option => argsText.search(new RegExp(`^[ \t]*"${ option }"`, "gm")) === -1)
     .map(option => {
-      return _makeKeyCompletionItem(option, replaceRange, defaults[`${ option }`], priority[`${ option }`], description[`${ option }`], invoked);
+      return _makeKeyCompletionItem(option, replaceRange, defaults[`${ option }`], priority[`${ option }`], documentation[`${ option }`], invoked);
   })
 }
 
@@ -736,6 +749,22 @@ function _completeRunWhen(position) {
 }
 
 /**
+ * Make completion items for 'runPostCommands' values with priority
+ * 
+ * @param   {import("vscode").Position} position
+ * @returns {Array<CompletionItem>}
+ */
+function _completeRunPostCommands(position) {
+
+  const replaceRange = new Range(position, position);
+  return [
+    _makeValueCompletionItem("onceIfAMatch", replaceRange, "onceIfAMatch", "01", "Run the `postCommands` only one time for all matches, if there was at least one find match."),
+    _makeValueCompletionItem("onEveryMatch", replaceRange, "onceIfAMatch", "02", "EXPERIMENTAL: Run the `postCommands` once for each find match."),
+    _makeValueCompletionItem("onceOnNoMatches", replaceRange, "onceIfAMatch", "03", "Run the `postCommands` one time when there were no find matches.")
+  ];
+}
+
+/**
  * Make completion items for 'reveal' values with priority
  * 
  * @param   {import("vscode").Position} position
@@ -830,7 +859,6 @@ Example: "find": "\\\\\\l\$TM_CURRENT_LINE"`)
 
 /**
  * From a string input make a CompletionItemKind.Text
- *
  * @param   {string} key
  * @param   {Range} replaceRange
  * @param   {string|boolean} defaultValue - default value for this option
@@ -847,18 +875,22 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
   if (key === "run") {
     item = new CompletionItem("run: $${ operation }$$", CompletionItemKind.Property);
     item.insertText = new SnippetString(`${ leadingQuote }run": [\n\t"$$\{",\n\t\t"\$\{1:operation\};",\n\t\t"\$\{2:operation\};",\n\t\t"\$\{3:operation\};",\n\t"\}$$",\n],`);
-    item.range = replaceRange;
+    // item.range = replaceRange;
+    item.range = new Range(replaceRange.start, new Position(replaceRange.start.line, replaceRange.start.character + 1));
   }
   else {
     item = new CompletionItem(key, CompletionItemKind.Property);
   
     // don't select true/false/numbers defaultValue's
     if (typeof defaultValue === "number")  // key == delay
-      item.insertText = new SnippetString(`${ leadingQuote }${ key }": \$\{1:${ defaultValue }\}`);
+      // item.insertText = new SnippetString(`${ leadingQuote }${ key }": \$\{1:${ defaultValue }\}`);
+      item.insertText = new SnippetString(`${ leadingQuote }${ key }": \$\{1:${ defaultValue }\},`);
     else if (typeof defaultValue === "boolean")
-      item.insertText = new SnippetString(`${ leadingQuote }${ key }": ${ defaultValue }`);
+      // item.insertText = new SnippetString(`${ leadingQuote }${ key }": ${ defaultValue }`);
+      item.insertText = new SnippetString(`${ leadingQuote }${ key }": ${ defaultValue },`);
     else
-      item.insertText = new SnippetString(`${ leadingQuote }${ key }": "\$\{1:${ defaultValue }\}"`);
+      // item.insertText = new SnippetString(`${ leadingQuote }${ key }": "\$\{1:${ defaultValue }\}"`);
+      item.insertText = new SnippetString(`${ leadingQuote }${ key }": "\$\{1:${ defaultValue }\}",`);
       
   
     if (!invoked)
@@ -882,6 +914,10 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
   const runWhenText = ` "onceIfAMatch":  "one time only for all find matches"
  "onEveryMatch":  "one time for each match"
  "onceOnNoMatches":   "when there are no matches run one time"`;
+  
+ const runPostCommandsText = ` "onceIfAMatch":  "one time only for all find matches"
+ "onEveryMatch":  "EXPERIMENTAL: one time for each match"
+ "onceOnNoMatches":   "when there are no matches run one time"`;
 
   // TODO implement getDocumentation()/getCodeBlock() and possibly an array/object loading here rather than if/elses
   if (documentation) {
@@ -893,6 +929,17 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
       item.documentation = new MarkdownString(documentation).appendCodeblock(preCommandText, 'jsonc');
     else if (key === 'postCommands')
       item.documentation = new MarkdownString(documentation).appendCodeblock(postCommandText, 'jsonc');
+    else if (key === 'runPostCommands')
+      item.documentation = new MarkdownString(documentation).appendCodeblock(runPostCommandsText, 'jsonc');
+      
+    else if (key === 'ignoreWhiteSpace') {
+      item.documentation = new MarkdownString(documentation);
+      // get below from a getDocumentation() object
+      const args = encodeURIComponent(JSON.stringify({ anchor: 'using-the-ignorewhitespace-argument' }));
+      item.documentation.appendCodeblock('', 'plaintext');        // just adds an empty line before next entry
+      item.documentation.appendMarkdown(`&nbsp;&nbsp;&nbsp; README : [ ignoreWhiteSpace option.](command:find-and-transform.openReadmeAnchor?${ args })`);
+      item.documentation.isTrusted = true;
+    }
       
     else item.documentation = new MarkdownString(documentation);
   }

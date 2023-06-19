@@ -35,6 +35,8 @@ This extension will generate a command for each of the settings, they will appea
 ```jsonc
 "title": "<some string>",        // can have spaces, will be shown in the Command Palette: "Find-Transform:My Title"
 
+"description": "<some string>",  // whatever text you want, explain what the keybinding/setting does
+
 "find": <string or regexp or array[strings]>,    // if no find key or empty value, will use the selected text (as vscode does natively)
 
 "ignoreWhiteSpace": <boolean>                    // default = false, makes the find work across newlines and other whitespace 
@@ -449,7 +451,7 @@ In the demo below, text with a ***blue background*** is selected:
 ------------  
 <br/>
 
-The `find` argument in `runInSearchPanel` supports this variable (see more at &nbsp;  [README.md : getFindInput](README.md#variables-defined-by-this-extension-for-use-in-args) &nbsp;): 
+The `find` argument in `runInSearchPanel` supports this variable (see more at &nbsp;  [README.md : getFindInput](README.md#variables-defined-by-this-extension-for-use-in-args) &nbsp;):  
 
 ```plaintext
 ${getFindInput}        trigger an input box to enter the search query (a string or regex)
@@ -568,6 +570,7 @@ someWord-A        someWord-B
 
   someWorb-B
 ```
+
  So it will match any consecutive someWord-A and someWord-B as long as there is only any kind of whitespace between them, be that spaces, tabs, newlines, etc.  
 
 <br/>

@@ -3,7 +3,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "4.7.0",
+ "version": "4.7.1",
  "engines": {
   "vscode": "^1.69.0"
  },
@@ -107,23 +107,23 @@
     "properties": {
      "findInCurrentFile": {
       "type": "object",
-      "scope": "machine",
+      "scope": "resource",
       "description": "Find in the current file."
      },
      "runInSearchPanel": {
       "type": "object",
-      "scope": "machine",
+      "scope": "resource",
       "description": "Search using the Search Panel."
      },
      "find-and-transform.enableContextMenus": {
       "type": "boolean",
-      "scope": "machine",
+      "scope": "resource",
       "default": true,
       "markdownDescription": "Show `Search in this File`, `Search in this Folder` and `Search in the Results Files` in the context menus."
      },
      "find-and-transform.enableWarningDialog": {
       "type": "boolean",
-      "scope": "machine",
+      "scope": "resource",
       "default": true,
       "markdownDescription": "Enable a warning dialog if there are bad argument keys or values in settings and keybindings."
      }

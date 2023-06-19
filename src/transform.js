@@ -266,7 +266,13 @@ exports.findAndSelect = async function (editor, args) {
   }
   
   _runWhen(args, foundMatches, foundSelections, editor.selection);
-  if ((foundSelections.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
+  
+  // sendSequence will resolve certain vars automatically
+  // if sendSequence or type commands, loop here through multiple commands?
+  // insertSnippet has args.name or args.snippet, not args.text
+  
+  if (args.postCommands) await _runPostCommands(args, foundMatches, foundSelections, editor.selection);
+  // if ((foundSelections.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
 };
 
 /**
@@ -342,6 +348,92 @@ function _runWhen (args, foundMatches, foundSelections, selection) {
   }
   else if (args.run && args.runWhen === "onceOnNoMatches")
     resolve.resolveVariables(args, "run", null, selection, null, null);  // no matches, run once
+}
+
+/**
+ * Resolve any variables in the args.postCommands
+ * 
+ * @param {Object} args
+ * @param {Array} foundMatches
+ * @param {Array<Selection>} foundSelections
+ * @param {Selection} selection - the editor.selection
+ * @param {Number} index
+ * @returns {Object} args - with any variables resolved in each postCommand
+ */
+function _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, index) {
+  
+  const editor = window.activeTextEditor;
+  
+  // for multiple commands within a single args.postCommands
+  function _loopPostCommands(args,  foundMatch, foundSelection, selection, index) {
+    if (Array.isArray(args.postCommands)) {
+      // let index = 0;
+      // args.postCommands.forEach((command, index) => {
+      args.postCommands.forEach((command) => {
+        if (command?.args?.text)
+          // use foundMatches[index]?
+          command.args.text = resolve.resolveVariables(args, "postCommands", foundMatch, selection, null, index);
+      });
+    }
+    // TODO if not an array
+    else args.postCommands.args.text = resolve.resolveVariables(args, "postCommands", foundMatch, selection, null, index);
+  };
+  
+  _loopPostCommands(args, foundMatches[index], foundSelections[index], selection, index);
+  
+  // if (foundMatches.length) {
+  //   if (args.runPostCommands === "onEveryMatch") {
+  //     // foundSelections.map((foundSelection, index) => {
+  //       _loopPostCommands(args, foundMatches[index], foundSelections[index], selection);
+  //     // });
+  //   }
+  //   else if (!args.runPostCommands || args.runPostCommands === "onceIfAMatch") {// uses first match and first selection = editor.selection
+  //     _loopPostCommands(args, foundMatches[0], foundSelections[0], selection);
+  //   }
+  // }
+  // else if (args.runPostCommands === "onceOnNoMatches") {
+  //   _loopPostCommands(args, foundMatches[0], foundSelections[0], selection);
+  // }
+  
+  return args.postCommands;
+}
+
+/**
+ * Run the args.postCommands and args.runPostCommands, no return
+ * 
+ * @param {Object} args
+ * @param {Array} foundMatches
+ * @param {Array<Selection>} foundSelections
+ * @param {Selection} selection - editor.selection
+ * 
+ */
+async function _runPostCommands(args, foundMatches, foundSelections, selection) {
+  
+  let postCommands;
+  const argHasText = (command) => command.args.text;
+
+  if ((Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text) {
+
+    if (foundMatches.length) {
+      if (args.runPostCommands === "onEveryMatch") {
+        foundSelections.map(async (foundSelection, index) => {
+        // foundMatches.map(async (foundMatch, index) => {
+          // _resolvePostCommandVariables calls the async resolveVariables() so this doesn't work for
+          //    multiple selections
+          postCommands = _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, index);
+          await commands.runPrePostCommands(postCommands, "postCommands");
+        });
+      }
+      else if (!args.runPostCommands || args.runPostCommands === "onceIfAMatch") { // uses first match and first selection = editor.selection
+        postCommands = _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
+        await commands.runPrePostCommands(postCommands, "postCommands");
+      }
+    }
+    else if (args.runPostCommands === "onceOnNoMatches") {
+      postCommands = _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
+      await commands.runPrePostCommands(postCommands, "postCommands");  // no matches, run once
+    }
+  }
 }
 
 
@@ -1169,7 +1261,7 @@ async function _combineMatches(matches) {
 exports.getKeys = function () {
   // preserveCase ?
   return ["title", "description", "preCommands", "find", "replace", "run", "runWhen", "isRegex", "postCommands",
-    "ignoreWhiteSpace", "matchCase", "matchWholeWord", "restrictFind", "reveal", "cursorMoveSelect"];
+  "runPostCommands", "ignoreWhiteSpace", "matchCase", "matchWholeWord", "restrictFind", "reveal", "cursorMoveSelect"];
 };
 
 
@@ -1182,7 +1274,7 @@ exports.getValues = function () {
   return {
     title: "string", description: "string", find: "string", replace: "string", run: "string",
     runWhen: ["onceIfAMatch", "onEveryMatch", "onceOnNoMatches"], preCommands: ["string", "object"], postCommands: ["string", "object"],
-    isRegex: "boolean", matchCase: "boolean", matchWholeWord: "boolean", ignoreWhiteSpace: "boolean",
+    runPostCommands: ["onceIfAMatch", "onEveryMatch", "onceOnNoMatches"], isRegex: "boolean", matchCase: "boolean", matchWholeWord: "boolean", ignoreWhiteSpace: "boolean",
     restrictFind: ["document", "selections", "line", "once", "onceIncludeCurrentWord", "onceExcludeCurrentWord", "nextSelect", "nextMoveCursor", "nextDontMoveCursor",
       "previousSelect", "previousMoveCursor", "previousDontMoveCursor", "matchAroundCursor"],
     reveal: ["first", "next", "last"], cursorMoveSelect: "string"
@@ -1205,6 +1297,7 @@ exports.getDefaults = function () {
     "run": "",
     "runWhen": "onceIfAMatch",
     "postCommands": "",
+    "runPostCommands": "onceIfAMatch",
     "isRegex": false,
     "matchCase": false,
     "matchWholeWord": false,

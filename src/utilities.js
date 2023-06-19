@@ -260,13 +260,17 @@ exports.checkArgs = async function (args, fromWhere) {
           if (!goodValues[key].includes(value)) badValues.push({ [key]: value });
         }));
       }
+      // combine these using an array
       else if (key === 'restrictFind') {  // combine these next 3?
         if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
       }
       else if (key === 'reveal') {    // TODO check this
         if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
       }
-      else if (key === 'runWhen') {    // TODO check this
+      else if (key === 'runWhen') {
+        if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
+      }
+      else if (key === 'runPostCommands') {
         if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
       }
       

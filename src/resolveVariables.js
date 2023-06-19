@@ -80,7 +80,21 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   
   const { document } = window.activeTextEditor;
   let replaceValue;
+  let jsOPerationHasAwait = [];
   
+  // {
+  //   "command": "workbench.action.terminal.sendSequence",
+  //   "args": {
+  //     // send the filename: to the terminal
+  //     // "text": "code -g '${relativeFileDirname}\\${selectedText}':"
+  //     // "text": "code -g '${relativeFileDirname}\\${selectedText}'\u000D"
+  //     // "text": "code -g '${selectedText}'\u000D" // works but no line number
+  //     // "text": "code -g '${selectedText}'\u000D" // works but no line number
+  //     "text": "code -g '$1'\u000D" // does not work, vars are resolved but not capture groups?
+  //   }
+  // }
+  
+ 
   if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
   else if (caller === "replace") replaceValue = args?.replace;
 
@@ -90,6 +104,20 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
     
   else if (caller === "cursorMoveSelect") replaceValue = args;
   else if (caller === "snippet") replaceValue = args?.snippet;
+  else if (caller === "postCommands") replaceValue = args?.postCommands[matchIndex]?.args?.text;
+  
+  // need to set a flag for presence of 'await' in jsOp BEFORE any variable substitution,
+  // in case some variable has "await" in it like ${selectedText}, but not part of jsOp
+    
+  if (caller === "run" || caller === "replace") {
+    const re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
+    const matches = [...replaceValue.matchAll(re)];
+    matches.forEach((match, index) => {
+      const jsOp = match.groups.jsOp;
+      if (jsOp && /\bawait\b/.test(jsOp)) jsOPerationHasAwait[index] = "true";
+      else jsOPerationHasAwait[index] = "false";
+    });
+  }
   
   // if jsOp replace all \w => \\w
   if (groups?.length && (caller === "replace" || caller === "run")) {
@@ -220,7 +248,9 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
       
       resolved = resolved?.replaceAll(re, function (match, p1, operation) {
         
-        if (/\bawait\b/.test(operation)) {
+        // if (/\bawait\b/.test(operation)) {
+        // if (jsOPerationHasAwait[0]) {
+        if (jsOPerationHasAwait.includes("true")) {
         
           if (/vscode\./.test(operation) && /path\./.test(operation))
             return Function('vscode', 'path', 'require', 'document', `"use strict"; (async function run (){${ operation }})()`)
@@ -236,7 +266,8 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
               (require, document);
           }
         }
-        else {
+        
+        else {  // no await in the jsOp
           
           if (/vscode\./.test(operation) && /path\./.test(operation))
             return Function('vscode', 'path', 'require', 'document', `"use strict"; ${ operation }`)

@@ -16,6 +16,8 @@ exports.runPrePostCommands = async function (userCommands, preOrPost) {
   
   if (preOrPost === "postCommands") await new Promise(r => setTimeout(r, 300));  // slight pause before postCommands
   
+  // resolve variables here, like $1?
+  
   if (typeof userCommands === 'string') await commands.executeCommand(userCommands);
   
   else if (typeof userCommands === 'object' && !Array.isArray(userCommands)) 
