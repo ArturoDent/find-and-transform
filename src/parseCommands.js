@@ -148,9 +148,7 @@ async function _buildFindArgs(args, index)  {
     }
   }
 
-	// if (!Array.isArray(args.find) && args.find && index === 0) indexedArgs.find = args.find;
 	else if (!Array.isArray(args.find) && args.find && index === 0) indexedArgs.find = args.find;
-  // else if (Array.isArray(args.find) && args.find.length > index) indexedArgs.find = args.find[index];
   else if (Array.isArray(args.find) && args.find.length > index) indexedArgs.find = args.find[index];
 
 	// if no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value

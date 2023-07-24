@@ -1,4 +1,7 @@
-const { commands, languages, extensions, window, Uri, Range, Position, CompletionItem, CompletionItemKind, CompletionTriggerKind, MarkdownString, SnippetString } = require('vscode');
+const { commands, languages, extensions, window, Range, Position,
+  CompletionItem, CompletionItemKind, CompletionTriggerKind,
+  MarkdownString, SnippetString, Selection } = require('vscode');
+  
 const jsonc = require("jsonc-parser");
 
 const searchCommands = require('./search');
@@ -63,7 +66,7 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           // prevents completion at "reveal": "last"|,
           if (curLocation?.previousNode && linePrefix.endsWith(`"${ curLocation.previousNode.value }"`)) return undefined;
           
-          const regex = new RegExp("isRegex|matchCase|matchWholeWord");
+          const regex = new RegExp("isRegex|matchCase|matchWholeWord|preserveCase|onlyOpenEditors|ignoreWhiteSpace|triggerSearch|triggerReplaceAll|useExcludeSettingsAndIgnoreFiles|preserveSelections");
           
           if (curLocation.path[2] && regex.test(curLocation.path[2].toString())) {
             
@@ -104,20 +107,33 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           const runSearchArgs = searchCommands.getKeys().slice(1);   // remove title
           
           const textLine = document.lineAt(position);
-          let replaceRange = textLine.range;
+          let   replaceRange = textLine.range;
           const startPos = new Position(textLine.lineNumber, textLine.firstNonWhitespaceCharacterIndex);
-          const invoked = (completionContext.triggerKind == CompletionTriggerKind.Invoke) ? true : false;
+          let   invoked = (completionContext.triggerKind == CompletionTriggerKind.Invoke) ? true : false;
           
           if ((completionContext.triggerKind == CompletionTriggerKind.Invoke) && textLine.isEmptyOrWhitespace) {
             // invoke on an empty line
             replaceRange = replaceRange.with(startPos);
           }
+          // if select key and value
+          // else if ((completionContext.triggerKind == CompletionTriggerKind.Invoke) && curLocation.isAtPropertyKey) {
+          //   const lineRange = window.activeTextEditor.document.lineAt(position.line).range;
+          //   const wordRange = window.activeTextEditor.document.getWordRangeAtPosition(position);
+          //   // replaceRange = new Range(wordRange?.start, lineRange.end);
+          //   replaceRange = new Range(position, position);
+          //   // invoked = false;
+          // }
           else if ((completionContext.triggerKind == CompletionTriggerKind.Invoke) && !textLine.isEmptyOrWhitespace) {
             // '"reveal": "first"  select reveal and invoke
             const lineRange = window.activeTextEditor.document.lineAt(position.line).range;
             const wordRange = window.activeTextEditor.document.getWordRangeAtPosition(position);
-            replaceRange = new Range(wordRange.start, lineRange.end);  // this does replace the whole thing but extra " at front
-            // and can't invoke when selecting entire key
+            if (wordRange)
+              replaceRange = new Range(wordRange?.start, lineRange.end);
+            else {
+              replaceRange = new Range(position, lineRange.end);
+              invoked = false;
+            }
+            // TODO: handle invoke when selecting entire key
           }
           else {
             replaceRange = new Range(position, position);
@@ -145,7 +161,7 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
  */
 exports.makeSettingsCompletionProvider = async function(context) {
   const settingsCompletionProvider = languages.registerCompletionItemProvider (
-    { pattern: '**/settings.json' },
+    [{ pattern: '**/settings.json' }, { pattern: '**/*.code-workspace' }],
     {
       provideCompletionItems(document, position, token, completionContext) {
 
@@ -155,19 +171,39 @@ exports.makeSettingsCompletionProvider = async function(context) {
 				let find = false;
 				let search = false;
 
+        let findCommandNode;
+        let searchCommandNode;
 				const rootNode = jsonc.parseTree(document.getText());
-				const findCommandNode = rootNode.children?.find(child => child.children[0]?.value === "findInCurrentFile");
-        // // find-and-transform.searchInFolder, etc. TODO (in a setting?)
-				const searchCommandNode = rootNode.children?.find(child => child.children[0]?.value === "runInSearchPanel");
+        
+        if (document.fileName.endsWith('.code-workspace')) {
+          const settingsNode = rootNode.children?.find(child => child.children[0]?.value === "settings").children[1];
+          
+          findCommandNode = settingsNode.children?.find(child => {
+            return child.children[0]?.value === "findInCurrentFile";
+          });
+          
+          searchCommandNode = settingsNode.children?.find(child => {
+            return child.children[0]?.value === "runInSearchPanel";
+          });
+        }
+        else {
+          findCommandNode = rootNode.children?.find(child => child.children[0]?.value === "findInCurrentFile");
+          searchCommandNode = rootNode.children?.find(child => {
+            return child.children[0]?.value === "runInSearchPanel";
+          });
+        }
 				if (!findCommandNode && !searchCommandNode) return undefined;
 
-				const curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
+        const curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
+        
+        // because path[0] = "settings" in .code-workspace file settings
+        if (document.fileName.endsWith('.code-workspace')) curLocation.path.shift();
+        
         const command = curLocation.path[0];        // findInCurrentFile
-        const subCommand = curLocation.path[1];     //   addClassToElement
+        const subCommand = curLocation.path[1];     //    addClassToElement
 
 				if (command === 'findInCurrentFile') find = true;
         else if (command === 'runInSearchPanel') search = true;
-        // if (command.startsWith("find-and-transform")) search = true;
 				else return undefined;  // not in our keybindings
 
 				// --------    $ completion for 'filesToInclude/filesToExclude/find/replace' completions   ------------
@@ -175,7 +211,7 @@ exports.makeSettingsCompletionProvider = async function(context) {
         // prevents completion at "reveal": "last"|,
         if (linePrefix.endsWith(`"${ curLocation.previousNode?.value }"`)) return undefined;
         
-        const regex = new RegExp("isRegex|matchCase|matchWholeWord");
+        const regex = new RegExp("isRegex|matchCase|matchWholeWord|preserveCase|onlyOpenEditors|ignoreWhiteSpace|triggerSearch|triggerReplaceAll|useExcludeSettingsAndIgnoreFiles");
         
         if (curLocation.path[2] && regex.test(curLocation.path[2].toString())) {
             
@@ -212,20 +248,23 @@ exports.makeSettingsCompletionProvider = async function(context) {
 					keysText = document.getText(keysRange);
 				}
 
-				// const runFindArgs   = findCommands.getKeys().slice(0, -1);     // remove clipText from end
-        // const runSearchArgs = searchCommands.getKeys().slice(0, -1);   // remove clipText from end
-        
         const runFindArgs   = findCommands.getKeys();
         const runSearchArgs = searchCommands.getKeys();
 
         let replaceRange = new Range(position, position);
         const textLine = document.lineAt(position);
+        let   invoked = (completionContext.triggerKind == CompletionTriggerKind.Invoke) ? true : false;
         
         if ((completionContext.triggerKind == CompletionTriggerKind.Invoke) && !textLine.isEmptyOrWhitespace) {
         
           const lineRange = window.activeTextEditor.document.lineAt(position.line).range;
           const wordRange = window.activeTextEditor.document.getWordRangeAtPosition(position);
-          replaceRange = new Range(wordRange.start, lineRange.end);
+          if (wordRange)
+          replaceRange = new Range(wordRange?.start, lineRange.end);
+          else {
+            replaceRange = new Range(position, lineRange.end);
+            invoked = false;
+          }
         }
         
         let keyArgs = runFindArgs;
@@ -233,13 +272,13 @@ exports.makeSettingsCompletionProvider = async function(context) {
         
 				// eliminate any options already used
         if (linePrefix.search(/^\s*$/m) !== -1)
-          return _filterCompletionsItemsNotUsed(context, keyArgs, keysText, replaceRange, position, true);
+          return _filterCompletionsItemsNotUsed(context, keyArgs, keysText, replaceRange, position, invoked);
         
         else if (linePrefix.search(/^\s*"$/m) !== -1)
-          return _filterCompletionsItemsNotUsed(context, keyArgs, keysText, replaceRange, position, false);
+          return _filterCompletionsItemsNotUsed(context, keyArgs, keysText, replaceRange, position, invoked);
         
         else if (curLocation.isAtPropertyKey && !curLocation.previousNode) 
-					return _filterCompletionsItemsNotUsed(context, keyArgs, keysText, replaceRange, position, true);
+					return _filterCompletionsItemsNotUsed(context, keyArgs, keysText, replaceRange, position, invoked);
           
 				else return undefined;
       }
@@ -411,6 +450,7 @@ function _filterCompletionsItemsNotUsed(context, argArray, argsText, replaceRang
     "isRegex": "014",
     "postCommands": "015",
     "runPostCommands": "0151",
+    "preserveSelections": "0152",
 
 		"isCaseSensitive": "022",
 		"matchCase": "023",
@@ -437,11 +477,11 @@ function _filterCompletionsItemsNotUsed(context, argArray, argsText, replaceRang
     
     "preCommands": "A single command, as a string, or an array of commands to run before any find occurs.",
     "find": "Query to find or search.  Can be a regexp, plain text or `${getFindInput}`.",
-    // "ignoreWhiteSpace": "Any whitespace in the `find` will be treated as if it is `\\s*`. And will match across lines without the need to specify a `\\n` in the find regex. See [using the ignoreWhiteSpace option](Readme.md#using-the-ignorewhitespace-argument)",
     "ignoreWhiteSpace": "Any whitespace in the `find` will be treated as if it is `\\s*`. And will match across lines without the need to specify a `\\n` in the find regex.",
     "delay": "Pause, in millisceonds, between searches when you have defined an array of searches.  Usually needed to allow the prior search to complete and populate the search results if you want to use those results files in a subsequent search with: .",
     "run": "Run a javascript operation after the find (and before any replace).",
     "runWhen": "When to trigger the `run` operation:",
+    "preserveSelections": "Do not change any existing cursor positions or selections.",
     
     "replace": "Replacement text.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
     "isRegex": "Is the find query a regexp.",
@@ -875,7 +915,6 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
   if (key === "run") {
     item = new CompletionItem("run: $${ operation }$$", CompletionItemKind.Property);
     item.insertText = new SnippetString(`${ leadingQuote }run": [\n\t"$$\{",\n\t\t"\$\{1:operation\};",\n\t\t"\$\{2:operation\};",\n\t\t"\$\{3:operation\};",\n\t"\}$$",\n],`);
-    // item.range = replaceRange;
     item.range = new Range(replaceRange.start, new Position(replaceRange.start.line, replaceRange.start.character + 1));
   }
   else {
@@ -883,13 +922,10 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
   
     // don't select true/false/numbers defaultValue's
     if (typeof defaultValue === "number")  // key == delay
-      // item.insertText = new SnippetString(`${ leadingQuote }${ key }": \$\{1:${ defaultValue }\}`);
       item.insertText = new SnippetString(`${ leadingQuote }${ key }": \$\{1:${ defaultValue }\},`);
     else if (typeof defaultValue === "boolean")
-      // item.insertText = new SnippetString(`${ leadingQuote }${ key }": ${ defaultValue }`);
       item.insertText = new SnippetString(`${ leadingQuote }${ key }": ${ defaultValue },`);
     else
-      // item.insertText = new SnippetString(`${ leadingQuote }${ key }": "\$\{1:${ defaultValue }\}"`);
       item.insertText = new SnippetString(`${ leadingQuote }${ key }": "\$\{1:${ defaultValue }\}",`);
       
   
@@ -898,9 +934,8 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
     else
       item.range = replaceRange;
   }
-    // item.range = {inserting: replaceRange, replacing: new Range(replaceRange.start, replaceRange.start)}
   
-  if (defaultValue) item.detail = `default: ${ defaultValue }`;
+  if (defaultValue || typeof defaultValue === 'boolean') item.detail = `default: ${ defaultValue }`;
   if (sortText) item.sortText = sortText;
   
   const delayText = `"filesToInclude": "\${resultsFiles}"`;
@@ -936,8 +971,7 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
       item.documentation = new MarkdownString(documentation);
       // get below from a getDocumentation() object
       const args = encodeURIComponent(JSON.stringify({ anchor: 'using-the-ignorewhitespace-argument' }));
-      item.documentation.appendCodeblock('', 'plaintext');        // just adds an empty line before next entry
-      item.documentation.appendMarkdown(`&nbsp;&nbsp;&nbsp; README : [ ignoreWhiteSpace option.](command:find-and-transform.openReadmeAnchor?${ args })`);
+      item.documentation.appendMarkdown(`\n\n&nbsp;&nbsp;&nbsp; README : [ ignoreWhiteSpace option.](command:find-and-transform.openReadmeAnchor?${ args })`);
       item.documentation.isTrusted = true;
     }
       

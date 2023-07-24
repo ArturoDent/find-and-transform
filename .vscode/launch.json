@@ -13,6 +13,7 @@
 			"args": [
         // "--profile-temp",
 				"${workspaceFolder}/../Test Bed",
+				// "${workspaceFolder}/../TestMultiRoot/.vscode/TestMultiRoot.code-workspace",
 				"--extensionDevelopmentPath=${workspaceFolder}"
 			]
 		},

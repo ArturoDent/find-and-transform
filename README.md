@@ -6,6 +6,8 @@
 
 > New for v4.7: `runWhen` and `ignoreWhiteSpace` arguments, the `"restrictFind": "matchAroundCursor"` option and the `"find": "${getFindInput}"` variable.  
 
+> New for v4.8: `preserveSelections` argument, do not move any cursors or change existing selections in any way.  
+
 1. &nbsp; Find and transform text in a single file with many kinds of transforms.  
 2. &nbsp; Search across files with pre-defined options.
 3. &nbsp; Do a series of find and replaces in the current file.
@@ -95,6 +97,8 @@ Below you will find information on using the `findInCurrentFile` command - which
 &emsp; &emsp; [17. `reveal` Options](#reveal-options)  
 
 &emsp; &emsp; [18. `ignoreWhiteSpace` Option](#using-the-ignorewhitespace-argument)  
+
+&emsp; &emsp; [19. `preserveSelections` Option](#using-the-preserveselections-argument)  
 
 <br/>
 
@@ -286,6 +290,8 @@ Newline examples that work and don't work:
     
     "find": "(trouble)",               // can be plain text, a regexp or a special variable
     
+    "preserveSelections": true,        // keep all cursor locations and selections unchanged, discussed below
+    
     "ignoreWhiteSpace": true,           // default = false, makes the find work across newlines and other whitespace 
     
     "replace": "\\U$1",                // text, variables, conditionals, case modifiers, operations, etc.
@@ -410,7 +416,7 @@ d. If you use a numbered capture group higher than the number of selections, tho
 Make it into a setting:  
 
 ```jsonc
-"findInCurrentFile": {                          // in settings.json
+"findInCurrentFile": {                          // in settings.json or a .code-workspace file (in its settings object)
   "findRequireDecodeReferences": {
     "title": "Find in file: package function references",
     "find": "\\$1\\.decode\\([^)]+\\)",
@@ -1810,6 +1816,44 @@ In your `settings.json`:
 
 > If you do not include a `title` value, one will be created using the name (like `removeDigits` in the last example immediately above. Then you can look for `Find-Transform:removeDigits` in the Command Palette.  Since in the last example a `title` was supplied, you would see `Find-Transform: Remove digits from Art....` in the Command Palette.  All the commands are grouped under the `Find-Transform:` category.  
 
+In a `.code-workspace` file (for multi-root workspaces):
+
+```json
+{
+  "folders": [
+    {
+      "path": ".."
+    },
+    {
+      "path": "../../select-a-range"
+    }
+  ],
+  "settings": {
+    "findInCurrentFile": {
+      "bumpSaveVersion": {      // use this name in the codeActionsOnSave setting
+        "title": "bump the save version on each save",
+        "find": "(?<=#### Save Version )(\\d+)",
+        "replace": "$${ return $1 + 1 }$$",
+        "isRegex": true,
+        "ignoreWhiteSpace": false,
+        "matchCase": false
+      }
+    },
+    "runInSearchPanel": {
+      "inSearchPanel": {
+        "title": "some title",
+        "ignoreWhiteSpace": false,
+        "delay": 2000,
+        "isRegex": true,
+        "matchCase": false,
+        "useExcludeSettingsAndIgnoreFiles": true,
+        "triggerSearch": true
+      }
+    }
+  }
+}
+```
+
 <br/>
 
 -------------------
@@ -2254,7 +2298,21 @@ someWord-A        someWord-B
 
 <br/>
 
--------------------
+-------------------  
+
+## Using the `preserveSelections` argument  
+
+This is a boolean option - default is false.  
+
+Normally, all find matches are selected, thus losing any cursor positions or other selections that might have existed before running the command.  This does allow other options like `replace` or `run` or even `postCommands` to use these find matches, i.e., selections, in many interesting ways.
+
+But, you may not need that functionality (which is the default).  Perhpas you are doing a find and replace with no need to examine the find matches at all and so wish to preserve all existing selections and cursor positions.  If so, set `"preserveSelections: true`. Although, one nice advantage of selecting the find matches is to make it more obvious where changes actually occurred in the document.  
+
+For certain options, `preserveSelections` has no effect.  For instance, if you only have a `find` then the find matches will be selected regardless of the `preserveSelections` setting.  If you use the `cursorMoveSelect` argument then naturally any of it matches will be selected.  If you are using one of the `next/previous` options, then `preserveSelections` has no effect as those options call for a new selection or already prevent the cursor from moving.  
+
+<br/>
+
+-------------------  
 
 <br/>
 
@@ -2296,7 +2354,7 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 
 ## TODO
 
-* Add more error messages, like if a capture group used in replace but none in the find.
+* Add more error messages, e.g., if a capture group used in replace but none in the find.
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?  
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
@@ -2306,7 +2364,6 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Prevent OutputChannel from appearing in Output when not being actively used.  
 * Deal with redundant "Extensions have been modified on disk.  Please reload..." notification.  
 * Investigate arg keys in package.json rather than completionProvider.  
-* Should all argument completions have commas at end?  
 * Implement successive `${getFindInput}` input boxes.  
 
 ## Release Notes
@@ -2318,6 +2375,9 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 &emsp;&emsp; Added `runWhen` argument to control when the `run` operation is triggered.  
 &emsp;&emsp; Added `"restrictFind": "matchAroundCursor"` option.  
 &emsp;&emsp; 4.7.1 Added `runPostCommands` and `resolvePostCommandVariables`.  Added a command to enable opening readme anchors from completion details.  
+&emsp;&emsp; 4.7.2 Added intellisense to `.code-workspace` settings.  
+
+* 4.8.0 Added `preserveSelections` argument.  Completions work in `.code-workspace` (workspace settings) files.  
 
 <br/>
 

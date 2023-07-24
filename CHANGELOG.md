@@ -75,5 +75,8 @@
 &emsp;&emsp; Added `runWhen` argument to control when the `run` operation is triggered.  
 &emsp;&emsp; Added `"restrictFind": "matchAroundCursor"` option.
 &emsp;&emsp; 4.7.1 Added `runPostCommands` and `resolvePostCommandVariables`.  Added a command to enable opening readme anchors from completion details.  
+&emsp;&emsp; 4.7.2 Added intellisense to `.code-workspace` settings.  
+
+* 4.8.0 Added `preserveSelections` argument.  Completions work in `.code-workspace` (workspace settings) files.  
 
 -----------------------
