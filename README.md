@@ -229,7 +229,7 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 * Find: Use `\r?\n` with `isRegex` set to true is probably the safest across operating systems.  
 * Replace: `\n` is probably sufficient, if not, try `\r\n`.  
 * In a javascript operation replacement, make sure it is included in backticks so the newline is interpreted as a string ``` $${ `first line \n second line` }$$ ```.  
-* If you use a variable like `${getDocumentText}` or anything that might have newlines in the text, surround that variable with backticks like this example:
+* If you use a variable like `${getDocumentText}` or anything that **might** have newlines in the text, surround that variable with backticks like this example:
 
 ```jsonc
 "replace": [
@@ -1096,7 +1096,7 @@ This pattern of a `find` - which will select all the matches as limited by the `
 
 <br/>
 
-* ### Variables defined by this extension for use in args  
+### Variables defined by this extension for use in args  
 
 ```text
 ${resultsFiles}            ** explained below ** Only available in a 'runInSearchPanel' command
@@ -1166,24 +1166,26 @@ The `${getDocumentText}` variable allows you to look anywhere in a document for 
   "args": {
     "description": "I want to enter the Find query in an input box.",  // whatever text you want
     
-    "find": "${getFindInput}",     // you might enter plain text or a regular expression in the input box that pops up
+    "find": "${getFindInput}",     // enter plain text or a regular expression in the input box that pops up
     
     // "find": "${getFindInput} stuff ${getFindInput}",   // you can have multiple ${getFindInput} variables in a find
                                                           // but all ${getFindInput} variable will be replaced by the one input
-                                                          // so the resultant find might be "myInput stuff myInput"
+                                                          // so the resulting find might be "myInput stuff myInput"
 
     // you can mix text with what you will input
     // "find": "before ${getFindInput} after",   // this works
 
-    "isRegex": true,               // if you want that input treated as a regular expression
+    "isRegex": true,               // if you want that input treated as a regular expression ***
     
     "replace": "everything is fine",
   }
 ```
-  
-<br/>
 
-* ### Launch or task variables: path variables
+When using `${getFindInput}` do not double-escape any characters like `\n` or `\s`.  Just use the same regex you would use in the FInd Widget.  
+
+------------  
+
+### Launch or task variables: path variables
 
 These can be used in the `find` or `replace` fields of the `findInCurrentFile` command or in the `find`, `replace`, and perhaps most importantly, the `filesToInclude` and `filesToExclude` fields of the `runInSearchPanel` command:
 
@@ -1221,7 +1223,7 @@ These variables should have the same resolved values as found at &nbsp; [vscode'
 
 <br/>
 
-* ### Snippet variables
+### Snippet variables
 
 ```text
 ${TM_CURRENT_LINE}               The text of the current line for each selection.
@@ -1349,7 +1351,7 @@ Example:
 
 <br/>
 
-* ### Conditional replacements in `findInCurrentFile` commands or keybindings
+### Conditional replacements in `findInCurrentFile` commands or keybindings
 
 <br/>
 
@@ -1401,7 +1403,7 @@ Examples:
 
 <br/>
 
-* ### Snippet-like transforms: replacements in `findInCurrentFile` commands or keybindings
+### Snippet-like transforms: replacements in `findInCurrentFile` commands or keybindings
 
 <br/>
 
@@ -2000,9 +2002,11 @@ This is demonstrated in some of the demos below.
 
 Explanation for above: With no `find` key, find matches of selections or nearest words at cursors (multi-cursors work) and select all those matches.  Blue text are selections in the demo gif.
 
-> Important: If there is no `find` key and there are **mutiple selections** then this extension will create a `find` query using **all** those selections.  The generated `find` will be in the form of `"find": "(word1|word2|some selected text)`.  Note the use of the alternation pipe `|` so any of those selected words can be found.  Thus, the find in file or find across files must have the regex flag enabled.  Therefore, if you have multiple selections with no `find` key, `"isRegex": true` will be automatically set - possibly overriding what you had the settings or keybinding.  
+> Important: If there is no `find` key and there are **mutiple selections** then this extension will create a `find` query using **all** those selections.  The generated `find` will be in the form of `"find": "(word1|word2|other selected text)`.  Note the use of the alternation pipe `|` so any of those selected words can be found.  Thus, the find in file or find across files must have the regex flag enabled.  Therefore, if you have multiple selections with no `find` key, `"isRegex": true` will be automatically set - possibly overriding what you had the settings or keybinding.  
 
 > That should only be a problem if you select text that gets generated into a `find` term that itself contains regexp special characters, like `.?*^$`, etc.  They will not be treated as literal characters but as their usual regexp functionality.  
+
+> If you are usong no `find` and select text that you want treated as a regular expression (like `\n text (\d)`) do not double- escape those special regex characters.  Just use the same regex you would use in the Find Widget.  Remember to have `isRegex` set to true in this case.  
 
 > Finally, if you select multiple instances of the same text the generated `find` term will have any duplicates removed.  `Set.add()` is a beautiful thing.  
 
@@ -2378,6 +2382,7 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 &emsp;&emsp; 4.7.2 Added intellisense to `.code-workspace` settings.  
 
 * 4.8.0 Added `preserveSelections` argument.  Completions work in `.code-workspace` (workspace settings) files.  
+&emsp;&emsp; 4.8.2 Fixed escaping while using `${getFindInput}`.  
 
 <br/>
 

@@ -17,7 +17,12 @@ const globals = require('./extension');  // for outputChannel
 exports.getFindInput= async function (index) {
 
   // add index message here
-  const options = {title: "Find", prompt: "Enter the text to search for.", placeHolder: "\t\t a string or regex to find"};
+  // consider ignoreFocusOut, built-in setting default is false (Quick Open: Close on Focus Lost)
+  const options = {
+    title: "Find",
+    prompt: "Enter the text to search for.",
+    placeHolder: "\tA string or regex to find."
+  };
   const findArg = await window.showInputBox(options);
 
   return findArg;

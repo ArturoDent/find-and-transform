@@ -335,7 +335,7 @@ exports.adjustValueForRegex = function(findValue, isRegex, matchWholeWord, madeF
   if (matchWholeWord && !madeFind) findValue = findValue?.replace(/(?<!\\b)(\|)(?!\\b)/g, "\\b$1\\b");
 
   // since all \n are replaced by \r?\n by vscode
-  if (isRegex) findValue = findValue?.replaceAll(/\n/g, "\r?\n");
+  if (isRegex) findValue = findValue?.replaceAll(/(?<!\\r\?)\\n/g, "\r?\n");
   
   if (isRegex) {
     if (findValue === "^") findValue = "^(?!\n)";

@@ -78,5 +78,6 @@
 &emsp;&emsp; 4.7.2 Added intellisense to `.code-workspace` settings.  
 
 * 4.8.0 Added `preserveSelections` argument.  Completions work in `.code-workspace` (workspace settings) files.  
+&emsp;&emsp; 4.8.2 Fixed escaping while using `${getFindInput}`.  
 
 -----------------------

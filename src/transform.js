@@ -80,6 +80,7 @@ exports.findAndSelect = async function (editor, args) {
         foundMatches.push(match);
       });
       
+      
       // get cursor position first, before applying foundSelections to editor.Selections
       // if madeFind then there was no find, and editor.selection.active will always be less than that same foundSelection
       const cursorPosition = document?.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
