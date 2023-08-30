@@ -128,9 +128,6 @@ You can run a series of searches across files.  All the arguments can take one o
     "replace": "*** new text ***",
     "filesToInclude": "${resultsFiles}",    // see explanation below 
 
-    // "replace": "$${ `\\U$1` + ${matchNumber} }",  TODO
-    // "replace": "$${ `\\U$1 ` + ${matchNumber}*$2 }",
-
     // "replace": ["\\U$1", "\\u$1", "\\U$1"],
     // "replace": ["replaced", "howdy"],
 

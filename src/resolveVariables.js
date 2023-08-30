@@ -651,6 +651,7 @@ function _resolvePathVariables (variableToResolve, args, caller, selection, matc
      
     case "${workspaceFolder}": case "${ workspaceFolder }":
       resolved = workspace?.getWorkspaceFolder(document.uri).uri.path;
+      const qweqwe =  workspace?.getWorkspaceFolder(document.uri).uri;
       break;
 
     case "${relativeFileDirname}": case "${ relativeFileDirname }":
@@ -732,11 +733,19 @@ function _resolvePathVariables (variableToResolve, args, caller, selection, matc
       break;
    }
 
+  
 	// escape .*{}[]?^$+|/ if using in a find
   if (!args.isRegex && caller === "find") return resolved?.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
   else if (!args.isRegex && caller === "findSearch") return resolved?.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-  // in case use " let re = /${selectedText}/" and selectedText, etc. has a / in it, then 
-  else if (caller === "replace") return resolved?.replaceAll(/([\\/])/g, "\\$1");
+    
+    // in case use "let re = /${selectedText}/" and selectedText, etc. has a / in it, then must escape it
+  else if (caller === "replace") {
+    const re = /\$\{[^}]*\}/m;
+    // if args.replace is only a variable ${...} do nothing
+    if (args.replace.match(re)) return resolved;
+    else return resolved?.replaceAll(/([\\/])/g, "\\$1");
+  }
+    
   else if (caller === "filesToInclude" && resolved === ".") return  "./";
   
   else return resolved;
