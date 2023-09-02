@@ -18,7 +18,7 @@ const utilities = require('./utilities');
  * @param {Object} args - keybinding/settings args
  * @param {Number} matchIndex - which match is it: first, second, etc.
  * @param {import("vscode").Selection} selection
- * @returns {Promise<string>} resolvedFind
+ * @returns {Promise<object>} findValue, isRegex
  */
 exports.resolveFind = async function (editor, args, matchIndex, selection) {
   
@@ -34,7 +34,7 @@ exports.resolveFind = async function (editor, args, matchIndex, selection) {
     resolvedFind = module.exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, matchIndex);
     // resolvedFind = await module.exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, matchIndex);
     
-  return module.exports.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+  return module.exports.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.madeFind);
 }
 
 /**
@@ -311,19 +311,56 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   return resolved?.replace(/\\}/g, '}');  // mainly for conditionals like ${1:+${POW\\}}
 };
 
+/**
+ * Are there capture groups, like `$1` in this conditional replacement text?
+ * 
+ * @param {Object} args 
+ * @returns {Object} args
+ */
+exports.checkForCaptureGroupsInReplace = function(args) {
+  
+  const re = /\$(\d+)/g;  // TODO too broad, exclude conditionals etc.
+  // if args.replace = $${ jsOP }$$ TODO check
+  const capGroups = [...args.replace?.matchAll(re)];
+  
+  if (!capGroups) return args;
+  
+  args.find = args.find?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
+  args.find = `(${ args.find })`;
+  args.isRegex = true;
+  
+  return args;
+}
+
 
 /**
  * Wrap or escape the findValue if matchWholeWord or not a regexp.
  * @param {string} findValue 
+ * @param {string} replaceValue 
  * @param {boolean} isRegex 
  * @param {boolean} matchWholeWord 
  * @param {boolean} madeFind 
- * @returns {string} findValue escaped or wrapped
+ * @returns {object} { findValue,  isRegex }
  */
-exports.adjustValueForRegex = function(findValue, isRegex, matchWholeWord, madeFind) {
+exports.adjustValueForRegex = function(findValue, replaceValue, isRegex, matchWholeWord, madeFind) {
 
-  if (findValue === "") return findValue;
+  if (findValue === "") return { findValue, isRegex };
 	if (matchWholeWord) findValue = findValue?.replace(/\\b/g, "@%@");
+  
+  // when there is a capture group in a replace && isRegex = false
+  // then do want to treat as text (so escape regex characters) and set regex to true
+  
+  if (!isRegex && replaceValue) {
+    const re = /\$(\d+)/g;  // TODO too broad, exclude conditionals etc.
+    const capGroups = [...replaceValue?.matchAll(re)];
+    
+    if (capGroups) {
+  
+      findValue = findValue?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
+      findValue = `(${ findValue })`;
+      isRegex = true;
+    }
+  }
 
 	// removed escaping the or | if madeFind
 	if (!isRegex && madeFind) findValue = findValue?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
@@ -346,7 +383,10 @@ exports.adjustValueForRegex = function(findValue, isRegex, matchWholeWord, madeF
   // find a blank line: '^$' => '^\n$'
   if (isRegex) findValue = findValue?.replaceAll(/\^\$/g, "(\^\n\$)");  // TODO test this, add to README
  
-	return findValue;
+  return {
+    findValue,
+    isRegex
+  };
 }
 
 /**
@@ -1222,7 +1262,10 @@ exports.makeFind = function (selections, args) {
   // if .size of the set is greater than 1 then isRegex must be true
   if (textSet?.size > 1) mustBeRegex = true;
   // if (args.isRegex && find.length) find = `\\b(${ find })\\b`;  // e.g. "(\\bword\\b|\\bsome words\\b|\\bmore\\b)"
+  
   if (args.isRegex && find.length) find = `(${ find })`;  // e.g. "(word|some words|more)"
-
+  // if (find.length) find = `(${ find })`;  // e.g. "(word|some words|more)"
+  // mustBeRegex = true;
+  
   return { find, mustBeRegex, emptyPointSelections };
 };

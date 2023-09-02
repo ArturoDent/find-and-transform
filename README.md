@@ -2165,6 +2165,12 @@ If you have set `"restrictFind": "document"` any actual selections in the file w
 
 Explanation for above: With no `find` value find all the words at the cursors or selections and apply the replacement.  
 
+In a keybinding/setting with no find BUT a capture group in the replace, like in the last example, the `isRegex` argument can work in two ways:  
+
+1. `true`: the word at the cursor (or more likely the selection) is treated as a regex.  So it may contain special regular expression characters like `*^$?!.[]()\`.  Example: `find*me` so that `findme` or `finddddme` or `finme` are found.  
+
+2. `false`: the word at the cursor (or more likely the selection) is NOT treated as a regex.  It is treated as plain text, so any special regex characters will be **escaped** so that a regex match can be performed on that text - necessary since the replace may contain a capture group reference, like `$1`.  Example: `find*me` becomes `find\*me` so that the literal text `find*me` is searched for.  
+
 ---------------
 
 <br/>  
@@ -2383,6 +2389,8 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 
 * 4.8.0 Added `preserveSelections` argument.  Completions work in `.code-workspace` (workspace settings) files.  
 &emsp;&emsp; 4.8.2 Fixed escaping while using `${getFindInput}`.  
+&emsp;&emsp; 4.8.3 Less escaping on variable replacements not in `replace/run`.  
+&emsp;&emsp; 4.8.4 Work on capture groups in replace with no find and `isRegex` true or false.  
 
 <br/>
 

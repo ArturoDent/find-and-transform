@@ -79,5 +79,7 @@
 
 * 4.8.0 Added `preserveSelections` argument.  Completions work in `.code-workspace` (workspace settings) files.  
 &emsp;&emsp; 4.8.2 Fixed escaping while using `${getFindInput}`.  
+&emsp;&emsp; 4.8.3 Less escaping on variable replacements not in `replace/run`.  
+&emsp;&emsp; 4.8.4 Work on capture groups in replace with no find and `isRegex` true or false.  
 
 -----------------------

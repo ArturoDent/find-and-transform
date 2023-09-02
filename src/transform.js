@@ -54,7 +54,9 @@ exports.findAndSelect = async function (editor, args) {
     let fullText;
 
     // an undefined find will be converted to the empty string already, find = ''
-    const resolvedFind = await resolve.resolveFind(editor, args, null, null);
+    const findObject = await resolve.resolveFind(editor, args, null, null);
+    const resolvedFind = findObject.findValue;
+    args.isRegex = findObject.isRegex;
 
     if (resolvedFind) {
 
@@ -111,9 +113,10 @@ exports.findAndSelect = async function (editor, args) {
         args.madeFind = true;
         args.isRegex ||= findObject.mustBeRegex;
       }
-      const resolvedFind = await resolve.resolveFind(editor, args, null, selection);
-      if (!resolvedFind) return;
-
+      const findObject = await resolve.resolveFind(editor, args, null, selection);
+      const resolvedFind = findObject.findValue;
+      args.isRegex = findObject.isRegex;
+      
       let searchText;
 
       if (args.restrictFind === "selections") {
@@ -503,7 +506,11 @@ exports.replaceInLine = async function (editor, edit, args) {
         if (!args.find) return;
           
         resolvedFind = resolve.resolveVariables(args, "find", null, selection, null, index);
-        resolvedFind = resolve.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+        // resolvedFind = resolve.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.madeFind);
+        const findObject = resolve.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.madeFind);
+        resolvedFind = findObject.findValue;
+        args.isRegex = findObject.isRegex;
+        
         if (!resolvedFind && !args.replace) return;
 
         const re = new RegExp(resolvedFind, args.regexOptions);
@@ -623,7 +630,10 @@ exports.replaceInLine = async function (editor, edit, args) {
         
         // because caller = find, no need to resolve.resolveFind, which is async
         let resolvedFind = resolve.resolveVariables(args, "find", null, selection, null, index);
-        resolvedFind = resolve.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
+        const findObject = resolve.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.madeFind);
+        resolvedFind = findObject.findValue;
+        args.isRegex = findObject.isRegex;
+        
         if (!resolvedFind && !args.replace) return;  // correct here or already handled in findAndSelect?
 
         const re = new RegExp(resolvedFind, args.regexOptions);
@@ -743,7 +753,10 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, edit, arg
   const docString = document.getText();
   let cursorIndex = document.offsetAt(editor.selection.active);
 
-  const resolvedFind = await resolve.resolveFind(editor, args, null, null);
+  // const resolvedFind = await resolve.resolveFind(editor, args, null, null);
+  const findObject = await resolve.resolveFind(editor, args, null, null);
+  const resolvedFind = findObject.findValue;
+  args.isRegex = findObject.isRegex;
 
   if (!resolvedFind) return;
 
@@ -938,12 +951,19 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
   let   matches = [];
   let   resolvedFind = "";
   let   resolvedReplace;
+  
   const foundSelections = [];
   const foundMatches = [];
-  let lineIndex = 0;
-  let lineIndices = [];
   
-  if (args.find) resolvedFind = await resolve.resolveFind(editor, args, null, null);
+  let   lineIndex = 0;
+  let   lineIndices = [];
+  
+  if (args.find) {
+    const findObject = await resolve.resolveFind(editor, args, null, null);
+    resolvedFind = findObject.findValue;
+    args.isRegex = findObject.isRegex;
+  }
+  
   if (resolvedFind === "Error: jsOPError") return;  // abort
   
   // so a args.find/makeFind and a args.replace
@@ -1084,6 +1104,8 @@ exports.replaceInWholeDocument = async function (editor, edit, args) {
 exports.replaceInSelections = async function (editor, edit, args) {
 
   const originalFindArg = args.find;
+  const originalisRegexArg = args.isRegex;
+  
   const document = editor.document;
 
   let   isSelectionWithMatch = false;  // at least one
@@ -1102,6 +1124,7 @@ exports.replaceInSelections = async function (editor, edit, args) {
     // await Promise.all(editor.selections.map(async (selection, thisSelectionNumber) => {
     Promise.all(editor.selections.map(async (selection, thisSelectionNumber) => {
 
+      args.isRegex = originalisRegexArg;
       // empty selections, pointReplacements?
       // could filter out empty selections first
       const selectedRange = new Range(selection.start, selection.end);
@@ -1124,9 +1147,21 @@ exports.replaceInSelections = async function (editor, edit, args) {
       else
         resolvedFind = resolve.resolveVariables(args, "ignoreLineNumbers", null, selection, null, index);
 
-      resolvedFind = resolve.adjustValueForRegex(resolvedFind, args.isRegex, args.matchWholeWord, args.madeFind);
-
+      // resolvedFind = resolve.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.madeFind);
+      const obj = resolve.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.madeFind);
+      resolvedFind = obj.findValue;
+      args.isRegex = obj.isRegex;
+      
       if (!resolvedFind && !args.replace) return;
+      
+      // if args.replace has a capture group in it AND regex is false:
+      // find = (find); regex = true AND escape regex characters
+      // if (args.isRegex === false) {
+      //   args.find = resolvedFind;
+      //   args = resolve.checkForCaptureGroupsInReplace(args);
+      //   resolvedFind = args.find;
+      // }
+        
 
       if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
         matches = _buildLineNumberMatches(resolvedFind, selectedRange);
