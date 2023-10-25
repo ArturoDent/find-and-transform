@@ -1,5 +1,6 @@
 const { window, workspace, commands, env, Uri, Position, Selection } = require('vscode');
 
+const configs = require('./configs');
 const drivers = require('./drivers');
 const extensionCommands = require('./commands');
 const parseCommands = require('./parseCommands');
@@ -7,6 +8,8 @@ const searchCommands = require('./search');
 const providers = require('./completionProviders');
 const codeActions = require('./codeActions');
 const utilities = require('./utilities');
+
+const searchArgs = require('./args/searchOptions');
 
 
 exports.outputChannel = window.createOutputChannel("find-and-transform");
@@ -49,7 +52,7 @@ async function activate(context) {
 
     if (commandArgs?.length === 1 && !(commandArgs[0] instanceof Uri)) {  // if from keybinding
       let argsArray = Object.entries(commandArgs[0]).filter(arg => {
-        return searchCommands.getKeys().includes(arg[0]);
+        return searchArgs.getKeys().includes(arg[0]);
       });
       Object.assign(args, Object.fromEntries(argsArray))
     }
@@ -72,7 +75,7 @@ async function activate(context) {
 
     if (commandArgs?.length === 1 && !(commandArgs[0] instanceof Uri)) {   // if from keybinding
       let argsArray = Object.entries(commandArgs[0]).filter(arg => {
-        return searchCommands.getKeys().includes(arg[0]);
+        return searchArgs.getKeys().includes(arg[0]);
       });
       Object.assign(args, Object.fromEntries(argsArray));
     }
@@ -97,7 +100,7 @@ async function activate(context) {
 
     if (args) {
       args = Object.entries(args).filter(arg => {
-        return searchCommands.getKeys().includes(arg[0]);
+        return searchArgs.getKeys().includes(arg[0]);
       });
 
       args = Object.fromEntries(args);
@@ -121,11 +124,12 @@ async function activate(context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 
 	// make a generic "run" command for keybindings args using find in current file only
-  const runDisposable = commands.registerTextEditorCommand('findInCurrentFile', async (editor, edit, args) => {
+  // const runDisposable = commands.registerTextEditorCommand('findInCurrentFile', async (editor, edit, args) => {
+  const runDisposable = commands.registerCommand('findInCurrentFile', async (args) => {
 
     // get this from keybinding:  { find: "(howdy)", replace: "\\U$1" }
     
-    drivers.startFindInCurrentFile(args, editor, edit, enableWarningDialog);
+    drivers.startFindInCurrentFile(args, enableWarningDialog);
 	});
 
 	context.subscriptions.push(runDisposable);
@@ -198,8 +202,8 @@ async function activate(context) {
  */
 async function _loadSettingsAsCommands(context, _disposables, firstRun) {
 
-	const findSettings = await extensionCommands.getSettings("findInCurrentFile");
-	const searchSettings = await extensionCommands.getSettings("runInSearchPanel");
+	const findSettings = await configs.getSettings("findInCurrentFile");
+	const searchSettings = await configs.getSettings("runInSearchPanel");
 
 	if (findSettings || searchSettings) {
 		await extensionCommands.loadCommands(findSettings, searchSettings, context, enableWarningDialog);

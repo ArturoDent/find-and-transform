@@ -4,9 +4,12 @@ const languageConfigs = require('./getLanguageConfig');
 const path = require('path');
 const os = require('os');
 
-const findCommands = require('./transform');
-const searchCommands = require('./search');
+// const findCommands = require('./transform');
+// const searchCommands = require('./search');
 const globals = require('./extension');  // for outputChannel
+
+const searchArgs = require('./args/searchOptions');
+const findArgs = require('./args/findOptions');
 
 
 /**
@@ -230,12 +233,12 @@ exports.checkArgs = async function (args, fromWhere) {
   const simpleKeys = ["restrictFind", "reveal", "runWhen", "runPostCommands"];
 
 	if (fromWhere === "findBinding" || fromWhere === "findSetting") {
-		goodKeys = findCommands.getKeys();     // an array
-		goodValues = findCommands.getValues(); // an object
+		goodKeys = findArgs.getKeys();     // an array
+		goodValues = findArgs.getValues(); // an object
 	}
 	else if (fromWhere === "searchBinding" || fromWhere === "searchSetting") {
-		goodKeys = searchCommands.getKeys();     // an array
-		goodValues = searchCommands.getValues(); // an object
+		goodKeys = searchArgs.getKeys();     // an array
+		goodValues = searchArgs.getValues(); // an object
   }
   
 	badKeys = Object.keys(args).filter(arg => !goodKeys.includes(arg));

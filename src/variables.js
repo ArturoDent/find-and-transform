@@ -27,8 +27,7 @@ exports.getPathVariables = function() {
 exports.getSnippetVariables = function() {
 
   return [
-    "${TM_CURRENT_LINE}", "${TM_CURRENT_WORD}", 
-    
+    "${TM_CURRENT_LINE}", "${TM_CURRENT_WORD}",    
     "${CURRENT_YEAR}", "${CURRENT_YEAR_SHORT}", "${CURRENT_MONTH}", "${CURRENT_MONTH_NAME}",
     "${CURRENT_MONTH_NAME_SHORT}", "${CURRENT_DATE}", "${CURRENT_DAY_NAME}", "${CURRENT_DAY_NAME_SHORT}",
     "${CURRENT_HOUR}", "${CURRENT_MINUTE}", "${CURRENT_SECOND}", "${CURRENT_SECONDS_UNIX}", "${CURRENT_TIMEZONE_OFFSET}",

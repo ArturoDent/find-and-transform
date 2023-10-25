@@ -4,8 +4,8 @@ const { commands, languages, extensions, window, Range, Position,
   
 const jsonc = require("jsonc-parser");
 
-const searchCommands = require('./search');
-const findCommands = require('./transform');
+const searchArgs = require('./args/searchOptions');
+const findArgs = require('./args/findOptions');
 
 
 /**
@@ -85,12 +85,14 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           if (curLocation.path[2] && !curLocation.isAtPropertyKey) {
             const argCompletions = _completeArgs(linePrefix, position, find, search, curLocation);
             if (argCompletions) return argCompletions;
+            else return undefined;
           }
           
 					// ------------------------------------    duplicate args removal start   ------------------------------------
 
           // curLocation.path = [26, 'args', ''] = good  or [26, 'args', 'replace', 1] = bad here
-          if ((curLocation?.path[2] !== '' && !curLocation?.path[2]) || curLocation?.path[1] !== 'args') return undefined;
+          // curLocation.path = [26, 'args', 'postCommands', ''] = bad
+          if ((curLocation?.path[2] !== '' && !curLocation?.path[2]) || curLocation?.path[1] !== 'args' || curLocation?.path[3] === '') return undefined;
 
           const argsNode = thisConfig.children.filter(entry => {
             return entry.children[0].value === "args";
@@ -103,8 +105,8 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
 					if (!argsRange.contains(position)) return undefined;
           
           const argsText = document.getText(argsRange);
-          const runFindArgs = findCommands.getKeys().slice(1);       // remove title
-          const runSearchArgs = searchCommands.getKeys().slice(1);   // remove title
+          const runFindArgs = findArgs.getKeys().slice(1);       // remove title
+          const runSearchArgs = searchArgs.getKeys().slice(1);   // remove title
           
           const textLine = document.lineAt(position);
           let   replaceRange = textLine.range;
@@ -230,6 +232,7 @@ exports.makeSettingsCompletionProvider = async function(context) {
         if (curLocation.path[2] && !curLocation.isAtPropertyKey && linePrefix.search(/^\s*$/m) === -1) {
           const argCompletions = _completeArgs(linePrefix, position, find, search, curLocation);
           if (argCompletions) return argCompletions;
+          else return undefined;
         }
 
 				// -----------------------------------------------------------------------------------------------------------
@@ -248,8 +251,8 @@ exports.makeSettingsCompletionProvider = async function(context) {
 					keysText = document.getText(keysRange);
 				}
 
-        const runFindArgs   = findCommands.getKeys();
-        const runSearchArgs = searchCommands.getKeys();
+        const runFindArgs   = findArgs.getKeys();
+        const runSearchArgs = searchArgs.getKeys();
 
         let replaceRange = new Range(position, position);
         const textLine = document.lineAt(position);
@@ -385,6 +388,17 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
     else if (linePrefix.endsWith('${'))
       return _completeReplaceFindVariables(position, "${");
   }
+    
+     // ---------------------    postCommands    ------------------------
+  else if (find && arg === 'postCommands' && (curLocation.path[5] === 'text' || curLocation.path[4] === 'text')) {
+    // return _completeReplaceJSOperation(position, '$');
+    
+    if (linePrefix.endsWith('$'))
+      return _completeReplaceFindVariables(position, "$");
+    
+    else if (linePrefix.endsWith('${'))
+      return _completeReplaceFindVariables(position, "${");
+  }
   
   // -------------------    runWhen    ------------------------
   else if (find && arg === 'runWhen') {
@@ -432,8 +446,8 @@ function _findConfig(rootNode, offset)  {
  */
 function _filterCompletionsItemsNotUsed(context, argArray, argsText, replaceRange, position, invoked) {
 
-  const searchDefaults = searchCommands.getDefaults();
-  const findDefaults = findCommands.getDefaults();  
+  const searchDefaults = searchArgs.getDefaults();
+  const findDefaults = findArgs.getDefaults();  
   const defaults = Object.assign({}, findDefaults, searchDefaults);
   
 	const priority = {

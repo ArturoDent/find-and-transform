@@ -1,3 +1,6 @@
+const { window } = require('vscode');
+
+
 const extensionCommands = require('./commands');
 const parseCommands = require('./parseCommands');
 const searchCommands = require('./search');
@@ -9,14 +12,14 @@ const utilities = require('./utilities');
  * Called in vscode.commands.registerTextEditorCommand()
  * 
  * @param {Object} args - keybinding/settings args
- * @param {import ("vscode").TextEditor} editor 
- * @param {import("vscode").TextEditorEdit} edit - 
  * @param {boolean} enableWarningDialog - 
  * @returns 
  */
-exports.startFindInCurrentFile = async function (args, editor, edit, enableWarningDialog) {
+exports.startFindInCurrentFile = async function (args, enableWarningDialog) {
 
   // get this from keybinding:  { find: "(document)", replace: "\\U$1" }
+  
+  const editor = window.activeTextEditor;
   
   let continueRun = true;
     
@@ -51,7 +54,7 @@ exports.startFindInCurrentFile = async function (args, editor, edit, enableWarni
     if (!args) args = { title: "Keybinding for generic command run" };
     else if (!args.title) args.title = "Keybinding for generic command run";
 
-    await parseCommands.splitFindCommands(editor, edit, args);
+    await parseCommands.splitFindCommands(editor, args);
   }
 };
 

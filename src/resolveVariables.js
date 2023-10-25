@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const { window, workspace, Range } = require('vscode');
+const { window, workspace, env, Range } = require('vscode');
 
 const globals = require('./extension');  // for outputChannel
 
@@ -28,41 +28,90 @@ exports.resolveFind = async function (editor, args, matchIndex, selection) {
   const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
   
   if (args.find && args?.find?.search(lineIndexNumberRE) !== -1)
-    resolvedFind = module.exports.resolveVariables(args, "find", null, selection ?? editor.selection, cursorIndex, matchIndex);
-    // resolvedFind = await module.exports.resolveVariables(args, "find", null, selection ?? editor.selection, cursorIndex, matchIndex);
+    resolvedFind = await module.exports.resolveVariables(args, "find", null, selection ?? editor.selection, cursorIndex, matchIndex);
   else
-    resolvedFind = module.exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, matchIndex);
-    // resolvedFind = await module.exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, matchIndex);
+    resolvedFind = await module.exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor.selection, cursorIndex, matchIndex);
     
-  return module.exports.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.madeFind);
+  return await module.exports.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.madeFind);
 }
 
-/**
- * 
- * @param {string} cursorMoveSelect 
- * @param {number} numMatches 
- * @param {array} combinedMatches 
- * @param {vscode.Selection} selection 
- * @param {number} index 
- * 
- * @returns {Promise<string>}
- */
-exports.resolveCursorMoveSelect = async function (cursorMoveSelect, numMatches, combinedMatches, selection, index) {
+// /**
+//  *
+//  * @param {string} cursorMoveSelect
+//  * @param {number} numMatches
+//  * @param {array} combinedMatches
+//  * @param {vscode.Selection} selection
+//  * @param {number} index
+//  *
+//  * @returns {Promise<string>}
+//  */
+// exports.resolveCursorMoveSelect = async function (cursorMoveSelect, numMatches, combinedMatches, selection, index) {
   
-  let n = 0;
-  let resolved = "";
-  const specialVariable = new RegExp('\\$\\{?\\d', 'g');
+//   let n = 0;
+//   let resolved = "";
+//   // const specialVariable = new RegExp('\\$\\{?\\d', 'g');
+//   const specialVariable = new RegExp('\\$[\\{\\d]', 'g');
   
-  while (n++ < numMatches) {
-    resolved = cursorMoveSelect?.replaceAll(specialVariable, function (match) {
-      const temp = module.exports.resolveVariables(match, "cursorMoveSelect", combinedMatches, selection, null, index);
-      return temp;
-    });
-  };
+//   // while (n++ < numMatches) {
+//   //   resolved = cursorMoveSelect?.replaceAll(specialVariable, function (match) {
+//   //     // should be await module.exports.resolveVariables
+//   //     // and is combinedMatches without index info enough?
+//   //     const temp = module.exports.resolveVariables(match, "cursorMoveSelect", combinedMatches, selection, null, index);
+//   //     return temp;
+//   //   });
+//   // };
   
-  return resolved;
-}
+//     resolved = cursorMoveSelect?.replaceAll(specialVariable, async function (match) {
+//       // should be await module.exports.resolveVariables
+//       // and is combinedMatches without index info enough?
+//       const temp = await module.exports.resolveVariables(match, "cursorMoveSelect", combinedMatches, selection, null, index);
+//       return temp;
+//     });
+  
+//   return resolved;
+// }
 
+// /**
+//  * 
+//  * @param {string} cursorMoveSelect 
+//  * @param {number} numMatches 
+//  * @param {array} combinedMatches 
+//  * @param {vscode.Selection} selection 
+//  * @param {number} index 
+//  * 
+//  * @returns {Promise<string>}
+//  */
+// exports.resolveCursorMoveSelect = async function (cursorMoveSelect, numMatches, combinedMatches, selection, index) {
+  
+//   let n = 0;
+//   let resolved = "";
+//   const specialVariable1 = new RegExp('(\\$\\{?\\d)', 'g');  // expand this
+//   const specialVariable2 = new RegExp('\\$\\{?\\d', 'g');
+  
+  
+//   while (n++ < numMatches) {
+//     resolved = cursorMoveSelect?.replaceAll(specialVariable1, async function (match) {
+//       const temp = await module.exports.resolveVariables(match, "cursorMoveSelect", combinedMatches, selection, null, index);
+//       return temp;
+//     });
+//   };
+  
+//   return resolved;
+// }
+
+// const rex1 = /(\d+)/; // Note the capture group, so `split` retains the delimiter between matches
+// const rex2 = /^\d+$/; // Same as above, but full string match and no capture group
+// // #1
+// const parts = str.split(rex1);
+// // #2 and #3 (the `await`)
+// const updated = await Promise.all(parts.map(async (part) => {
+//     if (rex2.test(part)) {
+//         return await calculate(part);
+//     }
+//     return part;
+// }));
+// // #4
+// return updated.join("");
 
 /**
  * Build the replaceString by updating the setting 'replaceValue' to
@@ -74,9 +123,9 @@ exports.resolveCursorMoveSelect = async function (cursorMoveSelect, numMatches, 
  * @param {import("vscode").Selection} selection - the current selection
  * @param {number} selectionStartIndex
  * @param {number} matchIndex - which match is it
- * @returns {string} - the resolved string
+ * @returns {Promise<string>} - the resolved string
  */
-exports.resolveVariables = function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
+exports.resolveVariables = async function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
   
   const { document } = window.activeTextEditor;
   let replaceValue;
@@ -102,9 +151,15 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
   else if (caller === "run")
     replaceValue = Array.isArray(args?.run) ? args?.run[0] : args?.run;
     
-  else if (caller === "cursorMoveSelect") replaceValue = args;
+  // else if (caller === "cursorMoveSelect") replaceValue = args;
+  else if (caller === "cursorMoveSelect") replaceValue = args.cursorMoveSelect;
   else if (caller === "snippet") replaceValue = args?.snippet;
-  else if (caller === "postCommands") replaceValue = args?.postCommands[matchIndex]?.args?.text;
+  // else if (caller === "postCommands") replaceValue = args?.postCommands[matchIndex]?.args?.text;
+  // TODO what goes here ??
+  else if (caller === "postCommands") {
+    if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex]?.args?.text;
+    else replaceValue = args?.postCommands?.args?.text;
+  }
   
   // need to set a flag for presence of 'await' in jsOp BEFORE any variable substitution,
   // in case some variable has "await" in it like ${selectedText}, but not part of jsOp
@@ -292,6 +347,8 @@ exports.resolveVariables = function (args, caller, groups, selection, selectionS
       // outputChannel.show(false);     
       globals?.outputChannel?.appendLine(`\n${ jsOPError.stack }\n`);
       globals?.outputChannel?.show(false);
+      
+      // below: could be in 'run' value, not 'replace'
       window.showWarningMessage("There was an error in the `$${<operations>}$$` part of the replace value.  See the Output channel: `find-and-transform` for more.")
       
       throw new Error(jsOPError.stack);
@@ -340,9 +397,9 @@ exports.checkForCaptureGroupsInReplace = function(args) {
  * @param {boolean} isRegex 
  * @param {boolean} matchWholeWord 
  * @param {boolean} madeFind 
- * @returns {object} { findValue,  isRegex }
+ * @returns {Promise<object>} { findValue,  isRegex }
  */
-exports.adjustValueForRegex = function(findValue, replaceValue, isRegex, matchWholeWord, madeFind) {
+exports.adjustValueForRegex = async function(findValue, replaceValue, isRegex, matchWholeWord, madeFind) {
 
   if (findValue === "") return { findValue, isRegex };
 	if (matchWholeWord) findValue = findValue?.replace(/\\b/g, "@%@");
@@ -767,6 +824,11 @@ function _resolvePathVariables (variableToResolve, args, caller, selection, matc
 
     case "${CLIPBOARD}": case "${ CLIPBOARD }":
       resolved = args?.clipText;
+      
+      // resolved = await env.clipboard.readText():    // need to make function async
+      // env.clipboard.readText().then(string => {     // doesn't work
+      //   resolved = string;
+      // });
       break;
 
     default:

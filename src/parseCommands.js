@@ -1,8 +1,14 @@
 const { window, workspace, env, Uri } = require('vscode');
 
-const findCommands = require('./transform');
+const document = require('./find/document');
+const findAndSelect = require('./find/findAndSelect');
+const line = require('./find/line');
+const previousNext = require('./find/previousNext');
+const selections = require('./find/selections');
+
 const resolve = require('./resolveVariables');
 const utilities = require('./utilities');
+const transforms = require('./transform');
 
 
 /**
@@ -59,10 +65,9 @@ exports.buildJSOperationsFromArgs = async function (arg) {
  * its separate steps (if find/replace are arrays of multiple values).
  * 
  * @param {import("vscode").TextEditor} editor
- * @param {import("vscode").TextEditorEdit} edit
  * @param {object} args
  */
-exports.splitFindCommands = async function (editor, edit, args) {
+exports.splitFindCommands = async function (editor, args) {
 
 	let numFindArgs = 0;
   let numReplaceArgs = 0;
@@ -85,30 +90,30 @@ exports.splitFindCommands = async function (editor, edit, args) {
 
     // pointReplaces iff postCommands? could add 
     if (!splitArgs.find && !splitArgs.replace && !splitArgs.restrictFind?.startsWith("next"))
-      await findCommands.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
+      await findAndSelect.findAndSelect(editor, splitArgs); // find and select all even if restrictFind === selections
 
     // add all "empty selections" to editor.selections_replaceInSelections
     else if (args.restrictFind === "selections" && splitArgs.replace !== undefined) {
-      await findCommands.addEmptySelectionMatches(editor);
-      await findCommands.replaceInSelections(editor, edit, splitArgs);
+      await transforms.addEmptySelectionMatches(editor);
+      await selections.replaceInSelections(editor, splitArgs);
     }
 
     // else if ((splitArgs.restrictFind === "line" || splitArgs.restrictFind === "once") && splitArgs.replace !== undefined) {
     else if ((splitArgs.restrictFind === "line" || splitArgs.restrictFind?.startsWith("once")) && splitArgs.replace !== undefined) {
-      await findCommands.replaceInLine(editor, edit, splitArgs);
+      await line.replaceInLine(editor, splitArgs);
     }
 
     // find/noFind and replace/noReplace, restrictFind = nextSelect/nextMoveCursor/nextDontMoveCursor
     else if (splitArgs.restrictFind?.startsWith("next") || splitArgs.restrictFind?.startsWith("previous")) {
-      await findCommands.replacePreviousOrNextInWholeDocument(editor, edit, splitArgs);
+      await previousNext.replacePreviousOrNextInWholeDocument(editor, splitArgs);
     }
 
-    // find and replace, restrictFind = document/default
+    // find or makeFind and replace, restrictFind = document/default
     else if (splitArgs.replace !== undefined) {
-      await findCommands.replaceInWholeDocument(editor, edit, splitArgs);
+      await document.replaceInWholeDocument(editor, splitArgs);
     }
 
-    else await findCommands.findAndSelect(editor, splitArgs);   // find but no replace
+    else await findAndSelect.findAndSelect(editor, splitArgs);   // find but no replace
   }
 }
 

@@ -1,0 +1,10 @@
+####              1234589 ####
+
+
+    "find": "(.* /\\* )([0-9]+)(.*)",
+    "replace": "$${ console.log(\"Hello World!\"); return $2 }$$",
+    
+    
+    
+    qqq \* 123zzz
+

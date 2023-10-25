@@ -20,30 +20,14 @@ exports.runPrePostCommands = async function (userCommands, preOrPost) {
   
   if (typeof userCommands === 'string') await commands.executeCommand(userCommands);
   
-  else if (typeof userCommands === 'object' && !Array.isArray(userCommands)) 
+  else if (typeof userCommands === 'object' && !Array.isArray(userCommands))
     await commands.executeCommand(userCommands.command, userCommands.args);
   
-  else if (Array.isArray(userCommands) && userCommands.length) 
-    await commands.executeCommand('runCommands', { commands: userCommands })
+  else if (Array.isArray(userCommands) && userCommands.length)
+    // there is a bug in runCommands or copy/paste, see https://github.com/microsoft/vscode/issues/190831
+    await commands.executeCommand('runCommands', { commands: userCommands });
 }
 
-
-/**
- * Get all the findInCurrentFile or runInSearchPanel settings
- * @param {String} setting - name of setting to retrieve
- * @returns {Promise<object>} array of settings
- */
-exports.getSettings = async function (setting) {
-  
-  const settings = await workspace.getConfiguration().get(setting);
-	let findArray = [];
-
-	if (settings) {
-		findArray = Object.entries(settings);
-		findArray = findArray.filter(current => (typeof current[0] === 'string'));
-	}
-	return findArray;
-};
 
 
 /**
@@ -277,7 +261,7 @@ exports.registerFindCommands = async function (argArray, context, disposables, e
 
     disposable = commands.registerTextEditorCommand(`findInCurrentFile.${ argArray[elem][0] }`, async (editor, edit) => {
       
-      drivers.startFindInCurrentFile(argArray[elem][1], editor, edit, enableWarningDialog);
+      drivers.startFindInCurrentFile(argArray[elem][1], enableWarningDialog );
       
       // triggering from Command Palette doesn't seem to return focus to the current editor [seems like an extension testing bug]
       // not needed for keybinding trigger though

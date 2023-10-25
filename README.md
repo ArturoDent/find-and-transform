@@ -1468,7 +1468,7 @@ Explanation for above:
 }
 ```
 
-Here is a neat trick to insert a SCREAMING_SNAKE _CASE version of the `${fileBasenameNoExtension}` at the cursor(s):  
+Here is a neat trick to insert a SCREAMING_SNAKE_CASE version of the `${fileBasenameNoExtension}` at the cursor(s):  
 
 ```jsonc
 {
@@ -1614,7 +1614,7 @@ You can use the `cursorMoveSelect` option with the below `restrictFind` options.
 
 ```plaintext
  New `once...` restrictFind Values.  `once` deprecated:
- ```
+```
 
 The `once` argument to `restrictFind` is being **deprecated** in favor of two related values: `onceExcludeCurrentWord` and `onceIncludeCurrentWord`.  `onceExcludeCurrentWord` functions exactly as `once` does, the searched text begins strictly at the cursor position - even if that is in the middle of a word.  That does allow you to use that `${TM_CURRENT_WORD}` in a find or replace and not actually change the current word, but the next instance.  But sometimes you do want to change the current word and then `onceIncludeCurrentWord` is what you want.  Then the entire word at the cursor is part of the search text and it will be selected or replaced according to your keybinding/setting.  
 
@@ -1631,22 +1631,22 @@ The `cursorMoveSelect` option takes any text as its value, including anything th
     "replace": "\\U$1",
     "isRegex": true,
     
-    // "matchWholeWord": true,          // applies to both find and cursorMoveSelect
-    // "matchCase": true,               // applies to both find and cursorMoveSelect
+    // "matchWholeWord": true,           // applies to both find and cursorMoveSelect
+    // "matchCase": true,                // applies to both find and cursorMoveSelect
     
-                                        // select only if at beginning of line: ^
-    "cursorMoveSelect": "^\\s*pa[rn]am" // will be interpreted as a regexp since 'isRegex' is true
-    "restrictFind": "line",             // select 'pa[rn]am' on the current line after making the replacement(s) 
+                                         // select only if at beginning of line: ^
+    "cursorMoveSelect": "^\\s*pa[rn]am", // will be interpreted as a regexp since 'isRegex' is true
+    "restrictFind": "line",              // select 'pa[rn]am' on the current line after making the replacement(s) 
     
-    // "restrictFind": "selections",    // select 'pa[rn]am' only in the selection(s)
+    // "restrictFind": "selections",     // select 'pa[rn]am' only in the selection(s)
    
     //  "restrictFind": "line",
-    // "cursorMoveSelect": "^"          // cursor will go to beginning of line
-    // "cursorMoveSelect": "$"          // cursor will go to end of line
+    // "cursorMoveSelect": "^"           // cursor will go to beginning of line
+    // "cursorMoveSelect": "$"           // cursor will go to end of line
     
     // "restrictFind": "selections", 
-    // "cursorMoveSelect": "^"          // cursor will go to beginning of each selection
-    // "cursorMoveSelect": "$"          // cursor will go to end of each selection
+    // "cursorMoveSelect": "^"           // cursor will go to beginning of each selection
+    // "cursorMoveSelect": "$"           // cursor will go to end of each selection
     
     // selections are directional, 
     // the cursor will go to the start or end (the end is where the cursor was in the original selection)
