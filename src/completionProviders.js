@@ -45,10 +45,17 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           
 					// ------------------------------------    args completion start   -------------------------------------------------
 					find = false;
-					search = false;
+          search = false;
+          let curLocation;
 							
-					const rootNode = jsonc.parseTree(document.getText());
-					const curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
+          const rootNode = jsonc.parseTree(document.getText());
+          
+          try {   // some kind of a parsing bug in jsonc-parser?
+            curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
+          }
+          catch (error) {
+            // console.log(error)
+          }
 
           const thisConfig = _findConfig(rootNode, document.offsetAt(position));
           const nodeValue = jsonc.getNodeValue(thisConfig);
@@ -319,10 +326,12 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
  // ---------------------  find  ------------------------
   else if (arg === 'find') {
     if (linePrefix.endsWith('$'))
-      return [..._completePathVariables(position, '$'), ..._completeExtensionDefinedVariables(position, "$", search), ..._completeSnippetVariables(position, '$')];
+      return [..._completePathVariables(position, '$'), ..._completeExtensionDefinedVariables(position, "$", search),
+      ..._completeSnippetVariables(position, '$'), ..._completeReplaceJSOperation(position, '$')];
       
     else if (linePrefix.endsWith('${'))
-      return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "${", search), ..._completeSnippetVariables(position, '${')];
+      return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "${", search),
+      ..._completeSnippetVariables(position, '${'), ..._completeReplaceJSOperation(position, '${')];
       
     
     else if (linePrefix.endsWith('\\\\'))
@@ -342,7 +351,6 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
     else if (find && linePrefix.endsWith('$$'))
       return _completeReplaceFindVariables(position, '$$');
       
-    // shouldn't include the jsOp $${...}$$
     else if (find && linePrefix.endsWith('${')) 
       return _completeReplaceFindVariables(position, '${');
 
@@ -456,12 +464,18 @@ function _filterCompletionsItemsNotUsed(context, argArray, argsText, replaceRang
     
     "preCommands": "011",
     "find": "012",
-    "ignoreWhiteSpace": "0121",
-    "delay": "0122",
-    "run": "0123",
-    "runWhen": "0124",
+    "isRegex": "0121",
+    "ignoreWhiteSpace": "0122",
+    
     "replace": "013",
-    "isRegex": "014",
+    // "replace (string)": "013",
+    // "replace (js operation)": "0131",
+    
+    "delay": "014",
+    
+    "run": "0141",
+    "runWhen": "0142",
+    
     "postCommands": "015",
     "runPostCommands": "0151",
     "preserveSelections": "0152",
@@ -490,14 +504,14 @@ function _filterCompletionsItemsNotUsed(context, argArray, argsText, replaceRang
     "description": "Any string describing what this keybinding does.",
     
     "preCommands": "A single command, as a string, or an array of commands to run before any find occurs.",
-    "find": "Query to find or search.  Can be a regexp, plain text or `${getFindInput}`.",
+    "find": "Query to find or search.  Can be a regexp, plain text or `${getInput}`.",
     "ignoreWhiteSpace": "Any whitespace in the `find` will be treated as if it is `\\s*`. And will match across lines without the need to specify a `\\n` in the find regex.",
     "delay": "Pause, in millisceonds, between searches when you have defined an array of searches.  Usually needed to allow the prior search to complete and populate the search results if you want to use those results files in a subsequent search with: .",
     "run": "Run a javascript operation after the find (and before any replace).",
     "runWhen": "When to trigger the `run` operation:",
     "preserveSelections": "Do not change any existing cursor positions or selections.",
     
-    "replace": "Replacement text.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
+    "replace": "Replacement text or use ${getInput} to choose text at select at runtime.  Can include variables like `${relativeFile}`. Replacements can include conditionals like `${n:+if add text}` or case modifiers such as `\\\\U$n` or `${2:/upcase}`.",
     "isRegex": "Is the find query a regexp.",
     "postCommands": "A single command, as a string, or an array of commands to run after any replace occurs.",
     "runPostCommands": "When to trigger the `postCommands`:",
@@ -508,7 +522,7 @@ function _filterCompletionsItemsNotUsed(context, argArray, argsText, replaceRang
 
     "restrictFind": "Find in the document, selection(s), line, one time on the current line or the next match after the cursor.",
     "reveal": "Scroll the editor viewport to show the first, next from cursor, or last match in the editor",
-		"cursorMoveSelect": "Any text to find and select after performing all find/replaces.  This text can be part of the replacement text or elsewhere in the document, line or selection.",
+		"cursorMoveSelect": "Any text or ${getInput} to select after performing all find/replaces.  This text can be part of the replacement text or elsewhere in the document, line or selection.",
 
 		"triggerSearch": "Start the search automatically.",
 		"triggerReplaceAll": "Like hitting the `Replace All` button.  This action must be confirmed by dialog before any replacements happen. And `triggerSearch` will be automatically triggered first.",
@@ -560,7 +574,6 @@ Replace ***n, o, p, q*** with some number 0-x.
   if (search)
     searchCompletions = [
       _makeValueCompletionItem("${resultsFiles}", replaceRange, "", "052", `A comma-separated list of the files in the current search results.`),
-      // _makeValueCompletionItem("${getFindInput}", replaceRange, "", "0544", `Trigger an input box for the find query.`)
     ]
   
 	const completionItems =  [
@@ -568,7 +581,8 @@ Replace ***n, o, p, q*** with some number 0-x.
     _makeValueCompletionItem("${getTextLines:n}", replaceRange, "", "0541", `Line and character numbers are 0-based. ${ text }`),
     _makeValueCompletionItem("${getTextLines:n-p}", replaceRange, "", "0542", `Line and character numbers are 0-based. ${ text }`),
     _makeValueCompletionItem("${getTextLines:n,o,p,q}", replaceRange, "", "0543", `Line and character numbers are 0-based. ${ text }`),
-    _makeValueCompletionItem("${getFindInput}", replaceRange, "", "0544", `Trigger an input box for the find query.`)
+    // _makeValueCompletionItem("${getFindInput}", replaceRange, "", "0544", `Trigger an input box for the find query.`)
+    _makeValueCompletionItem("${getInput}", replaceRange, "", "0544", `Trigger an input box for the find query or replace/run.`)
 	];
 
 	if (search) return completionItems.concat(searchCompletions);
@@ -607,6 +621,8 @@ function _completePathVariables(position, trigger) {
 		_makeValueCompletionItem("${selectedText}", replaceRange, "", "04", "The **first** selection in the current editor."),
 		_makeValueCompletionItem("${CLIPBOARD}", replaceRange, "", "041", "The clipboard contents."),
     _makeValueCompletionItem("${pathSeparator}", replaceRange, "", "042", "`/` on linux/macOS, `\\` on Windows."),
+    _makeValueCompletionItem("${/}", replaceRange, "", "043", "`/` on linux/macOS, `\\` on Windows.  Same as ${pathSeparator}."),
+    
     _makeValueCompletionItem("${lineIndex}", replaceRange, "", "043", "The line number of the **first** cursor in the current editor, lines start at 0."),
 		_makeValueCompletionItem("${lineNumber}", replaceRange, "", "044", "The line number of the **first** cursor in the current editor, lines start at 1."),
 
@@ -931,6 +947,11 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
     item.insertText = new SnippetString(`${ leadingQuote }run": [\n\t"$$\{",\n\t\t"\$\{1:operation\};",\n\t\t"\$\{2:operation\};",\n\t\t"\$\{3:operation\};",\n\t"\}$$",\n],`);
     item.range = new Range(replaceRange.start, new Position(replaceRange.start.line, replaceRange.start.character + 1));
   }
+  // else if (key === "replace (js operation") {
+  //   item = new CompletionItem("replace: $${ operation }$$", CompletionItemKind.Property);
+  //   item.insertText = new SnippetString(`${ leadingQuote }replace": [\n\t"$$\{",\n\t\t"\$\{1:operation\};",\n\t\t"\$\{2:operation\};",\n\t\t"\$\{3:operation\};",\n\t"\}$$",\n],`);
+  //   item.range = new Range(replaceRange.start, new Position(replaceRange.start.line, replaceRange.start.character + 1));
+  // }
   else {
     item = new CompletionItem(key, CompletionItemKind.Property);
   
@@ -1021,7 +1042,7 @@ function _makeValueCompletionItem(value, replaceRange, defaultValue, sortText, d
   if (documentation) item.documentation = documentation;
   
   // to select all the n's and text to be replaced
-  if (value.substring(0, 3) === "${n:/") { // // ${n:/upcase} 
+  if (value.substring(0, 5) === "${n:/") { // // ${n:/upcase} 
     item.insertText = new SnippetString("\\${" + "\$\{1:n\}" + value.substring(3));
   }
   else if (value.search(/\${n:[+-]/) !== -1) {  // ${1:+ if add text}${n:- else add text}

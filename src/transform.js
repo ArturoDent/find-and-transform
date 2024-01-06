@@ -52,8 +52,8 @@ exports.matchAroundCursor = function (args, resolvedFind, selection) {
 
   if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
     let selectedLineRange = document.lineAt(selection.active.line).range;
-    // matches = _buildLineNumberMatches(resolvedFind, selectedLineRange);
-    matches = module.exports.buildLineNumberMatches(resolvedFind, selectedLineRange);
+    // matches = module.exports.buildLineNumberMatches(resolvedFind, selectedLineRange);
+    matches = this.buildLineNumberMatches(resolvedFind, selectedLineRange);
   }
   else if (resolvedFind?.length) {
       
@@ -74,14 +74,11 @@ exports.matchAroundCursor = function (args, resolvedFind, selection) {
     const thisSelection = new Selection(startPos, endPos);
   
     if (thisSelection.contains(selection)) {
-      // foundSelections.push(thisSelection);
-      // foundMatches.push(match);
       foundSelection = thisSelection;
       foundMatch = match;
       return true;
     }
   });
-  // if (foundMatch.length) return { foundSelections, foundMatches };
   return [ foundSelection, foundMatch, lineIndex ];
 }
 
@@ -98,24 +95,22 @@ exports.matchAroundCursor = function (args, resolvedFind, selection) {
 exports.runWhen = async function (args, foundMatches, foundSelections, selection) {
 
   if (args.run && foundMatches.length) {
+    
     if (args.runWhen === "onEveryMatch") {
+      
       let selectionIndex = 0;
       for await (const foundSelection of foundSelections) {
-      // foundSelections.map(async (foundSelection, index) => {
-        // await resolve.resolveVariables(args, "run", foundMatches[selectionIndex], foundSelection, null, null);
         // TODO: test on ${matchIndex/Number}
         await resolve.resolveVariables(args, "run", foundMatches[selectionIndex], foundSelection, null, selectionIndex);
         selectionIndex++;
-      // });
       };
     }
+    
     else if (!args.runWhen || args.runWhen === "onceIfAMatch")  // uses first match and first selection = editor.selection
-      // await resolve.resolveVariables(args, "run", foundMatches[0], foundSelections[0], null, null);
-      // TODO: should this pass 0 as matchIndex
       await resolve.resolveVariables(args, "run", foundMatches[0], foundSelections[0], null, null);
   }
+  
   else if (args.run && args.runWhen === "onceOnNoMatches")
-     // TODO: should this pass 0 as matchIndex
     await resolve.resolveVariables(args, "run", null, selection, null, null);  // no matches, run once
 }
 
@@ -134,15 +129,16 @@ async function _resolvePostCommandVariables(args, foundMatches, foundSelections,
   // selection is not used
   const editor = window.activeTextEditor;
   
-  // Object.assign() makes a shallow (reference) copy
-  const tempArgs = JSON.parse(JSON.stringify(args));  // to make a deep copy
+  // Object.assign() makes a shallow (reference) copy only
+  // const tempArgs = JSON.parse(JSON.stringify(args));  // to make a deep copy
+  const tempArgs = structuredClone(args);
   
   await _loopPostCommands(args, foundMatches[index], foundSelections[index], selection, index);
   
   // for multiple commands within a single args.postCommands
   async function _loopPostCommands(args, foundMatch, foundSelection, selection, index) {
     
-    // if not an array or simply an object?
+    // if not an array or simply an object {}
     if (Array.isArray(tempArgs.postCommands)) {
       
       let commandNumber = 0;
@@ -152,10 +148,9 @@ async function _resolvePostCommandVariables(args, foundMatches, foundSelections,
         commandNumber++;
       };
     }
-    // TODO if not an array
-    else tempArgs.postCommands.args.text = await resolve.resolveVariables(tempArgs, "postCommands", foundMatch, foundSelection, null, index);
+
+    else tempArgs.postCommands.args.text = await resolve.resolveVariables(tempArgs, "postCommands", foundMatch, foundSelection, selection, index);
   };
-  
   
   return tempArgs.postCommands;
 }
@@ -171,42 +166,50 @@ async function _resolvePostCommandVariables(args, foundMatches, foundSelections,
  */
 exports.runPostCommands = async function (args, foundMatches, foundSelections, selection) {
   
-  let postCommands;
+  let postCommands = args.postCommands;
   const editor = window.activeTextEditor;
   
   // does this work for a single object? No
   const argHasText = (command) => {
     return command?.args?.text;  // && check if variable in text?
   }
+  
+  const resolvePostCommands = (Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text;
+  
 
-  // handle string of one command?  Any with a variable to be resolved?
   // handles array or a single object
-  if ((Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text) {
+  // if ((Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text) {
 
-    if (foundMatches.length) {
-      if (args.runPostCommands === "onEveryMatch") {
-        let index = 0;
-        for await (const foundSelection of foundSelections) {
-          editor.selections = [foundSelection];
+  if (foundMatches.length) {
+    if (args.runPostCommands === "onEveryMatch") {
+      let index = 0;
+      for await (const foundSelection of foundSelections) {
+        if (resolvePostCommands) {
+          editor.selections = [foundSelection];  // if preserveSelections ?
           postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, index);
-          await commands.runPrePostCommands(postCommands, "postCommands");
-          index++;
-        };
-      }
-      else if (!args.runPostCommands || args.runPostCommands === "onceIfAMatch") { // uses first match and first selection = editor.selection
-        postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
+        }
         await commands.runPrePostCommands(postCommands, "postCommands");
-      }
+        index++;
+      };
     }
-    else if (args.runPostCommands === "onceOnNoMatches") {
-      postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
-      await commands.runPrePostCommands(postCommands, "postCommands");  // no matches, run once
+    else if (!args.runPostCommands || args.runPostCommands === "onceIfAMatch") { // uses first match and first selection = editor.selection
+      if (resolvePostCommands) {
+        editor.selections = [foundSelections[0]];  // if preserveSelections ?
+        postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
+      }
+      await commands.runPrePostCommands(postCommands, "postCommands");
     }
   }
-  editor.selections = foundSelections;
+  else if (args.runPostCommands === "onceOnNoMatches") {
+    if (resolvePostCommands) postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
+    await commands.runPrePostCommands(postCommands, "postCommands");  // no matches, run once
+  }
+  // }
+  
+  
+  // editor.selections = foundSelections;
   
 }
-
 
 
 /**
@@ -216,7 +219,7 @@ exports.runPostCommands = async function (args, foundMatches, foundSelections, s
  * @param {Range} range - line or selection range within which to search
  * @returns {Array} of matches
  */
-exports.buildLineNumberMatches = function(find, range) {
+exports.buildLineNumberMatches = function (find, range) {
 
   const document = window.activeTextEditor.document;
 
@@ -236,13 +239,11 @@ exports.buildLineNumberMatches = function(find, range) {
     else if (range.end.line === line) lineText = lineText.substring(0, range.end.character);
 
     let resolved = find?.replaceAll("${lineNumber}", String(line + 1))?.replaceAll("${lineIndex}", String(line));
-    // resolved = await resolve.resolveExtensionDefinedVariables(resolved, {}, "find");  // TODO
     const lineMatches = [...lineText.matchAll(new RegExp(resolved, "g"))];
 
     for (const match of lineMatches) {
       match["line"] = line;
       if (range.start.line === line) match["index"] = lineIndex + match.index + range.start.character;
-      // else match["index"] = lineIndex + match.index;  // don't add range.start.character to non-first line of selections
       else match["index"] = lineIndex + match.index;  // don't add range.start.character to non-first line of selections
       matches.push(match);
     }
@@ -252,6 +253,7 @@ exports.buildLineNumberMatches = function(find, range) {
 
 
 /**
+ * Combine matches so that any undefined capture groups are filled from other matches
  * 
  * @param {Array} matches 
  * @returns {Promise<array>}
@@ -278,4 +280,4 @@ exports.combineMatches = async function (matches) {
   };
   
   return firstMatch;
-}
+};

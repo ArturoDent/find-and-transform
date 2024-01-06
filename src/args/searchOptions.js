@@ -3,10 +3,8 @@
  * @returns {Array}
  */
 exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "matchCase"
-  // return ["title", "preCommands", "find", "replace", "delay", "postCommands", "triggerSearch", "triggerReplaceAll",
   return ["title", "description", "preCommands", "find", "replace", "delay", "postCommands", "triggerSearch", "triggerReplaceAll",
     "isRegex", "ignoreWhiteSpace", "filesToInclude", "preserveCase", "useExcludeSettingsAndIgnoreFiles",
-    // "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors", "clipText"];
     "matchWholeWord", "matchCase", "filesToExclude", "onlyOpenEditors"];
 }
 
@@ -17,7 +15,6 @@ exports.getKeys = function () {  // removed "isCaseSensitive" in favor of "match
 exports.getValues = function () {    // removed "isCaseSensitive" in favor of "matchCase"
 	return {
     title: "string", find: "string", replace: "string", isRegex: "boolean", ignoreWhiteSpace: "boolean",
-    // matchCase: "boolean", preCommands: "string", postCommands: "string", delay: "number", clipText: "string",
     matchCase: "boolean", preCommands: "string", postCommands: "string", delay: "number", 
 		matchWholeWord: "boolean", triggerSearch: "boolean", triggerReplaceAll: "boolean",
     useExcludeSettingsAndIgnoreFiles: "boolean", preserveCase: "boolean",
@@ -49,7 +46,6 @@ exports.getDefaults = function () {
 		"matchWholeWord": false,
 		"matchCase": false,
     "filesToExclude": "",
-    // "clipText": "",
 		"onlyOpenEditors": false
 	};
 }

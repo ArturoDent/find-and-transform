@@ -3,7 +3,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "4.8.4",
+ "version": "5.0.0",
  "engines": {
   "vscode": "^1.69.0"
  },
@@ -14,7 +14,7 @@
   "url": "https://github.com/ArturoDent/find-and-transform"
  },
  "funding": {
-    "url": "https://www.buymeacoffee.com/ArturoDent"
+  "url": "https://www.buymeacoffee.com/ArturoDent"
  },
  "main": "./src/extension.js",
  "browser": "./src/extension.js",
@@ -142,7 +142,7 @@
  "devDependencies": {
   "@types/glob": "^7.1.1",
   "@types/mocha": "^7.0.2",
-  "@types/node": "^13.13.52",
+  "@types/node": "^18.19.3",
   "@types/vscode": "^1.56.0",
   "eslint": "^6.8.0",
   "glob": "^7.1.7",

@@ -5,6 +5,8 @@ const extensionCommands = require('./commands');
 const parseCommands = require('./parseCommands');
 const searchCommands = require('./search');
 const utilities = require('./utilities');
+const outputChannel = require('./outputChannel');
+
 
 
 /**
@@ -16,6 +18,8 @@ const utilities = require('./utilities');
  * @returns 
  */
 exports.startFindInCurrentFile = async function (args, enableWarningDialog) {
+  
+  await outputChannel.clear();
 
   // get this from keybinding:  { find: "(document)", replace: "\\U$1" }
   
@@ -25,10 +29,11 @@ exports.startFindInCurrentFile = async function (args, enableWarningDialog) {
     
   if (args?.preCommands) await extensionCommands.runPrePostCommands(args.preCommands, "preCommands");
     
-  let replacement = "";
+  let replacement = "";  
   if (Array.isArray(args?.replace)) replacement = args?.replace.join(' ');
   else if (args?.replace) replacement = args?.replace;
-  if (replacement?.search(/\$\{resultsFiles\}/) !== -1) args.resultsFiles = await utilities.getSearchResultsFiles(args.clipText);
+  
+  // if (replacement?.search(/\$\{resultsFiles\}/) !== -1) args.resultsFiles = await utilities.getSearchResultsFiles(args.clipText);
     
   // could be an array of 1 : ["$${ return 'howdy', }$$"] or ["howdy $${ return 'pardner', }$$"]
   // call a function that looks for all jsOp's $${...}$$ in args.replace
@@ -41,13 +46,13 @@ exports.startFindInCurrentFile = async function (args, enableWarningDialog) {
   const argsBadObject = await utilities.checkArgs(args, "findBinding");
     
   if (Object.entries(argsBadObject).length) {  // send to utilities function
-    await utilities.writeBadArgsToOutputChannel(argsBadObject);
+    await outputChannel.writeBadArgs(argsBadObject);
     return;    // abort
   }
     
   if (args && enableWarningDialog) {
     // boolean modal or not?
-    if (argsBadObject.length) continueRun = await utilities.showBadKeyValueMessage(argsBadObject, true, "");
+    if (argsBadObject.length) continueRun = await outputChannel.showBadKeyValueMessage(argsBadObject, true, "");
   }
 
   if (continueRun) {
@@ -68,6 +73,8 @@ exports.startFindInCurrentFile = async function (args, enableWarningDialog) {
  */
 exports.startRunInSearchPanel = async function (args, enableWarningDialog) {
   
+  await outputChannel.clear();
+  
   let continueRun = true;
 
   if (args?.preCommands) {
@@ -77,13 +84,13 @@ exports.startRunInSearchPanel = async function (args, enableWarningDialog) {
   const argsBadObject = await utilities.checkArgs(args, "searchBinding");
   
   if (Object.entries(argsBadObject).length) {  // send to utilities function
-    await utilities.writeBadArgsToOutputChannel(argsBadObject);
+    await outputChannel.writeBadArgs(argsBadObject);
     return;    // abort
   }
   
   if (args && enableWarningDialog) {
     // boolean modal or not?
-    if (argsBadObject.length)	continueRun = await utilities.showBadKeyValueMessage(argsBadObject, true, "");
+    if (argsBadObject.length)	continueRun = await outputChannel.showBadKeyValueMessage(argsBadObject, true, "");
   }
 
   if (continueRun) {

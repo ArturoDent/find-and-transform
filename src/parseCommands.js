@@ -130,30 +130,17 @@ async function _buildFindArgs(args, index)  {
   const editor = window.activeTextEditor;
 	let madeFind = false;
 
-	let clipText = "";
-	await env.clipboard.readText().then(string => {
-		clipText = string;
-  });
+  // delayed into resolveVariables
+	// let clipText = "";
+	// await env.clipboard.readText().then(string => {
+	// 	clipText = string;
+  // });
   
   // indexedArgs = defaults
 	let  indexedArgs = { restrictFind: "document", isRegex: false, cursorMoveSelect: "", matchWholeWord: false, matchCase: false };
   Object.assign(indexedArgs, args);
   
-  // get multiple getFindInput's sequentially?
-  if (indexedArgs.find?.includes('${getFindInput}')) {
-  
-    const input = await utilities.getFindInput(index);
-    const re = new RegExp(`\\$\\{getFindInput\\}`, 'g');
-    
-    if (input || input === '')  // accept inputBox with nothing in it = ''
-      indexedArgs.find = indexedArgs.find?.replaceAll(re, input);
-    else {
-      // escaped out of inputBox : input = undefined
-      indexedArgs.find = indexedArgs.find?.replaceAll(re, '');
-    }
-  }
-
-	else if (!Array.isArray(args.find) && args.find && index === 0) indexedArgs.find = args.find;
+	if (!Array.isArray(args.find) && args.find && index === 0) indexedArgs.find = args.find;
   else if (Array.isArray(args.find) && args.find.length > index) indexedArgs.find = args.find[index];
 
 	// if no 'find' key generate a findValue using the selected words/wordsAtCursors as the 'find' value
@@ -164,7 +151,7 @@ async function _buildFindArgs(args, index)  {
     // if line/once don't call this here - do for each line
     // if selections, do later for each selection
     if (args.restrictFind !== "line" && args.restrictFind !== "selections" && !args.restrictFind?.startsWith("once")) {
-      const findObject = resolve.makeFind(editor.selections, args);
+      const findObject = await resolve.makeFind(editor.selections, args);
       indexedArgs.find = findObject.find;
       indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
       madeFind = true;
@@ -187,8 +174,6 @@ async function _buildFindArgs(args, index)  {
   if (!Array.isArray(args.run) && (args.run || args.run === "")) indexedArgs.run = args.run;
   else if (Array.isArray(args.run) && args.run.length > index) indexedArgs.run = args.run[index];
     
-  const currentLanguageConfig = await utilities.getlanguageConfigComments(indexedArgs);
-
 	let regexOptions = "gmi";
 	if (indexedArgs.matchCase) regexOptions = "gm";
   
@@ -197,7 +182,7 @@ async function _buildFindArgs(args, index)  {
     indexedArgs.find = `\\n{0}` + indexedArgs.find.replace(/\s+/g, '\\s*');
   }
 
-	let resolvedArgs = { regexOptions, madeFind, clipText, currentLanguageConfig };
+	let resolvedArgs = { regexOptions, madeFind };
 	resolvedArgs = Object.assign(indexedArgs, resolvedArgs);
 
 	return resolvedArgs;

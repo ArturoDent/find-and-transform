@@ -51,13 +51,18 @@ This extension will generate a command for each of the settings, they will appea
 
 "isRegex": <boolean or array[booleans]>,
 
-"filesToInclude": <paths or variables or array[strings]>,     // default is "" = current workspace
+"filesToInclude": <paths or variables or an array[strings]>,     // default is "" = current workspace
 // "filesToInclude": "",             // using the empty string `""` as the value for `filesToInclude` 
                                      // will clear any prior value from the "files to include" input
+                                     
+"filesToInclude": "${getInput}"      // ask for the 'files to include' input when you run the command
 
-"filesToExclude": <paths or variables or array[strings]>,
+"filesToExclude": <paths or variables or an array[strings]>,
 // "filesToExclude": "",            // using the empty string `""` as the value for `filesToExclude`
                                     // will clear any prior value from the "files to exclude" input
+                                    
+"filesToExclude": "${getInput}"      // ask for the 'files to exclude' input when you run the command
+                                    
 
 "preserveCase": <boolean or array[booleans]>,
 
@@ -198,7 +203,7 @@ There is no way to avoid this with the present api.  If you use any variables in
 
 <br/>
 
-Specifically for the `"filesToInclude/filesToExclude"` settings an empty string (`"filesToInclude": ""`) will **clear** the old value for the `filesToInclude/filesToExclude` input boxes in the Search Panel.  TODO So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:  
+Specifically for the `"filesToInclude/filesToExclude"` settings an empty string (`"filesToInclude": ""`) will **clear** the old value for the `filesToInclude/filesToExclude` input boxes in the Search Panel.  So, if you frequently switch between using the Search Panel to search across multiple files and searching within the current file only you might want to set up the following keybindings:  
 
 ```jsonc
 {
@@ -513,8 +518,7 @@ These variables should have the same resolved values as found at &nbsp; [vscode'
 
 *IMPORTANT* : These variables are resolved using the current file only, not all the files you may be searching.  There isn't a vscode api that allows to get values resolved for each search file yet unfortunately.  
 
-The `replace` arguments in the `runInSearchPanel` also supports case modifiers like `\\U$n`, `\\u$n`, `\\L$n` and `\\l$n`.  
-TODO find too?
+The `replace` arguments in the `runInSearchPanel` also support case modifiers like `\\U$n`, `\\u$n`, `\\L$n` and `\\l$n`.  
 
 -----------
 

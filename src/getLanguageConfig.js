@@ -35,7 +35,7 @@ exports.get = async function (langID, config) {
 
 	var langConfigFilePath = null;
 
-	for (const extension of extensions.all) {
+	for await (const extension of extensions.all) {
 		if (
 			extension.packageJSON.contributes &&
 			extension.packageJSON.contributes.languages
@@ -59,7 +59,7 @@ exports.get = async function (langID, config) {
 	if (!!langConfigFilePath && fs.existsSync(langConfigFilePath)) {
 
 		// the whole language config will be returned if config arg was the empty string ''
-    desiredConfig = jsonc.parse(fs.readFileSync(langConfigFilePath).toString());
+    desiredConfig = await jsonc.parse(fs.readFileSync(langConfigFilePath).toString());
 
 		if (Array.isArray(configArg)) {
 
@@ -68,7 +68,7 @@ exports.get = async function (langID, config) {
 			}
 			return desiredConfig;
 		}
-		else if (config) return jsonc.parse(fs.readFileSync(langConfigFilePath).toString())[config];
+		else if (config) return await jsonc.parse(fs.readFileSync(langConfigFilePath).toString())[config];
 		else return desiredConfig;
 	}
 	else return null;

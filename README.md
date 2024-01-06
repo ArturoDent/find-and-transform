@@ -2,11 +2,17 @@
 
 ## Highlights  
 
-> Option deprecated: `once` as a value for the `restrictFind` argument.  It is being replaced by `onceExcludeCurrentWord` which functions exactly as `once` does, and `onceIncludeCurrentWord` which works a little differently.  See more below within [once restrictFind Values](#details-on-the-restrictfind-and-cursormoveselect-arguments).  
+> New for v5.0.0: `${getInput}` can be used in many options - including inside a `$${ jsOperation }$$` - and the variable `${/}` (which indicates a path separator) has been added.  A `$${ jsOperation }$$` can be used in a `find` now.  Find all blank lines easily.  
+
+> New for v4.8: `preserveSelections` argument, do not move any cursors or change existing selections in any way.  
 
 > New for v4.7: `runWhen` and `ignoreWhiteSpace` arguments, the `"restrictFind": "matchAroundCursor"` option and the `"find": "${getFindInput}"` variable.  
 
-> New for v4.8: `preserveSelections` argument, do not move any cursors or change existing selections in any way.  
+> Option deprecated: `${getFindInput}` is being replaced by `${getInput}` because now it can be used in a `replace`, `run`, `postCommands`, `cursorMoveSelect`, `filesToInclude` or `filesToExclude` value as well as a `find` value.  With v.5.0.0 both will continue to work, but you will get intellisense completions for `${getInput}` only.  
+
+> Option deprecated: `once` as a value for the `restrictFind` argument.  It is being replaced by `onceExcludeCurrentWord` which functions exactly as `once` does, and `onceIncludeCurrentWord` which works a little differently.  See more below within [once restrictFind Values](#details-on-the-restrictfind-and-cursormoveselect-arguments).  
+
+------------
 
 1. &nbsp; Find and transform text in a single file with many kinds of transforms.  
 2. &nbsp; Search across files with pre-defined options.
@@ -30,11 +36,11 @@
 
 13. &nbsp; I can put a numbered capture group, like `$1` into a `find`?  See [Make easy finds with cursors.](#using-numbered-capture-groups-in-a-find).  
 14. `${getDocumentText}` and `${getTextLines:n}` to get text anywhere in the document to use for replacement terms.  
-15. `${getFindInput}`: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; `"find": "${getFindInput}"` will trigger an input box for the `find` query where you enter a string or a regular expression.  
+15. `${getInput}`: &nbsp;&nbsp;&nbsp; `"${getInput}"` will trigger an input box for the `find` query, `replace`, `run`, `postCommands`, `cursorMoveSelect`, `filesToInclude` and `filestoExclude` text where you can enter a string or a regular expression.  Even within a js operation.  
 
 -----------------
 
-Below you will find information on using the `findInCurrentFile` command - which performs a find within the current file, like using the Find Widget but with the ability to save these file/replaces as settings or keybindings and many more variables and javascript operations supported.  Some of the information here will be useful to using the `runInSearchPanel` as well - so you should read both.  See  [Search using the Panel](searchInPanel.md).  
+Below you will find information on using the `findInCurrentFile` command - which performs a find within the current file, like using the Find Widget but with the ability to save these file/replaces as settings or keybindings and many more variables and javascript operations are supported.  Some of the information here will be useful to using the `runInSearchPanel` as well - so you should read both.  See  [Search using the Panel](searchInPanel.md).  
 
 -----------------
 
@@ -187,7 +193,7 @@ Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command
  }
  ```
 
- &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/surroundPad.gif?raw=true" width="800" height="300" alt="surround and pad selected text"/>  
+ &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/surroundPad.gif?raw=true" width="800" height="300" alt="surround and pad selected text"/>  
 
 -----------------
 
@@ -216,7 +222,7 @@ This setting controls whether the extension will attempt to find errors in your 
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/enableWarningDialogSetting.jpg?raw=true" width="500" height="150" alt="enable warning dialog setting"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/enableWarningDialogSetting.jpg?raw=true" width="500" height="150" alt="enable warning dialog setting"/>  
 
 If the `enableWarningDialog` is set to true, errors will be presented in a notification message either when attempting to run a keybinding, a setting command or on save of a setting if there are bad arguments.  Not all errors can be detected though so don't rely solely on this.  
 
@@ -235,7 +241,7 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 "replace": [
   "$${",
     "const previousLines = `${getTextLines:0-2}`;",  // or
-    "return `${getDocumentText}`.toUpperCase();",
+    "return `${getDocumentText}`.toLocaleUpperCase();",
   "}$$"
 ],
 ```
@@ -270,7 +276,7 @@ Newline examples that work and don't work:
 
 --------
 
-* If you use newlines in a replace, the `cursorMoveSelect` option will not be able to properly calculate the new selection position.  
+* If you use newlines in a replace, the `cursorMoveSelect` option will try to properly calculate the new selection positions.  This is tricky, especially for the end of a selection(s) where newlines have been added - in a replacement - where there were none before.  
 
 <br/>  
 
@@ -477,7 +483,7 @@ There are two ways to use this - when there is no `find`:
 
 Demo using `"replace": "Chapter ${matchNumber}"` and no `find`:
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/insertionsDemo.gif?raw=true" width="300" height="250" alt="insertions at cursor demo"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/insertionsDemo.gif?raw=true" width="300" height="250" alt="insertions at cursor demo"/>
 
 Explanation for above:  In the first case, the cursor is placed on `Chapter`, so that is the `find` and each occurrence of it is replaced with `Chapter ${matchNumber}`.  In the second case, multiple cursors are placed on empty lines so there is no find, in which case `"Chapter ${matchNumber}"` is inserted at each cursor.  
 
@@ -582,7 +588,7 @@ You can also put `console.log(...)` statements into the replacement code.  It wi
 
 ### Doing math on replacements
 
-Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations, e.g., string operations (see below).  [This does **not** use the `eval()` function.]  Examples:  
+Use the special syntax **` $${<some math op>}$$ `** as a replace or find value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations, e.g., string operations (see below).  [This does **not** use the `eval()` function.]  Examples:  
 
 ```jsonc
 {
@@ -590,7 +596,13 @@ Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everyth
   "command": "findInCurrentFile",
   "args": {
     "find": "(?<=<some preceding text>)(\\d+)(?=<some following text>)",  // postive lookbehind/ahead
-
+    
+    "find": "$${return ${getInput} * 3;}$$",       // do math on the getInput and match it
+    
+    "find": "(howdy)-(${lineNumber})",
+    "replace": "${1:/capitalize}-$${return $2 * 10;}$$",  // howdy-3 => Howdy-30 (on line 3)
+    
+    
     "replace": "$${return $1 + $1}$$",             // will double the digits found in capture group 1  
     "replace": "$${return 2 * $1 }$$",             // will double the digits found in capture group 1  
 
@@ -604,10 +616,10 @@ Use the special syntax **` $${<some math op>}$$ `** as a replace value.  Everyth
                                                    // insert: Saturday, 19 December 2020 at 20:23:16 GMT-7
                                                    
     "replace": [                                   // same output as above
-      "$${",                                       // put opening "wrapper" on its own line!
+      "$${",                                       // put opening wrapper - '$${' on its own line!
         "const date = new Date(Date.UTC(2020, 11, 20, 3, 23, 16, 738));",
         "return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(date)",
-      "}$$"                                        // put closing "wrapper" on its own line!
+      "}$$"                                        // put closing wrapper - '}$$' on its own line!
     ],     
 
     "isRegex": true  
@@ -690,7 +702,7 @@ $${ return \"$1\".includes('tro') }$$  escape the double quotes
 
     "replace": "$${ return `$1`.indexOf('b') * 3 }$$",   // trouble brewing => 12  
 
-    "replace": "$${ return `$1`.toUpperCase() + ' C' + `$2`.substring(1).toUpperCase() }$$",
+    "replace": "$${ return `$1`.toLocaleUpperCase() + ' C' + `$2`.substring(1).toLocaleUpperCase() }$$",
     // trouble brewing => TROUBLE CREWING  
 
     "replace": "$${ return `$1`.replace('ou','e') }$$",  // trouble => treble 
@@ -721,11 +733,11 @@ $${ return \"$1\".includes('tro') }$$  escape the double quotes
   "if (`${fileBasenameNoExtension}`.includes('-')) {",
     "let groovy = `${fileBasenameNoExtension}`.replace(/(-)/g, \"*$1*\");",  // $1 here
     "console.log(groovy);",          // check the value in Toggle Developer Tools/Console
-    "return groovy[0].toUpperCase() + groovy.substring(1).toLowerCase();",
+    "return groovy[0].toLocaleUpperCase() + groovy.substring(1).toLocaleLowerCase();",
   "}",
   "else {",
     "let groovy = `${fileBasename}`.split('.');",
-    "groovy = groovy.map(word => word[0].toUpperCase() + word.substring(1).toLowerCase());",
+    "groovy = groovy.map(word => word[0].toLocaleUpperCase() + word.substring(1).toLocaleLowerCase());",
     "return groovy.join(' ');",
   "}",
   
@@ -997,12 +1009,12 @@ Better is to use the built-in `vscode.workspace.fs` for file operations:
   "if (`${fileBasenameNoExtension}`.includes('-')) {",
                                                           // must use let or const for variables
     "let groovy = `${fileBasenameNoExtension}`.replace(/-/g, \" \");",
-    "return groovy[0].toUpperCase() + groovy.substring(1).toLowerCase();",
+    "return groovy[0].toLocaleUpperCase() + groovy.substring(1).toLocaleLowerCase();",
   "}",
                                               // blank lines have no effect, indentation is irrelevant
   "else {",
     "let groovy = `${fileBasename}`.split('.');",
-    "groovy = groovy.map(word => word[0].toUpperCase() + word.substring(1).toLowerCase());",
+    "groovy = groovy.map(word => word[0].toLocaleUpperCase() + word.substring(1).toLocaleLowerCase());",
     "return groovy.join(' ');",
   "}", 
    
@@ -1098,10 +1110,13 @@ This pattern of a `find` - which will select all the matches as limited by the `
 
 ### Variables defined by this extension for use in args  
 
-```text
+```diff
 ${resultsFiles}            ** explained below ** Only available in a 'runInSearchPanel' command
 
-${getFindInput}            to enter the Find query via an input box rather than in the keybinding/setting
+- ${getFindInput}                 deprecated, see ${getInput} 
+
++ ${getInput}              to enter the Find query or replacement text or cursorMoveSelect text or postCommand text
++                           or filesToInclude or filesToExclude via an INPUT BOX rather than in the keybinding/setting
 
 ${getDocumentText}         get the entire text of the current document
   
@@ -1157,7 +1172,7 @@ Notice there is no `find`, so that the result of the `replace` will be inserted 
 
 The `${getDocumentText}` variable allows you to look anywhere in a document for any text or groups of text that you can find with a regex.  You are not limited  to the current line or the clipboard or selection for example.  
 
-* Here is an example using `${getFindInput}`:  
+* Here is an example using `${getInput}`:  
 
 ```jsonc
 {
@@ -1166,22 +1181,65 @@ The `${getDocumentText}` variable allows you to look anywhere in a document for 
   "args": {
     "description": "I want to enter the Find query in an input box.",  // whatever text you want
     
-    "find": "${getFindInput}",     // enter plain text or a regular expression in the input box that pops up
+    "find": "${getInput}",     // enter plain text or a regular expression in the input box that pops up
     
-    // "find": "${getFindInput} stuff ${getFindInput}",   // you can have multiple ${getFindInput} variables in a find
-                                                          // but all ${getFindInput} variable will be replaced by the one input
-                                                          // so the resulting find might be "myInput stuff myInput"
+    "find": "${getInput} stuff ${getInput}",    // don't use multiple ${getInput} variables in a find
+                                                // ONLY the last will be replaced by the input text1!!
 
     // you can mix text with what you will input
-    // "find": "before ${getFindInput} after",   // this works
+    "find": "before ${getInput} after",
+    
+    // ${getInput} inside a js operation
+    "find": "$${return '${getInput}' + 'end';}$$", // treat '${getInput}' as a string and add 'end' to it and match
+    
+    "find": "(${getInput})",                    // wrap in a capture group to use later
+    "isRegex": true,                            // treat $1 as a capture group and do string operations on it
+    "replace": "${BLOCK_COMMENT_START} $${return '$1'.toLocaleUpperCase();}$$ ${BLOCK_COMMENT_START}",
+    // "replace": "${BLOCK_COMMENT_START} \\U$1 ${BLOCK_COMMENT_START}", // simpler version of above
 
     "isRegex": true,               // if you want that input treated as a regular expression ***
     
     "replace": "everything is fine",
+    
+    "replace": "${getInput} is my replacement",  // input text added to any other replace text
+    
+    // make sure to surround the '${getInput}' value with backticks if you want it treated as a string in a jsOperation
+    "replace": "$${return '${getInput}' was added;}$$",
+    
+    // no backticks around ${getInput} because we will enter a number, it would be an error to enter a string
+    "replace": "$${return ${getInput} * ${lineNumber};}$$",
+    
+    
+    // below: on every match an input box will be presented, any text entered there will be written to a new file
+    
+    "run": [
+      "$${",
+        "vscode.env.clipboard.writeText('${getInput}');",               // get and write input to the clipBoard
+        "vscode.commands.executeCommand('workbench.action.files.newUntitledFile');",  // open a new file
+        "vscode.commands.executeCommand('editor.action.clipboardPasteAction');",      // paste to the new file
+      "}$$",
+    ],
+    
+    "runWhen": "onEveryMatch",
+    
+    // below: for every find match, an input box will be shown, the text you enter will be inserted at rhe cursor(s)
+    
+    "postCommands": [
+      {
+        "command": "type",
+        "args": {
+          "text": " from the input: ${getInput}"
+        }
+      }
+    ],
+    
+    "runPostCommands": "onEveryMatch",
+    
+    "cursorMoveSelect": "${getInput}"   // the input text will be selected after any replacement    
   }
 ```
 
-When using `${getFindInput}` do not double-escape any characters like `\n` or `\s`.  Just use the same regex you would use in the FInd Widget.  
+When using a regex in a `${getInput}` do not double-escape any characters like `\n` or `\s`.  Just use the same regex you would use in the Find Widget.  
 
 ------------  
 
@@ -1203,6 +1261,7 @@ ${fileWorkspaceFolder}
 ${workspaceFolder}
 ${workspaceFolderBasename}
 ${pathSeparator}
+${/}                       same as ${pathSeparator}
 
 ${selectedText}            can be used in the find/replace/cursorMoveSelect fields  
 ${CLIPBOARD}
@@ -1442,7 +1501,7 @@ If you wanted to find multiple items and then transform each in its own way **on
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/individualTransforms.gif?raw=true" width="500" height="200" alt="apply transforms one by one"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/individualTransforms.gif?raw=true" width="500" height="200" alt="apply transforms one by one"/>
 
 Explanation for above:  
 
@@ -1486,7 +1545,7 @@ Here is a neat trick to insert a SCREAMING_SNAKE_CASE version of the `${fileBase
 
 The above works by performing 2 replacements (with no find).  First, insert at the cursor(s) the `${fileBasenameNoExtension}` and second, replace that (since it is pre-selected) with the capitalized, snake-case version.  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/screamingFileName.gif?raw=true" width="500" height="200" alt="insert screaming snake case filename"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/screamingFileName.gif?raw=true" width="500" height="200" alt="insert screaming snake case filename"/>
 
 <br/>
 
@@ -1544,18 +1603,21 @@ The above keybinding would select the entire Element and capitalize groups 1 and
 
 * `matchAroundCursor` will select any find match that surrounds the cursor.  In the above example the cursor only needs to be somewhere within the text that matches the find.  Ths option can be used for quickly extracting a block of text with a SINGLE regular expression.  And then that block of text can be manipulated in a `replace` or `run` argument.  
 
+* You can also use the `cursorMoveSelect` argument with the `matchAroundCursor` result.  
+
 For example this `run` argument will take the selected text - like from the `find` match - and create a new file with that text pasted in:
 
 ```jsonc
     "run": [
       "$${",
-        "let block = '```';",
-        "block += document.languageId;",
+        "let block = '```';",                    // start a code fence
+        "block += document.languageId;",         // use the current editor's languageId as the code fence language
         "block += `\\n\\t${selectedText}\\n`;",  // strip off trailing newline(s)?
-        "block += '```';",
-        "vscode.env.clipboard.writeText(block);", 
-        "vscode.commands.executeCommand('workbench.action.files.newUntitledFile');",
-        "vscode.commands.executeCommand('editor.action.clipboardPasteAction');",
+        "block += '```';",                       // end a code fence
+        
+        "vscode.env.clipboard.writeText(block);",     // write that text to the clipBoard
+        "vscode.commands.executeCommand('workbench.action.files.newUntitledFile');",  // open a new file
+        "vscode.commands.executeCommand('editor.action.clipboardPasteAction');",      // paste to the new file
         
         // go back to original file
         "vscode.commands.executeCommand('workbench.action.openPreviousRecentlyUsedEditor');",
@@ -1584,7 +1646,7 @@ Example keybinding:
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextDontMoveFind.gif?raw=true" width="650" height="300" alt="notification to save after changing settings"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/nextDontMoveFind.gif?raw=true" width="650" height="300" alt="notification to save after changing settings"/>
 
 These will all **reveal** the replacement so you can see the change, but not necessarily move the cursor.  
 
@@ -1611,6 +1673,8 @@ You can use the `cursorMoveSelect` option with the below `restrictFind` options.
 
 4. `"restrictFind": "line"` make all replacements on the current line where the cursor is located.
 5. `"restrictFind": "selections"` make all replacements in the selections only.  
+
+Note that for all of the above, the replacement text might include more or fewer newlines so that although the `find` did occur on one line, the `cursorMoveSelect` match might actually occur on a different line.  That is okay, the entire replacement text will be matched against, whether some of it is on the same line or a subsequent line.  
 
 ```plaintext
  New `once...` restrictFind Values.  `once` deprecated:
@@ -1642,7 +1706,11 @@ The `cursorMoveSelect` option takes any text as its value, including anything th
    
     //  "restrictFind": "line",
     // "cursorMoveSelect": "^"           // cursor will go to beginning of line
-    // "cursorMoveSelect": "$"           // cursor will go to end of line
+    // "cursorMoveSelect": "$"           // cursor will go to end of line (after replacement, which may include newlines)
+    
+    //  "restrictFind": "onceIncludeCurrentWord/onceExcludeCurrentWord",
+    // "cursorMoveSelect": "^"           // cursor will go to beginning of the first match (after replacement)
+    // "cursorMoveSelect": "$"           // cursor will go to end of the first match (after replacement)
     
     // "restrictFind": "selections", 
     // "cursorMoveSelect": "^"           // cursor will go to beginning of each selection
@@ -1658,7 +1726,7 @@ Note `^` and `$` work for `restrictFind` selections/line/onceIncludeCurrentWord/
 
 1. `cursorMoveSelect` will select **all** matches in each `selections` **only** if there was a match in the same selection.  
 
-2. `cursorMoveSelect` will select the first `cursorMoveSelect` match using `restrictFind` : `once` **only** if there was a match on the same line before a `cursorMoveSelect` match.  So a `find` match first and then a `cursorMoveSelect` match after that on the same line.  
+2. `cursorMoveSelect` will select the first `cursorMoveSelect` match using `restrictFind` : `onceIncludeCurrentWord`  or `onceExcludeCurrentWord` **only** if there was a match on the same line before a `cursorMoveSelect` match.  So a `find` match first and then a `cursorMoveSelect` match after that on the same line.  
 
 3. `cursorMoveSelect` will select all `cursorMoveSelect` matches in the `document` **only** if there was a find match and only within the range of the find match!!  This may seem like a limitation but it makes possible some nice funtionality using `postCommands`.  
 
@@ -1692,7 +1760,7 @@ Note `^` and `$` work for `restrictFind` selections/line/onceIncludeCurrentWord/
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextMoveCursorFind.gif?raw=true" width="650" height="300" alt="nextMoveCursor with find and replace"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/nextMoveCursorFind.gif?raw=true" width="650" height="300" alt="nextMoveCursor with find and replace"/>
 
 ```jsonc
 {
@@ -1706,7 +1774,7 @@ Note `^` and `$` work for `restrictFind` selections/line/onceIncludeCurrentWord/
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextSelectFind.gif?raw=true" width="650" height="300" alt="nextSelect with find and replace"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/nextSelectFind.gif?raw=true" width="650" height="300" alt="nextSelect with find and replace"/>
 
 ```jsonc
 {
@@ -1720,7 +1788,7 @@ Note `^` and `$` work for `restrictFind` selections/line/onceIncludeCurrentWord/
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/nextMoveCursorNoFindNoReplace.gif?raw=true" width="650" height="300" alt="nextMoveCursor with no find or replace"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/nextMoveCursorNoFindNoReplace.gif?raw=true" width="650" height="300" alt="nextMoveCursor with no find or replace"/>
 
 Explanation for above: With no `find` argument, the current nearest word to the cursor (see more on this below) will be used as the `find` value.  So, in the above example `FIXME` will be used as the find query.  And with `nextMoveCursor` the cursor will move to the next match.  `nextSelect` could be used here as well.  
 
@@ -1745,7 +1813,7 @@ Explanation for above: With no `find` argument, the current nearest word to the 
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/lineNumberAtEndWrap.gif?raw=true" width="600" height="400" alt="demo of putting the lineNumber at the end of lines with content and wrapping to start of file"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/lineNumberAtEndWrap.gif?raw=true" width="600" height="400" alt="demo of putting the lineNumber at the end of lines with content and wrapping to start of file"/>
 
 Explanation for above: Find the end of non-empty lines and append '-' and that line number.  `nextSelect` => do one at a time.  
 
@@ -1923,7 +1991,7 @@ Examples of keybindings (in your `keybindings.json`):
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/ifLineNumberMatch.gif?raw=true" width="150" height="250" alt="line Number match"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/ifLineNumberMatch.gif?raw=true" width="150" height="250" alt="line Number match"/>
 
 ------------
 
@@ -1931,7 +1999,7 @@ When you save a change to the **settings**, you will get the message notificatio
 
 <br/>
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/reloadMessage.jpg?raw=true" width="525" height="150" alt="notification to save after changing settings"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/reloadMessage.jpg?raw=true" width="525" height="150" alt="notification to save after changing settings"/>
 
 <br/>  
 
@@ -1961,7 +2029,7 @@ An example of keybinding with **NO associated setting**, in `keybindings.json`:
 
 <br/>
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/genericRunCommandKeybinding.gif?raw=true" width="650" height="300" alt="demo of generic findInCurrentFile keybinding"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/genericRunCommandKeybinding.gif?raw=true" width="650" height="300" alt="demo of generic findInCurrentFile keybinding"/>  
 
 <br/>
 
@@ -1998,7 +2066,7 @@ This is demonstrated in some of the demos below.
 },
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindNoReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of no find and no replace keys in args"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/noFindNoReplaceDemo.gif?raw=true" width="650" height="300" alt="demo of no find and no replace keys in args"/>
 
 Explanation for above: With no `find` key, find matches of selections or nearest words at cursors (multi-cursors work) and select all those matches.  Blue text are selections in the demo gif.
 
@@ -2043,7 +2111,7 @@ The above will repeatedly select the next matching word under the cursor (the 'm
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceDemo.gif?raw=true" width="650" height="250" alt="demo of find and replace keys in args"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/findReplaceDemo.gif?raw=true" width="650" height="250" alt="demo of find and replace keys in args"/>  
 
 Explanation for above: Find and replace each with its value in the `args` field.  Since there is no `restrictFind` key, the default `document` will be used.  
 
@@ -2067,7 +2135,7 @@ Explanation for above: Find and replace each with its value in the `args` field.
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findReplaceSelectionDemo1.gif?raw=true" width="700" height="300" alt="demo of using restrictFind 'selection' and 'cursorMoveSelect"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/findReplaceSelectionDemo1.gif?raw=true" width="700" height="300" alt="demo of using restrictFind 'selection' and 'cursorMoveSelect"/>  
 
 Explanation for above: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  Selections can be multiple and selections do include "nearest words at cursors". Using `cursorMoveSelect` to select all instances of `TABLE`.  
 
@@ -2115,7 +2183,7 @@ except that a **reload of vscode is required** prior to using the generated comm
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceDemo.gif?raw=true" width="650" height="250" alt="demo of find and no replace keys in args"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/findNoReplaceDemo.gif?raw=true" width="650" height="250" alt="demo of find and no replace keys in args"/>
 
 Explanation for above: Will find according to the `find` value and select all those matches.  No replacement.  
 
@@ -2136,7 +2204,7 @@ Explanation for above: Will find according to the `find` value and select all th
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/findNoReplaceSelectionDemo.gif?raw=true" width="650" height="250" alt="demo of using restrictFind arg to 'selection'" with no replace/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/findNoReplaceSelectionDemo.gif?raw=true" width="650" height="250" alt="demo of using restrictFind arg to 'selection'" with no replace/>  
 
 Explanation for above: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  All find matches within selections will be selected.  
 
@@ -2161,7 +2229,7 @@ If you have set `"restrictFind": "document"` any actual selections in the file w
 }
 ```  
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/noFindReplaceDemo.gif?raw=true" width="750" height="300" alt="demo of replace but no find keys in args"/>  
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/noFindReplaceDemo.gif?raw=true" width="750" height="300" alt="demo of replace but no find keys in args"/>  
 
 Explanation for above: With no `find` value find all the words at the cursors or selections and apply the replacement.  
 
@@ -2202,7 +2270,7 @@ In a keybinding/setting with no find BUT a capture group in the replace, like in
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMoveSelect arg with restrictFind of 'onceExcludeCurrentWord'"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/cursorMoveOnce.gif?raw=true" width="650" height="300" alt="demo of using cursorMoveSelect arg with restrictFind of 'onceExcludeCurrentWord'"/>
 
 Explanation for above: Find the first `>` within selection(s) and replace them with ` class=\"@\">`.  Then move the cursor(s) to `@` and select it.  `cursorMoveSelect` value can be any text, even the regexp delimiters `^` and `$`.  
 
@@ -2238,7 +2306,7 @@ These variables can be used in the `replace` and/or `cursorMoveSelect` positions
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/matchIndex.gif?raw=true" width="600" height="400" alt="demo of using ${matchIndex} with cursorMoveSelect"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/matchIndex.gif?raw=true" width="600" height="400" alt="demo of using ${matchIndex} with cursorMoveSelect"/>
 
 Explanation for above: The match in this case is "text$" ('text' at the end of a line).  The first instance of a match has `matchNumber` = 1 and that will be used in the replacement.  `${matchIndex}` is the same but 0-based.  
 
@@ -2258,7 +2326,7 @@ Explanation for above: The match in this case is "text$" ('text' at the end of a
 }
 ```
 
-&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/master/images/matchNumberCase.gif?raw=true" width="600" height="400" alt="demo of using ${matchNumber} with case transform"/>
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/matchNumberCase.gif?raw=true" width="600" height="400" alt="demo of using ${matchNumber} with case transform"/>
 
 <br/>  
 
@@ -2272,7 +2340,7 @@ The `reveal` argument to the `findInCurrentFile` command can take three options:
 2. `"reveal": "next"`   scroll the viewport to show the next find match in the document **after** the cursor, if necessary.
 3. `"reveal": "last "`  scroll the viewport to show the last find match in the document, if necessary.
 
-If you do not want the editor to scroll to reveal any find match, simply do not include a `reveal` option at all.  Certain other arguments like `"restrictFind": "nextMoveCursor/previousMoveCursor/previousSelect/nextSelect/nextDontMoveCursor/previousDontMoveCursor"` etc. will stil scroll to reveal.  
+If you do not want the editor to scroll to reveal any find match, simply do not include a `reveal` option at all.  Certain other arguments like `"restrictFind": "nextMoveCursor/previousMoveCursor/previousSelect/nextSelect/nextDontMoveCursor/previousDontMoveCursor"` etc. will always scroll to reveal, eben if there is no `reveal` argument.  
 
 * Note: The `reveal` argument will do nothing if you have a `cursorMoveSelect` argument in your keybinding or setting.  `cursorMoveSelect` will take precedence.  
 
@@ -2312,13 +2380,13 @@ someWord-A        someWord-B
 
 ## Using the `preserveSelections` argument  
 
-This is a boolean option - default is false.  
+This is a boolean option - default is `false`.  
 
 Normally, all find matches are selected, thus losing any cursor positions or other selections that might have existed before running the command.  This does allow other options like `replace` or `run` or even `postCommands` to use these find matches, i.e., selections, in many interesting ways.
 
-But, you may not need that functionality (which is the default).  Perhpas you are doing a find and replace with no need to examine the find matches at all and so wish to preserve all existing selections and cursor positions.  If so, set `"preserveSelections: true`. Although, one nice advantage of selecting the find matches is to make it more obvious where changes actually occurred in the document.  
+But, you may not need that functionality (which is the default).  Perhaps you are doing a find and replace with no need to examine the find matches at all and so wish to preserve all existing selections and cursor positions.  If so, set `"preserveSelections: true`. Although, one nice advantage of selecting the find matches is to make it more obvious where changes actually occurred in the document.  
 
-For certain options, `preserveSelections` has no effect.  For instance, if you only have a `find` then the find matches will be selected regardless of the `preserveSelections` setting.  If you use the `cursorMoveSelect` argument then naturally any of it matches will be selected.  If you are using one of the `next/previous` options, then `preserveSelections` has no effect as those options call for a new selection or already prevent the cursor from moving.  
+For certain options, `preserveSelections` has no effect.  For instance, if you have a `find` and no `replace` (or no `find` and no `replace`) then the find matches will be selected regardless of the `preserveSelections` setting.  If you use the `cursorMoveSelect` argument then naturally any of its matches will be selected.  If you are using one of the `next/previous` options, then `preserveSelections` has no effect as those options call for a new selection or already prevent the cursor from moving.  
 
 <br/>
 
@@ -2360,6 +2428,45 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 
 -----------------------
 
+### Matching empty lines
+
+You can match all empty lines in the document with this keybinding:
+
+```json
+{
+  "key": "alt+l",
+  "command": "findInCurrentFile",
+  "args": {
+    
+    "replace": "Found empty line.  Match number: ${matchNumber}"    // replace is optional
+  }
+}
+```
+
+And put your cursor on any empty line.  They will be matched and replaced.  If you don't have a `replace`, then all the empty lines will have a cursor placed on them.  This only works when searching the entire document.  
+
+With the following keybinding, you can easily go to the next matching word (note there is no `find`).  So if your cursor starts on an empty line, it will match the next empty line.  If your cursor started on a word, then the cursor would go to that word.
+
+```json
+```json
+{
+  "key": "alt+l",
+  "command": "findInCurrentFile",
+  "args": {
+    
+    // also works with the nextMoveCursor or nextDontMoveCursor or previousMoveCursor or previousDOntMoveCursor
+    "restrictFind": "nextSelect",                                   // or previousSelect, etc.
+    
+    "replace": "Found empty line."    // replace is optional
+    // but moving to a replace will change the 'word at cursor' and thus the find!!
+    // so if you are using a replace, 'nextDontMoveCursor' may be the better choice so the cursor 
+    // stays on the blank line (after replacement)
+  }
+}
+```
+
+-----------------------
+
 <br/>
 
 ## TODO
@@ -2368,17 +2475,28 @@ The above command will put `(?<=^Art[\w]*)\d+` into the Search Panel find input 
 * Internally modify `replace` key name to avoid `string.replace` workarounds.  
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?  
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
-* Consider how `cursorMoveSelect` should work in full document search?  
 * Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.  
 * `async/await` all code so `postCommands` are more reliable (and can use built-in `runCommands`).  
-* Prevent OutputChannel from appearing in Output when not being actively used.  
 * Deal with redundant "Extensions have been modified on disk.  Please reload..." notification.  
 * Investigate arg keys in package.json rather than completionProvider.  
 * Implement successive `${getFindInput}` input boxes.  
+* Get empty line match work in `selections`.  
+* Match any number of blank lines.  
 
 ## Release Notes
 
 See [CHANGELOG](CHANGELOG.md) for notes on prior releases.  
+
+* 5.0.0 Much work on making the code more asynchronous.  Using `replaceAsync`.  
+&emsp;&emsp; - `${getInput}` is replacing `${getFindInput}`.  It now works in `replace`, `run`, `postCommands`, `cursorMoveSelect`, `filesToInclude` and `filesToExclude` arguments.  
+&emsp;&emsp; - `${/}` path separator variable added.  
+&emsp;&emsp; - Work on matching empty lines.  
+&emsp;&emsp; - Work on keeping track of multiple replacements with newlines.  
+
+* 4.8.0 Added `preserveSelections` argument.  Completions work in `.code-workspace` (workspace settings) files.  
+&emsp;&emsp; 4.8.2 Fixed escaping while using `${getFindInput}`.  
+&emsp;&emsp; 4.8.3 Less escaping on variable replacements not in `replace/run`.  
+&emsp;&emsp; 4.8.4 Work on capture groups in replace with no find and `isRegex` true or false.
 
 * 4.7.0 Added `ignoreWhiteSpace` argument.  
 &emsp;&emsp; Added `${getFindInput}` variable for `find` queries.  
@@ -2386,11 +2504,6 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 &emsp;&emsp; Added `"restrictFind": "matchAroundCursor"` option.  
 &emsp;&emsp; 4.7.1 Added `runPostCommands` and `resolvePostCommandVariables`.  Added a command to enable opening readme anchors from completion details.  
 &emsp;&emsp; 4.7.2 Added intellisense to `.code-workspace` settings.  
-
-* 4.8.0 Added `preserveSelections` argument.  Completions work in `.code-workspace` (workspace settings) files.  
-&emsp;&emsp; 4.8.2 Fixed escaping while using `${getFindInput}`.  
-&emsp;&emsp; 4.8.3 Less escaping on variable replacements not in `replace/run`.  
-&emsp;&emsp; 4.8.4 Work on capture groups in replace with no find and `isRegex` true or false.  
 
 <br/>
 

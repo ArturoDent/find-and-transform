@@ -4,37 +4,93 @@ const languageConfigs = require('./getLanguageConfig');
 const path = require('path');
 const os = require('os');
 
-// const findCommands = require('./transform');
-// const searchCommands = require('./search');
-const globals = require('./extension');  // for outputChannel
+// let outputChannel;
 
 const searchArgs = require('./args/searchOptions');
 const findArgs = require('./args/findOptions');
 
 
+
 /**
- * Trigger a QuickInput to get args.find from the user.
- * @param {number} index - may be an array of find's, which one
+ * Check if selection is at the start of an empty line
+ * @param {Selection} curPos 
+ * @returns {Promise<boolean>}
+ */
+exports.isEmptySelectionOnOwnLine = async function (curPos) {
+  
+  const currentLineIsEmpty = window.activeTextEditor.document.lineAt(curPos.start.line).text.length === 0;
+  if (!currentLineIsEmpty) return false;
+  
+  return curPos.start.isEqual(curPos.end) && curPos.start.character === 0;
+};
+
+
+/**
+ * Get the number of empty lines in a selection
+ * @param {Selection} sel 
+ * @returns {Promise<number>}
+ */
+exports.getNumLinesOfSelection = async function (sel) {
+  
+  let numEmptyLines = 0;
+  
+  for ( let line = sel.start.line; line <= sel.end.line; line++ ) {
+    if (window.activeTextEditor.document.lineAt(line).text.length === 0) numEmptyLines++;    
+  }
+  
+  return numEmptyLines;
+};
+
+/**
+ * Get the text of a selection
+ * @param {Selection} sel 
+ * @returns {Promise<number>}
+ */
+exports.getTextOfSelection = async function (sel) {
+  
+  let numEmptyLines = 0;
+  
+  for ( let line = sel.start.line; line <= sel.end.line; line++ ) {
+    if (window.activeTextEditor.document.lineAt(line).text.length === 0) numEmptyLines++;    
+  }
+  
+  return numEmptyLines;
+};
+
+/**
+ * Trigger a QuickInput to get args.find/replace/run/cursorMoveSelect from the user.
+ * @param {string} type - called by find/replace/run/cursorMoveSelect
  * @returns {Promise<String>}
  */
-exports.getFindInput= async function (index) {
+exports.getInput = async function (type) {
+  
+  if (type === "ignoreLineNumbers") type = "find query";
+  else if (type === "find") type = "find query";
+  else if (type === "findSearch") type = "search query";
+  
+  const title = type[0].toLocaleUpperCase() + type.substring(1);
+  let prompt = "";
+  let placeHolder = "";
+  
+  // add preCommands if its variables are ever resolved
+  
+  if (type === "find") placeHolder = "A string, number or regex to find.";
+  else if (type === "replace") placeHolder = "A string, number or regex for the replacement.";
+  else if (type === "run") placeHolder = "Enter the text or number to be used in the run operation.";
+  else if (type === "cursorMoveSelect") placeHolder = "Enter the text or regex to select.";
+  else if (type === "postCommands") placeHolder = "Enter the text to be used within the postCommands.";
+  else if (type === "filesToInclude") placeHolder = "Enter a glob to be used within the 'files to include' search option.";
+  else if (type === "filesToExclude") placeHolder = "Enter a glob to be used within the 'files to exclude' search option.";
 
-  // add index message here
-  // consider ignoreFocusOut, built-in setting default is false (Quick Open: Close on Focus Lost)
-  const options = {
-    title: "Find",
-    prompt: "Enter the text to search for.",
-    placeHolder: "\tA string or regex to find."
-  };
-  const findArg = await window.showInputBox(options);
-
-  return findArg;
+  const options = { title, placeHolder };  
+  return await window.showInputBox(options);
 };
 
 
 /**
  * Escape the glob characters '?*[]' for the 'files to include' input 
  * from the 'find-and-transform.searchInFolder/File/Results' commands.
+ * 
  * @param {string} path
  * @returns {Promise<String>}
  */
@@ -113,7 +169,7 @@ exports.getlanguageConfigComments = async function (args) {
 	else return undefined;
 }
 
-// TODO: test this with the search results tree view option - looks like nothing has changed
+// works with the search results tree or list view option
 /**
  * Get the relative paths of the current search results 
  * for the next `runInSearchPanel` call  
@@ -121,6 +177,8 @@ exports.getlanguageConfigComments = async function (args) {
  * @returns {Promise<string>} comma-joined string of paths or empty string
  */
 exports.getSearchResultsFiles = async function (clipText) {
+  
+  if (!clipText) clipText = await env.clipboard.readText();
   
 	await commands.executeCommand('search.action.copyAll');
   
@@ -131,7 +189,11 @@ exports.getSearchResultsFiles = async function (clipText) {
 		let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
 
 		let pathArray = resultsArray.filter(result => result !== "");
-		pathArray = pathArray.map(path => this.getRelativeFilePath(path))
+    pathArray = pathArray.map(path => this.getRelativeFilePath(path));
+    
+    // restore original clipboard content
+    await env.clipboard.writeText(clipText);
+    
 		return await module.exports.escapePathsForFilesToInclude( pathArray.join(", ") );
 	}
 	else {
@@ -158,8 +220,7 @@ exports.toPascalCase = function(value) {
 		return value;
 	}
 	return match.map(word => {
-		return word.charAt(0).toUpperCase()
-			+ word.substring(1).toLowerCase();
+		return word[0].toLocaleUpperCase() + word.substring(1).toLocaleLowerCase();
 	})
 		.join('');
 }
@@ -181,10 +242,9 @@ exports.toCamelCase = function (value) {
 	}
 	return match.map((word, index) => {
 		if (index === 0) {
-			return word.toLowerCase();
+			return word.toLocaleLowerCase();
 		} else {
-			return word.charAt(0).toUpperCase()
-				+ word.substring(1).toLowerCase();
+			return word[0].toLocaleUpperCase() + word.substring(1).toLocaleLowerCase();
 		}
 	})
 		.join('');
@@ -192,16 +252,14 @@ exports.toCamelCase = function (value) {
 
 /**
  * Convert string to snakeCase.  
- * first_second_third => firstSecondThird  
+ * firstSecondThird => first_second_third
  * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/linesOperations/browser/linesOperations.ts}  
  * 
- * @param {string} value - string to transform to snakeCase
+ * @param {string} value - string to be transformed
  * @returns {string} transformed value  
  */
 exports.toSnakeCase = function (value) {
   
-  // return value.replace(/(?<=\p{Ll})(\p{Lu})|(?<!\b|_)(\p{Lu})(?=\p{Ll})/gmu, '_$&').replace(/(?<=\p{L})[- ](?=\p{L})/gmu, '_').toLocaleLowerCase();
-
   const caseBoundary = /(\p{Ll})(\p{Lu})/gmu;
   const singleLetters = /(\p{Lu}|\p{N})(\p{Lu})(\p{Ll})/gmu;
   
@@ -215,7 +273,7 @@ exports.toSnakeCase = function (value) {
 
 // TODO: check for \n, etc. not double-backslashed
 // no capture ground in find but $1, etc. in replace (unless isRegEx = true)
-// an apparent capture group in find, but isReg is miising (default is false)
+// an apparent capture group in find, but isReg is missing (default is false)
 /**
  * Check args of commands: keys and values
  *  
@@ -291,84 +349,113 @@ exports.checkArgs = async function (args, fromWhere) {
 	else return {};
 };
 
-/**
- * Write bad keys and values to outputChannel
- *  
- * @param {Object} argsBadObject computed in utilities.checkArgs
- * @returns void  - writes to outputChannel
- */
-exports.writeBadArgsToOutputChannel = async function (argsBadObject) {
+// /**
+//  * Write bad keys and values to outputChannel
+//  *  
+//  * @param {Object} argsBadObject computed in utilities.checkArgs
+//  * @returns void  - writes to outputChannel
+//  */
+// exports.writeBadArgsToOutputChannel = async function (argsBadObject) {
 
-  const outputChannel = globals.outputChannel;
-  // const outputChannel = window.createOutputChannel("find-and-transform");
+//   let output;
   
-  let output;
+//   if (!this.outputChannel) this.outputChannel = window.createOutputChannel("find-and-transform");
+//     // @ts-ignore
+//   else if (this.outputChannel) this.outputChannel.clear();
 
-  if (argsBadObject.badKeys.length) {
-    output = Object.entries(argsBadObject.badKeys).map(badItem => {
-      return `\n\t"${ badItem[1] }"`;
-    });
-    outputChannel.appendLine(`\nBad Keys: ${ output }`);
-  }
+//   if (argsBadObject.badKeys.length) {
+//     output = Object.entries(argsBadObject.badKeys).map(badItem => {
+//       return `\n\t"${ badItem[1] }"`;
+//     });
+//     this.outputChannel.appendLine(`\nBad Keys: ${ output }`);
+//   }
   
-  if (argsBadObject.badValues.length) {
-    output = Object.entries(argsBadObject.badValues).map(badItem => {
-      if (typeof Object.entries(badItem[1])[0][1] === "boolean" || typeof Object.entries(badItem[1])[0][1] === "number")
-        return `\n\t"${ Object.entries(badItem[1])[0][0] }": ${ Object.entries(badItem[1])[0][1] }`;
-      else return `\n\t"${ Object.entries(badItem[1])[0][0] }": "${ Object.entries(badItem[1])[0][1] }"`;
-    });
+//   if (argsBadObject.badValues.length) {
+//     output = Object.entries(argsBadObject.badValues).map(badItem => {
+//       if (typeof Object.entries(badItem[1])[0][1] === "boolean" || typeof Object.entries(badItem[1])[0][1] === "number")
+//         return `\n\t"${ Object.entries(badItem[1])[0][0] }": ${ Object.entries(badItem[1])[0][1] }`;
+//       else return `\n\t"${ Object.entries(badItem[1])[0][0] }": "${ Object.entries(badItem[1])[0][1] }"`;
+//     });
     
-    outputChannel.appendLine(`\nBad Values: ${ output }`);
-    outputChannel.appendLine(`_________________________________`);
-  }
-  if (output) outputChannel.show(false);
-};
+//     this.outputChannel.appendLine(`\nBad Values: ${ output }`);
+//     this.outputChannel.appendLine(`_________________________________`);
+//   }
+//   if (output) this.outputChannel.show(false);
+// };
 
-/**
- * 
- * @param {object} badObject - badKeys and badValues
- * @param {boolean} modal - show a modal dialog
- * @param {string} name - setting name, if any
- * @returns {Promise<boolean>} - ignore
- */
-exports.showBadKeyValueMessage = async function (badObject, modal, name) {
+// /**
+//  * 
+//  * @param {object} badObject - badKeys and badValues
+//  * @param {boolean} modal - show a modal dialog
+//  * @param {string} name - setting name, if any
+//  * @returns {Promise<boolean>} - ignore
+//  */
+// exports.showBadKeyValueMessage = async function (badObject, modal, name) {
 	
-	let message = "";
-	let ignore = false;
+// 	let message = "";
+// 	let ignore = false;
 
-	let origin = {
-		findBinding: `Keybinding: `,
-		findSetting: `From the 'findInCurrentFile' setting "${name}" : `,
-		searchBinding: `Keybinding: `,
-		searchSetting: `From the 'runInSearchPanel' setting "${ name}" : `
-	}
-	let buttons = {
-		findBinding: ['Run As Is'],   // one button + Cancel,
-		findSetting: ['Run As Is', 'Stop'],
-		searchBinding: ['Run As Is'],
-		searchSetting: ['Run As Is', 'Stop']
-  }
+// 	let origin = {
+// 		findBinding: `Keybinding: `,
+// 		findSetting: `From the 'findInCurrentFile' setting "${name}" : `,
+// 		searchBinding: `Keybinding: `,
+// 		searchSetting: `From the 'runInSearchPanel' setting "${ name}" : `
+// 	}
+// 	let buttons = {
+// 		findBinding: ['Run As Is'],   // one button + Cancel,
+// 		findSetting: ['Run As Is', 'Stop'],
+// 		searchBinding: ['Run As Is'],
+// 		searchSetting: ['Run As Is', 'Stop']
+//   }
   
-	if (badObject.badKeys.length === 1) message = `${ origin[badObject.fromWhere] } this key does not exist: "${ badObject.badKeys[0] }".`;
-	else if (badObject.badKeys.length > 1) message = `${ origin[badObject.fromWhere] } these keys do not exist: "${ badObject.badKeys.join('", "') }".`;
+// 	if (badObject.badKeys.length === 1) message = `${ origin[badObject.fromWhere] } this key does not exist: "${ badObject.badKeys[0] }".`;
+// 	else if (badObject.badKeys.length > 1) message = `${ origin[badObject.fromWhere] } these keys do not exist: "${ badObject.badKeys.join('", "') }".`;
 
-	if (badObject.badValues) {
-		for (const item of badObject.badValues) {
-			message += ` ${ origin[badObject.fromWhere] } key has a bad value: "${ Object.entries(item)[0][0] }": "${ Object.entries(item)[0][1] }".`;
-		}
-	}	
+// 	if (badObject.badValues) {
+// 		for (const item of badObject.badValues) {
+// 			message += ` ${ origin[badObject.fromWhere] } key has a bad value: "${ Object.entries(item)[0][0] }": "${ Object.entries(item)[0][1] }".`;
+// 		}
+// 	}	
 
-	await window
-		.showErrorMessage(`${ message }`, { modal: modal },
-			// ...['Run As Is', 'Abort'])   // two buttons + Cancel
-			...buttons[badObject.fromWhere])
-		.then(selected => {
-			if (selected === 'Run As Is') ignore = true;
-			else ignore = false;
-		});
+// 	await window
+// 		.showErrorMessage(`${ message }`, { modal: modal },
+// 			// ...['Run As Is', 'Abort'])   // two buttons + Cancel
+// 			...buttons[badObject.fromWhere])
+// 		.then(selected => {
+// 			if (selected === 'Run As Is') ignore = true;
+// 			else ignore = false;
+// 		});
 	
-	return ignore;
-};
+// 	return ignore;
+// };
+
+// /**
+//  * Write text to outputChannel
+//  *  
+//  * @param {string} text - to be added
+//  * @returns void
+//  */
+// exports.writeToOutputChannel = function (text) {
+  
+//   if (!this.outputChannel) this.outputChannel = window.createOutputChannel("find-and-transform");
+//     // @ts-ignore
+//   else if (this.outputChannel) this.outputChannel.clear();
+  
+//   this.outputChannel.appendLine(text);
+//   this.outputChannel?.show(false);
+// }
+
+
+// /**
+//  * Dispose of the outputChannel
+//  *  
+//  * @returns void
+//  */
+// exports.disposeOutputChannel = async function () {
+  
+//   if (!this.outputChannel) return;
+//   else return this.outputChannel.dispose();
+// }
 
 /**
  * Get the first/next after cursor/last selection from all matches/foundSelections.  Will wrap.
@@ -392,3 +479,29 @@ exports.getSelectionToReveal = async function (foundSelections, cursorPosition, 
   }
   else if (!whichReveal) return null;
 };
+
+
+// from https://stackoverflow.com/questions/33631041/javascript-async-await-in-replace
+
+/**
+ * An async version of replaceAll.  Called in resolveVariables.resolveVariables().
+ * 
+ * @param {string} toResolve - string to resolve
+ * @param {RegExp} regexp
+ * @param {Function} replacerFunction
+ * 
+ * @returns {Promise<string>}
+ */
+exports.replaceAsync = async function (toResolve, regexp, replacerFunction) {
+  
+  if (!toResolve) return;
+  
+  const replacements = await Promise.all(
+      Array.from(toResolve.matchAll(regexp),
+          // async match => await replacerFunction(...match)));  // no difference
+        match => replacerFunction(...match)
+    )
+  );
+  let i = 0;
+  return toResolve.replace(regexp, () => replacements[i++]);
+}

@@ -3,8 +3,9 @@
  */
 exports.getExtensionDefinedVariables = function() {
 
-  return ["${getDocumentText}", "${getTextLines:\\(\\s*\\d+(\\s*[-+%*\/]\\s*\\d+)?\\s*\\)}", "${getTextLines:[-+]?\\d+}",
-    "${getTextLines:\\d+-\\d+}", "${getTextLines:\\d+,\\d+,\\d+,\\d+}", "${resultsFiles}"];
+  return ["${getDocumentText}", "${getTextLines:\\(\\s*\\d+(\\s*[-+%*\\/]\\s*\\d+)?\\s*\\)}", "${getTextLines:[-+]?\\d+}",
+    // "${getTextLines:\\d+-\\d+}", "${getTextLines:\\d+,\\d+,\\d+,\\d+}", "${resultsFiles}", "${getFindInput}"];
+    "${getTextLines:\\d+-\\d+}", "${getTextLines:\\d+,\\d+,\\d+,\\d+}", "${resultsFiles}", "${getInput}", "${getFindInput}"];
 }
 
 
@@ -16,7 +17,7 @@ exports.getPathVariables = function() {
   return [
     "${file}", "${relativeFile}", "${fileBasename}", "${fileBasenameNoExtension}", "${fileExtname}", "${fileDirname}",
     "${fileWorkspaceFolder}", "${workspaceFolder}", "${relativeFileDirname}", "${workspaceFolderBasename}", 
-    "${selectedText}", "${pathSeparator}", "${lineIndex}", "${lineNumber}", "${CLIPBOARD}",     
+    "${selectedText}", "${pathSeparator}", "${/}", "${lineIndex}", "${lineNumber}", "${CLIPBOARD}",     
     "${matchIndex}", "${matchNumber}"
   ];
 }

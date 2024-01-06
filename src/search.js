@@ -2,6 +2,7 @@ const { window, env, commands } = require('vscode');
 
 const utilities = require('./utilities');
 const resolve = require('./resolveVariables');
+const searchOptions = require('./args/searchOptions');
 // const delay = require('node:timers/promises');
 
 
@@ -32,9 +33,10 @@ exports.runAllSearches = async function (args) {
 	let numFindArgs = 0;
   let numReplaceArgs = 0;
 
-  await env.clipboard.readText().then(string => {
-    args.clipText = string;
-  });
+  // delayed into resolveVariables
+  // await env.clipboard.readText().then(string => {
+  //   args.clipText = string;
+  // });
 
   if (Array.isArray(args.find)) numFindArgs = args.find.length;
   else if (typeof args.find == "string") numFindArgs = 1;
@@ -77,34 +79,21 @@ async function _buildSearchArgs(args, index)  {
   const splitArgs = await _returnArgsByIndex(args, index);
 	Object.assign(indexedArgs, splitArgs);
 
-  indexedArgs.resultsFiles = await utilities.getSearchResultsFiles(args.clipText);
-
-  // get multiple getFindInput's sequentially?
-  if (indexedArgs.find.includes('${getFindInput}')) {
-    
-    const input = await utilities.getFindInput(index);
-    const re = new RegExp(`\\$\\{getFindInput\\}`, 'g');
-    
-    if (input || input === '')  // accept inputBox with nothing in it = ''
-      indexedArgs.find = indexedArgs.find?.replaceAll(re, input);
-    else {
-      // escaped out of inputBox : input = undefined
-      indexedArgs.find = indexedArgs.find?.replaceAll(re, '');
-    }
-  }
   // find = "" is allowable and does a makeFind
-  else if (!indexedArgs.find) {
+  // else if (!indexedArgs.find) {
+  if (!indexedArgs.find) {
     // if multiple selections, isRegex must be true
-    const findObject = resolve.makeFind(editor.selections, args);
+    const findObject = await resolve.makeFind(editor.selections, args);
     indexedArgs.find = findObject.find;
     indexedArgs.isRegex = indexedArgs.isRegex || findObject.mustBeRegex;
     indexedArgs.pointReplaces = findObject.emptyPointSelections;
   }
 
-  indexedArgs.currentLanguageConfig = await utilities.getlanguageConfigComments(indexedArgs);
+  // this is delayed - to resolveVariables.resolveSnippetVariables
+  // indexedArgs.currentLanguageConfig = await utilities.getlanguageConfigComments(indexedArgs);
 
   // "find": "(\\$1 \\$2)" if find has (double-escaped) capture groups 
-  // "find": "(\\U\\$1)"  TODO not in find either
+  // "find": "(\\U\\$1)"  not in find though
   if (indexedArgs.find && /\\\$(\d+)/.test(indexedArgs.find)) {
     // replaceFindCaptureGroups also does case modifiers
     indexedArgs.find = await resolve.replaceFindCaptureGroups(indexedArgs.find);
@@ -112,7 +101,6 @@ async function _buildSearchArgs(args, index)  {
 
   // add args.filesToInclude === "${resultsFiles} if index > 0 (i.e., search > 1)
   // notify message?, can be overridden by specifying some filesToInclude
-  // TODO test
   if (index > 0 && !indexedArgs.filesToInclude) indexedArgs.filesToInclude = "${resultsFiles}";
   
     // at least one more find/replace than this index
@@ -126,11 +114,14 @@ async function _buildSearchArgs(args, index)  {
   if (indexedArgs.find.search(re) !== -1) {
     indexedArgs.find = await resolve.resolveSearchPathVariables(indexedArgs.find, indexedArgs, "findSearch", selections[0]);
     indexedArgs.find = await resolve.resolveSearchSnippetVariables(indexedArgs.find, indexedArgs, "findSearch", selections[0]);
+    indexedArgs.find = await resolve.resolveExtensionDefinedVariables(indexedArgs.find, indexedArgs, "findSearch");
   }
+  
   if (indexedArgs.filesToInclude && indexedArgs.filesToInclude.search(re) !== -1) {
     indexedArgs.filesToInclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude", selections[0]);
     indexedArgs.filesToInclude = await resolve.resolveExtensionDefinedVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude");
   }
+  
   if (indexedArgs.filesToExclude && indexedArgs.filesToExclude.search(re) !== -1) {
     indexedArgs.filesToExclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude", selections[0]);
     indexedArgs.filesToExclude = await resolve.resolveExtensionDefinedVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude");
@@ -176,8 +167,8 @@ async function _buildSearchArgs(args, index)  {
 async function _expandArgs(args, numFindArgs, numReplaceArgs) {
 
   const expandedArgs = {};
-  if (args?.clipText) expandedArgs.clipText = args.clipText;
-  let keys = module.exports.getKeys();
+  // if (args?.clipText) expandedArgs.clipText = args.clipText;
+  let keys = searchOptions.getKeys();
 
   let most = (numFindArgs >= numReplaceArgs) ? numFindArgs : numReplaceArgs;
   if (most === 0) most = 1;
@@ -219,7 +210,7 @@ async function _expandArgs(args, numFindArgs, numReplaceArgs) {
 async function _returnArgsByIndex(args, index) {
 
   const indexedArgs = {};
-  let keys = module.exports.getKeys();
+  let keys = searchOptions.getKeys();
   
   keys = keys.filter(key => !(key.match(/title|preCommands|postCommands|clipText/)));
   if (args?.clipText) indexedArgs.clipText = args.clipText;

@@ -1,14 +1,12 @@
 const { Range, Position, Selection } = require('vscode');
 
-const commands = require('../commands');
 const resolve = require('../resolveVariables');
-const utilities = require('../utilities');
 const transforms = require('../transform');
 
 
 
 /**
- * If find but no replace, just select all matches in entire document or pre-existing selections
+ * If find but no replace, just select all matches in entire restrictFind option 
  * while removing all the original selections. 
  * Also covers no find/no replace, but not no find/replace b/c that is covered elsewhere.
  *
@@ -32,6 +30,8 @@ exports.findAndSelect = async function (editor, args) {
     const resolvedFind = findObject.findValue;
     args.isRegex = findObject.isRegex;
 
+    // resolvedFind may = '', because on an empty selection
+    // resolvedFind = "(^(?!\n)$(?!\n))", if on an empty line
     if (resolvedFind) {
 
       if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
@@ -53,23 +53,9 @@ exports.findAndSelect = async function (editor, args) {
         const endPos = document?.positionAt(match.index + match[0].length);
         const thisSelection = new Selection(startPos, endPos);
         foundSelections[index] = thisSelection;
-        foundMatches.push(match);
       });
       
-      
-      // get cursor position first, before applying foundSelections to editor.Selections
-      // if madeFind then there was no find, and editor.selection.active will always be less than that same foundSelection
-      // const cursorPosition = document?.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
-
-      // // if (!args.preserveSelections && foundSelections.length) editor.selections = foundSelections;
-      // if (foundSelections.length) editor.selections = foundSelections;
-      
-      // // what if multiple cursors?
-
-      // if (foundSelections.length && args.reveal) {
-      //   const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
-      //   editor?.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
-      // }
+      foundMatches.push(...matches);
     }
   }
 
@@ -79,11 +65,11 @@ exports.findAndSelect = async function (editor, args) {
     let lineMatches = []; // to keep track of which lines have been processed for once...
     
     await Promise.all(editor.selections.map(async (selection) => {
-    // for await (const selection of editor.selections) {
       
       if (!args.find && args.restrictFind !== "selections") {
         const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
-        const findObject = resolve.makeFind(lineSelections, args);
+        // const findObject = resolve.makeFind(lineSelections, args);
+        const findObject = await resolve.makeFind(lineSelections, args);
         ({ find: args.find, emptyPointSelections: args.pointReplaces } = findObject);
         args.madeFind = true;
         args.isRegex ||= findObject.mustBeRegex;
@@ -117,9 +103,9 @@ exports.findAndSelect = async function (editor, args) {
           const endPos = document.positionAt(selectionStartIndex + match.index + match[0].length);
           // reveal will use the **last** selection's foundSelections
           foundSelections.push(new Selection(startPos, endPos));
-          foundMatches.push(match);
         });
-        // if (foundSelections.length) editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
+        
+        foundMatches.push(...matches);
       }
       
       else if (args.restrictFind === "matchAroundCursor") { 
@@ -127,10 +113,6 @@ exports.findAndSelect = async function (editor, args) {
         let [foundSelection, foundMatch] = transforms.matchAroundCursor(args, resolvedFind, selection);
         if (foundSelection) foundSelections.push(foundSelection);
         if (foundMatch) foundMatches.push(foundMatch);
-        
-        // foundLineIndex (like in replaceInWholeDocument) not needed for findAndSelect since no replace
-        // let [foundSelection, foundMatch, foundLineIndex] = _matchAroundCursor(args, resolvedFind, selection);
-        // if (typeof foundLineIndex === 'number') lineIndices.push(foundLineIndex);   // so handles the 0 case
       }
 
       else if (args.restrictFind === "line") {
@@ -151,14 +133,12 @@ exports.findAndSelect = async function (editor, args) {
           const startPos = document.positionAt(lineIndex + match.index);
           const endPos = document.positionAt(lineIndex + match.index + match[0].length);
           foundSelections.push(new Selection(startPos, endPos));
-          foundMatches.push(match);
         });
+        foundMatches.push(...matches);
       }
 
       else if (args.restrictFind?.startsWith("once")) {
 
-        let lineIndex = 0;
-        let subStringIndex;
         const currentWordRange = document.getWordRangeAtPosition(selection.active);
 
         if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
@@ -168,7 +148,6 @@ exports.findAndSelect = async function (editor, args) {
           
           if ((args.restrictFind === "onceIncludeCurrentWord") && currentWordRange)
             subLineRange = lineRange.with({ start: document.getWordRangeAtPosition(selection.active)?.start });
-          // else 
 
           matches = transforms.buildLineNumberMatches(resolvedFind, subLineRange);
         }
@@ -194,7 +173,6 @@ exports.findAndSelect = async function (editor, args) {
           let subStringIndex = selection.active?.character;
           let doContinue = true;
           
-          // TODO extract to a function?: doContinue = func(lineIndex, subStringIndex, lineMatches);  return {doContinue, foundIndex}?
           const sameLineFound = lineMatches.findIndex(lineMatch => lineMatch.lineIndex === lineIndex);
           
           if (sameLineFound !== -1) {
@@ -212,7 +190,6 @@ exports.findAndSelect = async function (editor, args) {
               // const foundLowerIndex = lineMatches.findIndex(lineMatch => (lineMatch.lineIndex === lineIndex) && (lineMatch.subStringIndex > subStringIndex));
               // lineMatches.push({ lineIndex, subStringIndex });
             }
-            // else continue;// abort the loop, return/continue?
           }
           
           if (doContinue) {
@@ -230,51 +207,21 @@ exports.findAndSelect = async function (editor, args) {
           }
         }
       }
-    // }));
     }));
-
-    // get cursor position first, before applying foundSelections to editor.Selections
-    // if madeFind then there was no find, and editor.selection.active will always be less than that same foundSelection
-    
-    // const cursorPosition = args.madeFind ? document.getWordRangeAtPosition(editor.selection.active)?.end : editor.selection.active;
-
-    // if (foundSelections.length) editor.selections = foundSelections;
-
-    // if (foundSelections.length && args.reveal) {
-    //   const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
-    //   editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
-    // }
-    
-    // const cursorPosition = document?.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
-
-    // // if (!args.preserveSelections && foundSelections.length) editor.selections = foundSelections;
-    // if (foundSelections.length) editor.selections = foundSelections;
-    
-    // // what if multiple cursors?
-
-    // if (foundSelections.length && args.reveal) {
-    //   const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
-    //   editor?.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
-    // }
   }
   
-  
   // 'run' might want to access the selections
-  // if (foundSelections.length && args.run) editor.selections = foundSelections;
+  
+  // ignore args.preserveSelections in findAndSelect
   if (foundSelections.length) editor.selections = foundSelections;
   
   await transforms.runWhen(args, foundMatches, foundSelections, editor.selection);
   
   // get the "new" selections after 'run'
   // Object.assign() because editor.selections is readonly and cannot be directly set to foundSelections
-  // TODO: this makes a shallow copy, is that OK here?
   if (foundSelections.length && args.run) Object.assign(foundSelections, editor.selections);
   
   // sendSequence will resolve certain vars automatically
-  // if sendSequence or type commands, loop here through multiple commands?
-  // insertSnippet has args.name or args.snippet, not args.text
   
-  if (foundMatches.length && args.postCommands) await transforms.runPostCommands(args, foundMatches, foundSelections, editor.selection);
-  // if (args.postCommands) await transforms.runPostCommands(args, foundMatches, editor.selections, editor.selection);
-  // if ((foundSelections.length || args.run) && args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
+  if (args.postCommands) await transforms.runPostCommands(args, foundMatches, foundSelections, editor.selection);
 };

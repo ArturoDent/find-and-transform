@@ -1,8 +1,6 @@
 const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
 
-const commands = require('../commands');
 const resolve = require('../resolveVariables');
-// const utilities = require('../utilities');
 const transforms = require('../transform');
 
 
@@ -16,43 +14,79 @@ exports.replaceInSelections = async function (editor, args) {
 
   const originalFindArg = args.find;
   const originalisRegexArg = args.isRegex;
+  const originalSelections = editor.selections;
+  let   changeInSelectionLength = 0;
   
   const document = editor.document;
 
-  // let   isSelectionWithMatch = false;  // at least one
   let   resolvedFind;
   let   resolvedReplace;
   let   matches;
-  let   matchesPerSelection = new Set();
+  const matchesPerSelection = new Map();
   const foundMatches = [];
-  const foundSelections = [];
+  let   foundSelections = [];      // before any replacement
   const foundCMSSelections = [];  
   
-  const wsEdit = new WorkspaceEdit();
   const textEdits = [];  // TextEdit[]
 
   let index = 0;
   let thisSelectionNumber = 0;
+  let selectionStartIndex = 0;
+  let selectionStartAdjust = 0;
+  let cumulativeChangesInSelectionLength = 0;
+  
+  // sort the selections because the line and character changes are computed from the top of the document down
+  // and if the user selects some other order of selections it will noy comput properly
+  let sortedSelections = originalSelections;
+  // @ts-ignore  because editor.selections are read-only
+  if (args.cursorMoveSelect) sortedSelections = sortedSelections.toSorted(compareSelections);
+  
+        function compareSelections(a, b) {
+          if (a.start.line < b.start.line) {
+            return -1;
+          }
+          else if (a.start.line > b.start.line) {
+            return 1;
+          }
+          
+          else if (a.start.character < b.start.character) {
+            return -1;
+          }
+          else if (a.start.character > b.start.character) {
+            return 1;
+          }
+          // a is to b
+          return 0;
+        }
+  
 
-  // await Promise.all(editor.selections.map(async (selection, thisSelectionNumber) => {
-  for await (const selection of editor.selections) {
+  for await (const selection of sortedSelections) {
+    
+    changeInSelectionLength = 0;
 
     args.isRegex = originalisRegexArg;
     // empty selections, pointReplacements?
     // could filter out empty selections first
     const selectedRange = new Range(selection.start, selection.end);
-    let selectionStartIndex = document.offsetAt(selection.start);
+    if (selection.isReversed) selectionStartIndex = document.offsetAt(selection.active);
+    else selectionStartIndex = document.offsetAt(selection.anchor);
     
-    // TODO: does ignoreWhiteSpace work here?
     if (!originalFindArg) {
-      const findObject = resolve.makeFind([selection], args);
+      const findObject = await resolve.makeFind([selection], args);
       args.find = findObject.find;
       args.isRegex = args.isRegex || findObject.mustBeRegex;
       args.madeFind = true;
       args.pointReplaces = findObject.emptyPointSelections;
     }
+    
+    // this will never be needed, the find is the entire selection so there would be no more than the one match
+    // if (args.find && args.ignoreWhiteSpace) {
+    //   args.find = args.find.trim();
+    //   args.find = `\\n{0}` + args.find.replace(/\s+/g, '\\s*');
+    //   args.isRegex = true;
+    // }
 
-    // below instead of resolveVariables.resolveFind because it is async and editor.edit??
+    // can this be moved to resolveVariables?
     const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
 
     if (args.find.search(lineIndexNumberRE) !== -1)
@@ -60,22 +94,12 @@ exports.replaceInSelections = async function (editor, args) {
     else
       resolvedFind = await resolve.resolveVariables(args, "ignoreLineNumbers", null, selection, null, index);
 
-    // resolvedFind = resolve.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.madeFind);
-    const obj = await resolve.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.madeFind);
+    const obj = await resolve.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.ignoreWhiteSpace, args.madeFind);
     resolvedFind = obj.findValue;
     args.isRegex = obj.isRegex;
     
     if (!resolvedFind && !args.replace) return;
     
-    // if args.replace has a capture group in it AND regex is false:
-    // find = (find); regex = true AND escape regex characters
-    // if (args.isRegex === false) {
-    //   args.find = resolvedFind;
-    //   args = resolve.checkForCaptureGroupsInReplace(args);
-    //   resolvedFind = args.find;
-    // }
-      
-
     if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
       matches = transforms.buildLineNumberMatches(resolvedFind, selectedRange);
       selectionStartIndex = 0;
@@ -87,106 +111,116 @@ exports.replaceInSelections = async function (editor, args) {
       matches = [...selectedText.matchAll(re)];
     }
     
-    for (const match of matches) {
-
-      resolvedReplace = await resolve?.resolveVariables(args, "replace", match, selection, selectionStartIndex, index);
-      index++;
-
+    foundMatches.push(...matches);
+    
+    for await (const match of matches) {
       const startPos = document.positionAt(selectionStartIndex + match.index);
       const endPos = document.positionAt(selectionStartIndex + match.index + match[0].length);
-      const matchRange = new Range(startPos, endPos);
-
-      // if (resolvedReplace !== null) edit.replace(matchRange, resolvedReplace);
-      if (resolvedReplace !== null) textEdits.push(new TextEdit(matchRange, resolvedReplace));
-
-      // TODO: might not need the below at all?
-      // else editor.selections = editor.selections.filter(otherSelection => otherSelection !== selection);
       
-      foundMatches.push(match);
-      if (!foundSelections.includes(selection)) foundSelections.push(selection);        
+      if (!selection.isReversed) foundSelections.push(new Selection(startPos, endPos));
+      else foundSelections.push(new Selection(endPos, startPos));
+      
+      resolvedReplace = await resolve?.resolveVariables(args, "replace", match, selection, selectionStartIndex, index);
+      if (resolvedReplace !== null) textEdits.push(new TextEdit(foundSelections[index], resolvedReplace));
+   
+      if (args.cursorMoveSelect) {  // to be used in cursorMoveSelect below, also used in line.js
+        
+        // if (?<!\\r)\\n in resolvedReplace add 1 to resolvedReplace.length for each newline w/o a preceding \r
+        // because vscode will "normalize" \n => \r\n, thus adding a character
+        const re = /(?<!\r)\n/g;
+        const numNewLInes = [...resolvedReplace.matchAll(re)].length;
+        
+        changeInSelectionLength += (resolvedReplace?.length - match[0].length + numNewLInes);
+      }
+      index++;
     }
-
-    matchesPerSelection.add({
-      selectionNumber: thisSelectionNumber++,
+    
+    selectionStartAdjust = cumulativeChangesInSelectionLength;    
+    cumulativeChangesInSelectionLength += changeInSelectionLength;
+    
+    let originalLength = Math.abs(document.offsetAt(selection.end) - document.offsetAt(selection.start));
+    
+    matchesPerSelection.set(thisSelectionNumber, {
+      selectionNumber: thisSelectionNumber,
       numMatches: matches.length,
       matches: matches,
-      isSelectionWithMatch: matches.length ? true : false
+      isSelectionWithMatch: matches.length ? true : false,
+      originalLength,
+      cumulativeChangesInSelectionLength,
+      selectionStartIndex,
+      selectionStartAdjust
     });
     
-    // thisSelectionNumber++;
+    thisSelectionNumber++;
   };
+   
+  if (foundSelections.length) editor.selections = foundSelections;
   
-  wsEdit.set(editor.document.uri, textEdits);
-  await workspace.applyEdit(wsEdit);
+  if (textEdits.length) {
+    await editor.edit(editBuilder => {
+      textEdits.forEach(textEdit => {
+        editBuilder.replace(textEdit.range, textEdit.newText);
+      });
+    });
+  }
   
-  // textEdits.map(edit => {
-  //   const endPos = new Position(edit.range.end.line, edit.range.start.character + edit.newText.length);
-  //   foundSelections.push(new Selection(edit.range.start, endPos));
-  // })
+  if (args.preserveSelections && foundSelections.length) editor.selections = originalSelections;
   
-  // editor.selections = foundSelections; 
+  //////////////////////////  cursorMoveSelect   //////////////////////////
   
-  if (args.cursorMoveSelect) {
+  if (args.cursorMoveSelect && !args.preserveSelections) {
     let index = 0;
     let cursorMoveSelect;
     
     const iter = matchesPerSelection.values();    
 
-    // await Promise.all(editor.selections.map(async (selection, thisSelection) => {  // doesn't work synchronously
-    for await (const selection of editor.selections) {
+    for await (const selection of originalSelections) {
       
-      let numMatches = 0, matches = null;
+      let numMatches = 0, matches = null, originalLength = 0,
+        selectionStartIndex = 0, selectionStartAdjust = 0, cumulativeChangesInSelectionLength = 0;
       
-      // works since Set items are added and retrieved in insertion order
+      // works since Map items are added and retrieved in insertion order
       const item = iter.next();
-      if (!item.done) ({ numMatches, matches } = item.value);  // the !item.done is not strictly necessary
+      if (!item.done)
+        ({ numMatches, matches, selectionStartIndex, originalLength, selectionStartAdjust, cumulativeChangesInSelectionLength } = item.value);  // the !item.done is not strictly necessary
       else break; 
       
-      // for (const item of matchesPerSelection) {
-      //   if (item.selectionNumber === thisSelection) {
-      //     ({ numMatches, matches } = item);
-      //     matchesPerSelection.delete(item);
-      //     break;
-      //   }
-        
-      // }
-      // thisSelection++;
-
       if (numMatches) {
 
         const combinedMatches = await transforms.combineMatches(Array.from(matches));
 
-        // cursorMoveSelect = await resolve.resolveCursorMoveSelect(args.cursorMoveSelect, numMatches, combinedMatch, selection, index);
         cursorMoveSelect = await resolve.resolveVariables(args, "cursorMoveSelect", combinedMatches, selection, null, index);
         cursorMoveSelect = await resolve.adjustCMSValueForRegex(cursorMoveSelect, args.isRegex, args.matchWholeWord);
 
         if (cursorMoveSelect.length) {  // don't if cursorMoveSelect === ""
 
-          const selectionIndex = document.offsetAt(selection.start);
-
+          // put cursor at the old start of the/each selection
           if (cursorMoveSelect === "^(?!\n)") {  // args.cursorMoveSelect === "^"
-            foundCMSSelections.push(new Selection(selection.start, selection.start));
+            const startPos = document.positionAt(selectionStartIndex + selectionStartAdjust);
+            foundCMSSelections.push(new Selection(startPos, startPos));
           }
+          // put cursor at the old end of the/each selection
           else if (cursorMoveSelect === "$(?!\n)") {  // args.cursorMoveSelect === "$"
-            const diff = resolvedFind.length - resolvedReplace?.length;
-            const selPos = new Position(selection.end.line, Math.abs(selection.end.character - (matchesPerSelection[index] * diff)));
-            foundCMSSelections.push(new Selection(selPos, selPos));
+            const endPos = document.positionAt(selectionStartIndex + originalLength + cumulativeChangesInSelectionLength);
+            foundCMSSelections.push(new Selection(endPos, endPos));
           }
           else {
-            const selectedRange = new Range(selection.start, selection.end);
-            const selectionText = document.getText(selectedRange);
+            const startPos = document.positionAt(selectionStartIndex + selectionStartAdjust);
+            const endPos = document.positionAt(selectionStartIndex + originalLength + cumulativeChangesInSelectionLength);
+            const selectionText = document.getText(new Range(startPos, endPos));
+            
             const cmsMatches = [...selectionText.matchAll(new RegExp(cursorMoveSelect, args.regexOptions))];
 
             for (const match of cmsMatches) {
-              const startPos = document.positionAt(selectionIndex + match.index);
-              const endPos = document.positionAt(selectionIndex + match.index + match[0].length);
+              const startPos = document.positionAt(selectionStartIndex + selectionStartAdjust + match.index);
+              const endPos = document.positionAt(selectionStartIndex + selectionStartAdjust + match.index + match[0].length);
+              
               foundCMSSelections.push(new Selection(startPos, endPos));
             }
           }
         }
         index++;
       }
-    // }));
     };
   };
     
@@ -195,13 +229,10 @@ exports.replaceInSelections = async function (editor, args) {
     editor.revealRange(new Range(foundCMSSelections[0].start, foundCMSSelections[0].end), 2);  // InCenterIfOutsideViewport
   }
   else if (foundSelections.length) {
-    if (!args.preserveSelections) editor.selections = foundSelections;
-    editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);  // InCenterIfOutsideViewport
+    editor.revealRange(new Range(foundSelections[0].start, foundSelections[0].end), 2);  // 2 = InCenterIfOutsideViewport
   }
     
   await transforms.runWhen(args, foundMatches, foundSelections, editor.selection);
   
-  // TODO is this running per selection? No
-  // if (args.postCommands && isSelectionWithMatch) await commands.runPrePostCommands(args.postCommands, "postCommands");
-  if (args.postCommands) await commands.runPrePostCommands(args.postCommands, "postCommands");
+  if (args.postCommands) await transforms.runPostCommands(args, foundMatches, foundSelections, editor.selection);
 };

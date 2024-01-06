@@ -8,24 +8,22 @@ const searchCommands = require('./search');
 const providers = require('./completionProviders');
 const codeActions = require('./codeActions');
 const utilities = require('./utilities');
-
+const outputChannel = require('./outputChannel');
 const searchArgs = require('./args/searchOptions');
 
-
-exports.outputChannel = window.createOutputChannel("find-and-transform");
-// module.exports.outputChannel.hide();
 
 /** @type { Array<import("vscode").Disposable> } */
 let _disposables = [];
 
 let enableWarningDialog = false;
 
+
 /**
  * @param {import("vscode").ExtensionContext} context
  */
 async function activate(context) {
   
-  // module.exports.outputChannel.hide();
+  await outputChannel.dispose();
   
   this.context = context;  // global  
 	let firstRun = true;
@@ -92,7 +90,6 @@ async function activate(context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 
 	// make a context menu "searchInResults" command for searches in the Search Panel
-	// with 'files to include' this ${file} only
 	let contextMenuCommandResults = commands.registerCommand('find-and-transform.searchInResults', async (args) => {
 
 		// args is undefined if coming from Command Palette or keybinding with no args
@@ -112,7 +109,7 @@ async function activate(context) {
     });
     
     args.triggerSearch = true;
-    args.filesToInclude = await utilities.getSearchResultsFiles(args.clipText);  // isn't this done in useSearchPanel() TODO
+    args.filesToInclude = await utilities.getSearchResultsFiles(args.clipText);
     args.filesToInclude = await utilities.escapePathsForFilesToInclude(args.filesToInclude);
 
     // pre/postCommands?
@@ -223,13 +220,11 @@ async function _loadSettingsAsCommands(context, _disposables, firstRun) {
 
 // exports.activate = activate;
 
-function deactivate() {
-  // this.outputChannel.dispose();
-  module.exports.outputChannel.dispose();
- }
+async function deactivate() {
+  await outputChannel.dispose();
+}
 
 module.exports = {
 	activate,
   deactivate
-  // outputChannel: this.outputChannel
 }

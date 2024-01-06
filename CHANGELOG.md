@@ -77,9 +77,21 @@
 &emsp;&emsp; 4.7.1 Added `runPostCommands` and `resolvePostCommandVariables`.  Added a command to enable opening readme anchors from completion details.  
 &emsp;&emsp; 4.7.2 Added intellisense to `.code-workspace` settings.  
 
+* 4.7.0 Added `ignoreWhiteSpace` argument.  
+&emsp;&emsp; Added `${getFindInput}` variable for `find` queries.  
+&emsp;&emsp; Added `runWhen` argument to control when the `run` operation is triggered.  
+&emsp;&emsp; Added `"restrictFind": "matchAroundCursor"` option.  
+&emsp;&emsp; 4.7.1 Added `runPostCommands` and `resolvePostCommandVariables`.  Added a command to enable opening readme anchors from completion details.  
+&emsp;&emsp; 4.7.2 Added intellisense to `.code-workspace` settings.  
+
 * 4.8.0 Added `preserveSelections` argument.  Completions work in `.code-workspace` (workspace settings) files.  
 &emsp;&emsp; 4.8.2 Fixed escaping while using `${getFindInput}`.  
 &emsp;&emsp; 4.8.3 Less escaping on variable replacements not in `replace/run`.  
 &emsp;&emsp; 4.8.4 Work on capture groups in replace with no find and `isRegex` true or false.  
+
+* 5.0.0 Much work on making the code more asynchronous.  
+&emsp;&emsp; - `${getInput}` is replacing `${getFindInput}`.  It now works in `replace`, `run`, `postCommands`, `cursorMoveSelect`, `filesToInclude` and `filesToExclude` arguments.  
+&emsp;&emsp; - `${/}` path separator variable added.  
+&emsp;&emsp; - Work on matching empty lines.  
 
 -----------------------

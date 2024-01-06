@@ -3,8 +3,10 @@ const fs = require('fs');
 const path = require('path');
 
 const drivers = require('./drivers');
-const resolve = require('./resolveVariables');
+// const resolve = require('./resolveVariables');
 const utilities = require('./utilities');
+const outputChannel = require('./outputChannel');
+
 
 
 /**
@@ -89,7 +91,7 @@ async function _makePackageCommandsFromFindSettings(settings, enableWarningDialo
 		
 		if (enableWarningDialog) {
 			const argsBadObject = await utilities.checkArgs(setting[1], "findSetting");
-			if (argsBadObject.length) await utilities.showBadKeyValueMessage(argsBadObject, false, setting[0]);
+			if (argsBadObject.length) await outputChannel.showBadKeyValueMessage(argsBadObject, false, setting[0]);
 		}
 
 		let newCommand = {};
@@ -129,7 +131,7 @@ async function _makePackageCommandsFromSearchSettings(settings, enableWarningDia
 		if (enableWarningDialog) {
 			const argsBadObject = await utilities.checkArgs(setting[1], "searchSetting");
 			// boolean modal or not
-			if (argsBadObject.length) await utilities.showBadKeyValueMessage(argsBadObject, false, setting[0]);
+			if (argsBadObject.length) await outputChannel.showBadKeyValueMessage(argsBadObject, false, setting[0]);
 		}
 
 			let newCommand = {};
