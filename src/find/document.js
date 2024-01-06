@@ -120,11 +120,19 @@ exports.replaceInWholeDocument = async function (editor, args) {
     index++;
   }
   
-  await editor.edit(editBuilder => {
-    textEdits.forEach(textEdit => {
-      editBuilder.replace(textEdit.range, textEdit.newText);
+  // await editor.edit(editBuilder => {
+  //   textEdits.forEach(textEdit => {
+  //     editBuilder.replace(textEdit.range, textEdit.newText);
+  //   });
+  // });
+  
+  if (textEdits.length) {
+    await editor.edit(editBuilder => {
+      textEdits.forEach(textEdit => {
+        editBuilder.replace(textEdit.range, textEdit.newText);
+      });
     });
-  });
+  }
   
   // originalSelectons
   // cursorMoveSelect may not match anything
