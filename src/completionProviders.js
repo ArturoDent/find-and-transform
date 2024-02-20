@@ -18,7 +18,9 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
       {
         provideCompletionItems(document, position, token, completionContext) {
 
-					const linePrefix = document.lineAt(position).text.substring(0, position.character);
+          const linePrefix = document.lineAt(position).text.substring(0, position.character);
+          // linePrefix = "      \"args\": {"  don't show here
+          if (linePrefix.search(/\"args\"\s*:/) !== -1) return undefined;
 					let find = false;
           let search = false;
       
@@ -57,6 +59,7 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
             // console.log(error)
           }
 
+          if (curLocation.path[1] === '') return undefined;  // trying to get command/args/key/when of keybinding
           const thisConfig = _findConfig(rootNode, document.offsetAt(position));
           const nodeValue = jsonc.getNodeValue(thisConfig);
           const command = nodeValue.command;
@@ -175,7 +178,10 @@ exports.makeSettingsCompletionProvider = async function(context) {
       provideCompletionItems(document, position, token, completionContext) {
 
         // get all text until the current `position` and check if it reads `  {  "` before the cursor
-				const linePrefix = document.lineAt(position).text.substring(0, position.character);
+        const linePrefix = document.lineAt(position).text.substring(0, position.character);
+        
+        // linePrefix = "      \"args\": {"  // no suggestions on this line
+        if (linePrefix.search(/\"args\"\s*:/) !== -1) return undefined;
 
 				let find = false;
 				let search = false;
@@ -197,16 +203,26 @@ exports.makeSettingsCompletionProvider = async function(context) {
         }
         else {
           findCommandNode = rootNode.children?.find(child => child.children[0]?.value === "findInCurrentFile");
-          searchCommandNode = rootNode.children?.find(child => {
-            return child.children[0]?.value === "runInSearchPanel";
-          });
+          searchCommandNode = rootNode.children?.find(child => child.children[0]?.value === "runInSearchPanel");
         }
 				if (!findCommandNode && !searchCommandNode) return undefined;
 
-        const curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
+        let curLocation;
+        // const curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
+        
+        try {   // some kind of a parsing bug in jsonc-parser?
+          curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
+        }
+        catch (error) {
+          // console.log(error)
+        }
         
         // because path[0] = "settings" in .code-workspace file settings
         if (document.fileName.endsWith('.code-workspace')) curLocation.path.shift();
+        
+        if (curLocation.path.length < 3) return undefined;
+        // TODO: test in a .code-workspace
+        // if (curLocation.path[1] === '') return undefined;  
         
         const command = curLocation.path[0];        // findInCurrentFile
         const subCommand = curLocation.path[1];     //    addClassToElement
@@ -251,10 +267,24 @@ exports.makeSettingsCompletionProvider = async function(context) {
         let keysText = "";
         let subCommandNode;
 
-				if ((curLocation.isAtPropertyKey || linePrefix.search(/^\s*"?$/m) !== -1) && subCommand) {
-          if (find) subCommandNode = findCommandNode.children[1].children[0].children[1];
-          else if (search) subCommandNode = searchCommandNode.children[1].children[0].children[1];
-					const keysRange = new Range(document.positionAt(subCommandNode.offset), document.positionAt(subCommandNode.offset + subCommandNode.length));
+        if ((curLocation.isAtPropertyKey || linePrefix.search(/^\s*"?$/m) !== -1) && subCommand) {
+          
+          // get the children of the subCommand that is where the cursor is
+          // may have multiple subCommands under 'runInSearchPanel' and 'findInCurrentFile'
+          
+          // const commandNode = findCommandNode ?? searchCommandNode;
+          // if (find) subCommandNode = commandNode.children[1].children.find(sub => {
+          //   return sub.children[0].value === subCommand;
+          // });
+          
+          if (find) subCommandNode = findCommandNode.children[1].children.find(sub => {
+            return sub.children[0].value === subCommand;
+          });
+          else if (search) subCommandNode = searchCommandNode.children[1].children.find(sub => {
+            return sub.children[0].value === subCommand;
+          });
+          const subCommandArgs = subCommandNode.children[1];
+					const keysRange = new Range(document.positionAt(subCommandArgs.offset), document.positionAt(subCommandArgs.offset + subCommandArgs.length));
 					keysText = document.getText(keysRange);
 				}
 
@@ -326,14 +356,11 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
  // ---------------------  find  ------------------------
   else if (arg === 'find') {
     if (linePrefix.endsWith('$'))
-      return [..._completePathVariables(position, '$'), ..._completeExtensionDefinedVariables(position, "$", search),
-      ..._completeSnippetVariables(position, '$'), ..._completeReplaceJSOperation(position, '$')];
-      
-    else if (linePrefix.endsWith('${'))
-      return [..._completePathVariables(position, '${'), ..._completeExtensionDefinedVariables(position, "${", search),
-      ..._completeSnippetVariables(position, '${'), ..._completeReplaceJSOperation(position, '${')];
-      
+      return _completeFindVariables(position, '$');
     
+    else if (linePrefix.endsWith('${'))
+      return _completeFindVariables(position, '${');
+      
     else if (linePrefix.endsWith('\\\\'))
       return _completeFindCaseTransforms(position, '\\\\');
     
@@ -698,6 +725,27 @@ Replace ***operation*** with some code.`;
 	];
 }
 
+
+/**
+ * Make completion items for 'find' values starting with a '$' sign in a 'findInCurrentFile' command
+ * 
+ * @param   {import("vscode").Position} position
+ * @param   {string} trigger - triggered by '$' so include its range
+ * @returns {Array<CompletionItem>}
+ */
+function _completeFindVariables(position, trigger) {
+
+	// triggered by 1 '$' or '$${' or '${'
+  	return [
+    ..._completePathVariables(position, trigger),
+    ..._completeExtensionDefinedVariables(position, trigger),
+    ..._completeReplaceJSOperation(position, trigger),
+    ..._completeSnippetVariables(position, trigger)
+  ];
+}
+
+
+
 /**
  * Make completion items for 'replace' values starting with a '$' sign in a 'findInCurrentFile' command
  * 
@@ -954,7 +1002,7 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
   // }
   else {
     item = new CompletionItem(key, CompletionItemKind.Property);
-  
+    
     // don't select true/false/numbers defaultValue's
     if (typeof defaultValue === "number")  // key == delay
       item.insertText = new SnippetString(`${ leadingQuote }${ key }": \$\{1:${ defaultValue }\},`);
@@ -1085,6 +1133,8 @@ function _makeCommandCompletionItem(command, replaceRange, documentation) {
 
   let item;
 
+  // TODO: here could get a map of the command + default arg
+  // range would have to include the arg as well - end of line?
   item = new CompletionItem(command, CompletionItemKind.Property);
   item.insertText = new SnippetString(`\$\{1:${ command }\}`);
   item.range = replaceRange;

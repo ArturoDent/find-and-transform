@@ -2,6 +2,7 @@ const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace }
 
 const resolve = require('../resolveVariables');
 const transforms = require('../transform');
+const prePostCommands = require('../prePostCommands');
 
 
 
@@ -129,7 +130,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
     if (args.run && args.runWhen === "onceOnNoMatches")
       await resolve.resolveVariables(args, "run", null, editor.selection, null, null);
     if (args.postCommands && args.runPostCommands === "onceOnNoMatches")
-      await transforms.runPostCommands(args, [], [editor.selection], editor.selection);
+      await prePostCommands.runPost(args, [], [editor.selection], editor.selection);
     return;  // no match before or after cursor
   }
 
@@ -144,9 +145,11 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
     textEdits.push(new TextEdit(editor.selection, resolvedReplace));
   }
   
-  await editor.edit(editBuilder => {
-    editBuilder.replace(textEdits[0].range, textEdits[0].newText);
-  });
+  if (textEdits.length) {
+    await editor.edit(editBuilder => {
+      editBuilder.replace(textEdits[0].range, textEdits[0].newText);
+    });
+  }
   
   const selection = editor.selection; 
 
@@ -167,8 +170,6 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
     editor.revealRange(new Range(selection.anchor, selection.active), 2); // why reveal if nextDontMoveCursor
   }
   
-  // foundSelections = [editor.selection];
-  
   if (args.run && args.runWhen !== "onceOnNoMatches" && match.length)    // so args.run only runs if there is a match
     await resolve.resolveVariables(args, "run", match, editor.selection, null, null);
   else if (args.run  && args.runWhen === "onceOnNoMatches" && !match.length)
@@ -179,5 +180,5 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
   
   // if ((nextMatches.length || args.run) && args.postCommands) await transforms.runPostCommands(args, nextMatches, editor.selections, editor.selection);
   // if (args.postCommands) await transforms.runPostCommands(args, [match], foundSelections, editor.selection);
-  if (args.postCommands) await transforms.runPostCommands(args, [match], [editor.selection], editor.selection);
+  if (args.postCommands) await prePostCommands.runPost(args, [match], [editor.selection], editor.selection);
 };

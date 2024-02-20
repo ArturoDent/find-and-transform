@@ -2,6 +2,8 @@ const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace }
 
 const resolve = require('../resolveVariables');
 const transforms = require('../transform');
+const prePostCommands = require('../prePostCommands');
+
 
 
 /**
@@ -234,5 +236,5 @@ exports.replaceInSelections = async function (editor, args) {
     
   await transforms.runWhen(args, foundMatches, foundSelections, editor.selection);
   
-  if (args.postCommands) await transforms.runPostCommands(args, foundMatches, foundSelections, editor.selection);
+  if (args.postCommands) await prePostCommands.runPost(args, foundMatches, foundSelections, editor.selection);
 };

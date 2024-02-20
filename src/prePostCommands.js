@@ -46,8 +46,8 @@ exports.runPost = async function (args, foundMatches, foundSelections, selection
   
   // does this work for a single object? No
   const argHasText = (command) => {
-    // return command?.args?.text;  // && check if variable in text?
-    return command?.args?.text || command?.args?.lineNumber;  // && check if variable in text?
+    return command?.args?.text;  // && check if variable in text?  'snippet' as well TODO
+    // return command?.args?.text || command?.args?.lineNumber;  // && check if variable in text?
   }
   
   const resolvePostCommands = (Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text;
@@ -81,6 +81,7 @@ exports.runPost = async function (args, foundMatches, foundSelections, selection
   }
   else if (args.runPostCommands === "onceOnNoMatches") {
     if (resolvePostCommands) postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
+    // postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
     await this.run(postCommands, "postCommands");  // no matches, run once
   }
 };
@@ -160,12 +161,12 @@ async function _resolvePostCommandVariables(args, foundMatches, foundSelections,
       let commandNumber = 0;
       for await (const command of tempArgs.postCommands) {
  
-        // if (command?.args?.text)
-        //   tempArgs.postCommands[commandNumber].args.text = await resolve.resolveVariables(tempArgs, "postCommands", foundMatch, foundSelection, null, commandNumber);
+        if (command?.args?.text)
+          tempArgs.postCommands[commandNumber].args.text = await resolve.resolveVariables(tempArgs, "postCommands", foundMatch, foundSelection, null, commandNumber);
        
        
-        if (command?.args?.lineNumber)
-          tempArgs.postCommands[commandNumber].args.lineNumber = await resolve.resolveVariables(tempArgs, "postCommands", foundMatch, foundSelection, null, commandNumber);
+        // if (command?.args?.lineNumber)
+        //   tempArgs.postCommands[commandNumber].args.lineNumber = await resolve.resolveVariables(tempArgs, "postCommands", foundMatch, foundSelection, null, commandNumber);
         
         commandNumber++;
       };

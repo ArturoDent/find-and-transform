@@ -80,6 +80,10 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   else if (caller === "postCommands") {
     if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex]?.args?.text;
     else replaceValue = args?.postCommands?.args?.text;
+    // if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex]?.args?.lineNumber;
+    // else replaceValue = args?.postCommands?.args?.lineNumber;
+    
+    // loop through args to find which one has a variable?
   }
   
   // need to set a flag for presence of 'await' in jsOp BEFORE any variable substitution,
@@ -181,6 +185,7 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
     // --------------------  caseModifier/capGroup --------------------------------------------------
     re = new RegExp("(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d(?!:)\\}?)", "g");
     
+    if (!resolved || resolved === '') return '';  // TODO add to all/rest
     resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2) {
 
       groupNames = {
@@ -325,7 +330,7 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   // if still have a '${` or `$n` re-resolve
   // if (!error && caller !== "snippet" && resolved.search(/\$[\{\d]/) !== -1) {  // could this be replaced with a while loop up top?
   //   args.replace = resolved;
-  //   resolved = module.exports.resolveVariables(args, "replace");
+  //   resolved = this.resolveVariables(args, "replace");
   // }
   // return resolved;
   
@@ -1309,22 +1314,6 @@ exports.makeFind = async function (selections, args) {
     }
     else {
       selectedText = document.getText(selection);
-
-      // so nothing but \r\n's in the selectedText
-      // if (!selection.isSingleLine && !selectedText.replaceAll('\r\n', '').length) {
-      //   const numLines = await utilities.getNumLinesOfSelection(selection) - 1;
-      //   // selectedText = ''.padEnd(numLines * 16, '^(?!\n)$(?!\n)\r\n\r\n');
-      //   // selectedText = selectedText.substring(0, selectedText.length - 4);
-      //   // selectedText = document.getText(selection);
-        
-      //   // selectedText = '^(?!\n)$(?!\n)\r\n^(?!\n)$(?!\n)';
-        
-      //   // "\r\nhowdy\r\n\r\n\r\n\r\nthere\r\n\r\nhowdy\r\n\r\n\r\n\r\nthere\r\n"
-        
-      //   // selectedText = '(^$)'.padEnd(4 + (numLines * 8), '\r\n(^$)\r\n');
-      //   // selectedText = selectedText.substring(0, selectedText.length - 2);
-      //   mustBeRegex = true;
-      // }
     }
     if ( selectedText.length ) textSet.add(selectedText);
   };
@@ -1340,7 +1329,7 @@ exports.makeFind = async function (selections, args) {
   // if .size of the set is greater than 1 then isRegex must be true
   if (textSet?.size > 1) mustBeRegex = true;
   
-  if (args.isRegex && find.length) find = `(${ find })`;  // e.g. "(word|some words|more)"
+  if ((mustBeRegex || args.isRegex) && find.length) find = `(${ find })`;  // e.g. "(word|some words|more)"
   
   return { find, mustBeRegex, emptyPointSelections };
 };

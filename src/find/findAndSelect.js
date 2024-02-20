@@ -2,6 +2,7 @@ const { Range, Position, Selection } = require('vscode');
 
 const resolve = require('../resolveVariables');
 const transforms = require('../transform');
+const prePostCommands = require('../prePostCommands');
 
 
 
@@ -223,5 +224,5 @@ exports.findAndSelect = async function (editor, args) {
   
   // sendSequence will resolve certain vars automatically
   
-  if (args.postCommands) await transforms.runPostCommands(args, foundMatches, foundSelections, editor.selection);
+  if (args.postCommands) await prePostCommands.runPost(args, foundMatches, foundSelections, editor.selection);
 };

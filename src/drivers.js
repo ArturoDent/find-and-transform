@@ -1,11 +1,15 @@
 const { window } = require('vscode');
 
 
-const extensionCommands = require('./commands');
+
+
+// const registerCommands = require('./registerCommands');
 const parseCommands = require('./parseCommands');
 const searchCommands = require('./search');
 const utilities = require('./utilities');
 const outputChannel = require('./outputChannel');
+const prePostCommands = require('./prePostCommands');
+
 
 
 
@@ -27,7 +31,7 @@ exports.startFindInCurrentFile = async function (args, enableWarningDialog) {
   
   let continueRun = true;
     
-  if (args?.preCommands) await extensionCommands.runPrePostCommands(args.preCommands, "preCommands");
+  if (args?.preCommands) await prePostCommands.run(args.preCommands, "preCommands");
     
   let replacement = "";  
   if (Array.isArray(args?.replace)) replacement = args?.replace.join(' ');
@@ -77,9 +81,7 @@ exports.startRunInSearchPanel = async function (args, enableWarningDialog) {
   
   let continueRun = true;
 
-  if (args?.preCommands) {
-    await extensionCommands.runPrePostCommands(args.preCommands, "preCommands");
-  }
+  if (args?.preCommands) await prePostCommands.run(args.preCommands, "preCommands");
 
   const argsBadObject = await utilities.checkArgs(args, "searchBinding");
   
@@ -99,5 +101,5 @@ exports.startRunInSearchPanel = async function (args, enableWarningDialog) {
     await searchCommands.runAllSearches(args);
   }
   
-  if (args?.postCommands) await extensionCommands.runPrePostCommands(args.postCommands, "postCommands");
+  if (args?.postCommands) await prePostCommands.run(args.postCommands, "postCommands");
 }

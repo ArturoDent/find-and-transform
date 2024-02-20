@@ -3,6 +3,8 @@ const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace }
 const resolve = require('../resolveVariables');
 const utilities = require('../utilities');
 const transforms = require('../transform');
+const prePostCommands = require('../prePostCommands');
+
 
 
 /**
@@ -516,7 +518,7 @@ exports.replaceInLine = async function (editor, args) {
   // TODO: test below, so original find/replace is still selected (after run)
   // if (foundSelections.length && args.run) Object.assign(foundSelections, editor.selections);
   
-  if (args.postCommands) await transforms.runPostCommands(args, foundMatches, foundSelections, editor.selection);
+  if (args.postCommands) await prePostCommands.runPost(args, foundMatches, foundSelections, editor.selection);
 };
 
 

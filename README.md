@@ -2465,6 +2465,20 @@ With the following keybinding, you can easily go to the next matching word (note
 }
 ```
 
+And, if you want to put a cursor on all empty lines within your selections, use this keybinding:
+
+```json
+{
+  "key": "alt+y",
+  "command": "findInCurrentFile",
+  "args": {
+    "find": "^$",
+    "isRegex": true,
+    "restrictFind": "selections"
+  }
+}
+```
+
 -----------------------
 
 <br/>

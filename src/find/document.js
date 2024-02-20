@@ -3,6 +3,8 @@ const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace }
 const resolve = require('../resolveVariables');
 const utilities = require('../utilities');
 const transforms = require('../transform');
+const prePostCommands = require('../prePostCommands');
+
 
 
 /**
@@ -180,6 +182,7 @@ exports.replaceInWholeDocument = async function (editor, args) {
     }
   }
   
+  // TODO: add  && !args.preserveSelections ?
   if (foundSelections.length && args.reveal && !args.cursorMoveSelect) {
     const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
     editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
@@ -187,5 +190,5 @@ exports.replaceInWholeDocument = async function (editor, args) {
 
   await transforms.runWhen(args, foundMatches, foundSelections, editor.selection);
   
-  if (args.postCommands) await transforms.runPostCommands(args, foundMatches, foundSelections, editor.selection);
+  if (args.postCommands) await prePostCommands.runPost(args, foundMatches, foundSelections, editor.selection);
 };

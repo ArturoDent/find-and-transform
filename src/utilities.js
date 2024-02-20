@@ -194,7 +194,8 @@ exports.getSearchResultsFiles = async function (clipText) {
     // restore original clipboard content
     await env.clipboard.writeText(clipText);
     
-		return await module.exports.escapePathsForFilesToInclude( pathArray.join(", ") );
+		// return await module.exports.escapePathsForFilesToInclude( pathArray.join(", ") );
+		return await this.escapePathsForFilesToInclude( pathArray.join(", ") );
 	}
 	else {
 		// notifyMessage?
@@ -207,22 +208,32 @@ exports.getSearchResultsFiles = async function (clipText) {
 
 /**
  * Convert string to PascalCase.  
- * first_second_third => FirstSecondThird  
- * from {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/linesOperations/browser/linesOperations.ts}  
+ * first_second_third => FirstSecondThird
+ * first-second-third => FirstSecondThird
+ * firstSecondThird => FirstSecondThird
+ * 
+ * NOT from {@link https://github.com/microsoft/vscode/blob/273e4b0d7bd19bf8b9383d8de2e6fd01a3883852/src/vs/editor/contrib/snippet/browser/snippetParser.ts#L399}  
  * 
  * @param {string} value - string to transform to PascalCase  
  * @returns {string} transformed value  
  */
 exports.toPascalCase = function(value) {
-
-	const match = value.match(/[a-z0-9]+/gi);
-	if (!match) {
-		return value;
-	}
-	return match.map(word => {
-		return word[0].toLocaleUpperCase() + word.substring(1).toLocaleLowerCase();
-	})
-		.join('');
+  
+  // the code form vacode GH does not work for 'howManyCows' ??
+  // const match = value.match(/[a-z0-9]+/gi);  
+	// if (!match) {
+	// 	return value;
+	// }
+	// return match.map(word => {
+	// 	return word[0].toLocaleUpperCase() + word.substring(1).toLocaleLowerCase();
+	// })
+  // 	.join('');
+  
+  value = value.trim();  // whitespaces are removed
+  // split on uppercase letter that is followed by a lowercase letter or a '-' or an '_'
+  const words = value.split(/(?=[A-Z])|[-_]/);
+  const capitalizedWords = words.map(word => word.charAt(0).toUpperCase() + word.slice(1));
+  return capitalizedWords.join('');
 }
 
 
@@ -235,6 +246,8 @@ exports.toPascalCase = function(value) {
  * @returns {string} transformed value  
  */
 exports.toCamelCase = function (value) {
+  
+  value = value.trim();
 
 	const match = value.match(/[a-z0-9]+/gi);
 	if (!match) {
@@ -259,6 +272,8 @@ exports.toCamelCase = function (value) {
  * @returns {string} transformed value  
  */
 exports.toSnakeCase = function (value) {
+  
+  value = value.trim();
   
   const caseBoundary = /(\p{Ll})(\p{Lu})/gmu;
   const singleLetters = /(\p{Lu}|\p{N})(\p{Lu})(\p{Ll})/gmu;

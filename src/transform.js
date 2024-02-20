@@ -1,7 +1,6 @@
 const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
-const commands = require('./commands');
+const registerCommands = require('./registerCommands');
 const resolve = require('./resolveVariables');
-// const utilities = require('./utilities');
 
 
 /**
@@ -114,102 +113,97 @@ exports.runWhen = async function (args, foundMatches, foundSelections, selection
     await resolve.resolveVariables(args, "run", null, selection, null, null);  // no matches, run once
 }
 
-/**
- * Resolve any variables in the args.postCommands
- * 
- * @param {Object} args
- * @param {Array} foundMatches
- * @param {Selection[] | readonly Selection[]} foundSelections
- * @param {Selection} selection - the editor.selection
- * @param {Number} index - which postCommand in array it is
- * @returns {Promise<Object>} args - with any variables resolved in each postCommand
- */
-async function _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, index) {
+// /**
+//  * Resolve any variables in the args.postCommands
+//  * 
+//  * @param {Object} args
+//  * @param {Array} foundMatches
+//  * @param {Selection[] | readonly Selection[]} foundSelections
+//  * @param {Selection} selection - the editor.selection
+//  * @param {Number} index - which postCommand in array it is
+//  * @returns {Promise<Object>} args - with any variables resolved in each postCommand
+//  */
+// async function _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, index) {
   
-  // selection is not used
-  const editor = window.activeTextEditor;
+//   // selection is not used
+//   const editor = window.activeTextEditor;
   
-  // Object.assign() makes a shallow (reference) copy only
-  // const tempArgs = JSON.parse(JSON.stringify(args));  // to make a deep copy
-  const tempArgs = structuredClone(args);
+//   // Object.assign() makes a shallow (reference) copy only
+//   // const tempArgs = JSON.parse(JSON.stringify(args));  // to make a deep copy
+//   const tempArgs = structuredClone(args);
   
-  await _loopPostCommands(args, foundMatches[index], foundSelections[index], selection, index);
+//   await _loopPostCommands(args, foundMatches[index], foundSelections[index], selection, index);
   
-  // for multiple commands within a single args.postCommands
-  async function _loopPostCommands(args, foundMatch, foundSelection, selection, index) {
+//   // for multiple commands within a single args.postCommands
+//   async function _loopPostCommands(args, foundMatch, foundSelection, selection, index) {
     
-    // if not an array or simply an object {}
-    if (Array.isArray(tempArgs.postCommands)) {
+//     // if not an array or simply an object {}
+//     if (Array.isArray(tempArgs.postCommands)) {
       
-      let commandNumber = 0;
-      for await (const command of tempArgs.postCommands) {
-        if (command?.args?.text)
-          tempArgs.postCommands[commandNumber].args.text = await resolve.resolveVariables(tempArgs, "postCommands", foundMatch, foundSelection, null, commandNumber);
-        commandNumber++;
-      };
-    }
+//       let commandNumber = 0;
+//       for await (const command of tempArgs.postCommands) {
+//         if (command?.args?.text)
+//           tempArgs.postCommands[commandNumber].args.text = await resolve.resolveVariables(tempArgs, "postCommands", foundMatch, foundSelection, null, commandNumber);
+//         commandNumber++;
+//       };
+//     }
 
-    else tempArgs.postCommands.args.text = await resolve.resolveVariables(tempArgs, "postCommands", foundMatch, foundSelection, selection, index);
-  };
+//     else tempArgs.postCommands.args.text = await resolve.resolveVariables(tempArgs, "postCommands", foundMatch, foundSelection, selection, index);
+//   };
   
-  return tempArgs.postCommands;
-}
+//   return tempArgs.postCommands;
+// }
 
-/**
- * Run the args.postCommands and args.runPostCommands, no return
- * 
- * @param {Object} args
- * @param {Array} foundMatches
- * @param {Selection[] | readonly Selection[]} foundSelections
- * @param {Selection} selection - editor.selection
- * 
- */
-exports.runPostCommands = async function (args, foundMatches, foundSelections, selection) {
+// /**
+//  * Run the args.postCommands and args.runPostCommands, no return
+//  * 
+//  * @param {Object} args
+//  * @param {Array} foundMatches
+//  * @param {Selection[] | readonly Selection[]} foundSelections
+//  * @param {Selection} selection - editor.selection
+//  * 
+//  */
+// exports.runPostCommands = async function (args, foundMatches, foundSelections, selection) {
   
-  let postCommands = args.postCommands;
-  const editor = window.activeTextEditor;
+//   let postCommands = args.postCommands;
+//   const editor = window.activeTextEditor;
   
-  // does this work for a single object? No
-  const argHasText = (command) => {
-    return command?.args?.text;  // && check if variable in text?
-  }
+//   // does this work for a single object? No
+//   const argHasText = (command) => {
+//     return command?.args?.text;  // && check if variable in text?
+//   }
   
-  const resolvePostCommands = (Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text;
+//   const resolvePostCommands = (Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text;
   
 
-  // handles array or a single object
-  // if ((Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text) {
+//   // handles array or a single object
+//   // if ((Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text) {
 
-  if (foundMatches.length) {
-    if (args.runPostCommands === "onEveryMatch") {
-      let index = 0;
-      for await (const foundSelection of foundSelections) {
-        if (resolvePostCommands) {
-          editor.selections = [foundSelection];  // if preserveSelections ?
-          postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, index);
-        }
-        await commands.runPrePostCommands(postCommands, "postCommands");
-        index++;
-      };
-    }
-    else if (!args.runPostCommands || args.runPostCommands === "onceIfAMatch") { // uses first match and first selection = editor.selection
-      if (resolvePostCommands) {
-        editor.selections = [foundSelections[0]];  // if preserveSelections ?
-        postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
-      }
-      await commands.runPrePostCommands(postCommands, "postCommands");
-    }
-  }
-  else if (args.runPostCommands === "onceOnNoMatches") {
-    if (resolvePostCommands) postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
-    await commands.runPrePostCommands(postCommands, "postCommands");  // no matches, run once
-  }
-  // }
-  
-  
-  // editor.selections = foundSelections;
-  
-}
+//   if (foundMatches.length) {
+//     if (args.runPostCommands === "onEveryMatch") {
+//       let index = 0;
+//       for await (const foundSelection of foundSelections) {
+//         if (resolvePostCommands) {
+//           editor.selections = [foundSelection];  // if preserveSelections ?
+//           postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, index);
+//         }
+//         await registerCommands.runPrePostCommands(postCommands, "postCommands");
+//         index++;
+//       };
+//     }
+//     else if (!args.runPostCommands || args.runPostCommands === "onceIfAMatch") { // uses first match and first selection = editor.selection
+//       if (resolvePostCommands) {
+//         editor.selections = [foundSelections[0]];  // if preserveSelections ?
+//         postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
+//       }
+//       await registerCommands.runPrePostCommands(postCommands, "postCommands");
+//     }
+//   }
+//   else if (args.runPostCommands === "onceOnNoMatches") {
+//     if (resolvePostCommands) postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
+//     await registerCommands.runPrePostCommands(postCommands, "postCommands");  // no matches, run once
+//   }
+// }
 
 
 /**

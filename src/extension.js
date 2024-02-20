@@ -2,7 +2,7 @@ const { window, workspace, commands, env, Uri, Position, Selection } = require('
 
 const configs = require('./configs');
 const drivers = require('./drivers');
-const extensionCommands = require('./commands');
+const registerCommands = require('./registerCommands');
 const parseCommands = require('./parseCommands');
 const searchCommands = require('./search');
 const providers = require('./completionProviders');
@@ -121,7 +121,6 @@ async function activate(context) {
 	// ---------------------------------------------------------------------------------------------------------------------
 
 	// make a generic "run" command for keybindings args using find in current file only
-  // const runDisposable = commands.registerTextEditorCommand('findInCurrentFile', async (editor, edit, args) => {
   const runDisposable = commands.registerCommand('findInCurrentFile', async (args) => {
 
     // get this from keybinding:  { find: "(howdy)", replace: "\\U$1" }
@@ -203,26 +202,28 @@ async function _loadSettingsAsCommands(context, _disposables, firstRun) {
 	const searchSettings = await configs.getSettings("runInSearchPanel");
 
 	if (findSettings || searchSettings) {
-		await extensionCommands.loadCommands(findSettings, searchSettings, context, enableWarningDialog);
+		await registerCommands.load(findSettings, searchSettings, context, enableWarningDialog);
 	}
 
 	if (firstRun) enableWarningDialog = await workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
 
 	if (findSettings.length) {
-		await extensionCommands.registerFindCommands(findSettings, context, _disposables, enableWarningDialog);
+		await registerCommands.find(findSettings, context, _disposables, enableWarningDialog);
 		await codeActions.makeCodeActionProvider(context, findSettings);
 	}
 
 	if (searchSettings.length) {
-		await extensionCommands.registerSearchCommands(searchSettings, context, _disposables, enableWarningDialog);
+		await registerCommands.search(searchSettings, context, _disposables, enableWarningDialog);
 	}
 }
 
-// exports.activate = activate;
 
 async function deactivate() {
   await outputChannel.dispose();
 }
+
+// exports.activate = activate;
+// exports.deactivate = deactivate;
 
 module.exports = {
 	activate,
