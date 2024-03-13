@@ -2,15 +2,26 @@
 
 ## Highlights  
 
-> New for v5.0.0: `${getInput}` can be used in many options - including inside a `$${ jsOperation }$$` - and the variable `${/}` (which indicates a path separator) has been added.  A `$${ jsOperation }$$` can be used in a `find` now.  Find all blank lines easily.  
+* New for v5.1.0: can now use `${getInput}` multiple times in the same argument.  Example:s  
 
-> New for v4.8: `preserveSelections` argument, do not move any cursors or change existing selections in any way.  
+```json
+"find": "const ${getInput} = \\U${getInput}",       // two input prompts, capitalize the second
+"find": "$${ return ${getInput} * 3; }$$ $${ return ${getInput} * 4;} $$",
 
-> New for v4.7: `runWhen` and `ignoreWhiteSpace` arguments, the `"restrictFind": "matchAroundCursor"` option and the `"find": "${getFindInput}"` variable.  
+"find": "(${CLIPBOARD}) (${selectedText})",
+"replace": "${1:+ ${getInput}} ${2:+ ${getInput}}"
+// note that the replace runs separately for each match, so you would be prompted twice for EACH replacement
+```
 
-> Option deprecated: `${getFindInput}` is being replaced by `${getInput}` because now it can be used in a `replace`, `run`, `postCommands`, `cursorMoveSelect`, `filesToInclude` or `filesToExclude` value as well as a `find` value.  With v.5.0.0 both will continue to work, but you will get intellisense completions for `${getInput}` only.  
+* New for v5.0.0: `${getInput}` can be used in many options - including inside a `$${ jsOperation }$$` - and the variable `${/}` (which indicates a path separator) has been added.  A `$${ jsOperation }$$` can be used in a `find` now.  
 
-> Option deprecated: `once` as a value for the `restrictFind` argument.  It is being replaced by `onceExcludeCurrentWord` which functions exactly as `once` does, and `onceIncludeCurrentWord` which works a little differently.  See more below within [once restrictFind Values](#details-on-the-restrictfind-and-cursormoveselect-arguments).  
+* New for v4.8: `preserveSelections` argument, do not move any cursors or change location of existing selections in any way.  
+
+* New for v4.7: `runWhen` and `ignoreWhiteSpace` arguments, the `"restrictFind": "matchAroundCursor"` option and the `"find": "${getFindInput}"` variable.  
+
+* Option deprecated: `${getFindInput}` is being replaced by `${getInput}` because now it can be used in a `replace`, `run`, `postCommands`, `cursorMoveSelect`, `filesToInclude` or `filesToExclude` value as well as a `find` value.  With v.5.0.0 both will continue to work, but you will get intellisense completions for `${getInput}` only.  
+
+* Option deprecated: `once` as a value for the `restrictFind` argument.  It is being replaced by `onceExcludeCurrentWord` which functions exactly as `once` does, and `onceIncludeCurrentWord` which works a little differently.  See more below within [once restrictFind Values](#details-on-the-restrictfind-and-cursormoveselect-arguments).  
 
 ------------
 
@@ -197,8 +208,6 @@ Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command
 
 -----------------
 
-<br/>
-
 ## Contributed Setting
 
 This extension contributes one setting relevant to the `findInCurrentFile` settings and keybindings:  
@@ -365,17 +374,11 @@ Newline examples that work and don't work:
 
 > **Important**: Some checking for bad `args` keys and values will be done by this extension for both `findInCurrentFile` and `runInSearchPanel` commands.  For example, if you used `"restrictFind": "selection"` (instead of the proper `"restrictFind": "selections"`) or `"matchCases": false` (should be `"matchCase": false`) - a error message will be printed to the **Output** (under the dropdown *find-and-transform* option) notifying you of the errors and the current command will be aborted with no action.  So any bad `args` option will stop execution and nothing will be done.  
 
-<br/>
-
 -----------
 
 ## Using numbered capture groups in a `find`
 
-<br/>  
-
 ### &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;  &emsp; &emsp; Example : `"find": "\\$1(\\d+)"`
-
-<br/>  
 
 > Any numbered capture group, like the double-escaped `\\$1` above, will be **replaced in the find query by the first selection** in the current file (`\\$2` will be replaced by the second selection and so on).  You can easily make generic find regex's this way, that are determined by your selections not by hard-coding them first.  After these replacements, the `find` is run.  
 
@@ -454,8 +457,6 @@ And then those settings' commands can be triggered by the Command Palette or by 
 }
 ```
 
-<br/>
-
 --------------------
 
 ## How to insert a value at the cursor
@@ -488,8 +489,6 @@ Demo using `"replace": "Chapter ${matchNumber}"` and no `find`:
 Explanation for above:  In the first case, the cursor is placed on `Chapter`, so that is the `find` and each occurrence of it is replaced with `Chapter ${matchNumber}`.  In the second case, multiple cursors are placed on empty lines so there is no find, in which case `"Chapter ${matchNumber}"` is inserted at each cursor.  
 
 ---------
-
-<br/>
 
 ## Running multiple finds and replaces with a single keybinding or setting
 
@@ -576,15 +575,11 @@ On the first pass above, "someWord" will be replaced with "SOMEWORD".  On the se
 
 -------------
 
-<br/>
-
 ## Running Javascript Code in a Replacement  
 
 It is difficult to debug errors in javascript code you write in a replacement as below.  If your keybinding or setting generates an error, you will get a warning message notifying you of the failure.  And if you check your `Output` tab, and chose `find-and-transform` from the dropdown menu, you may get some helpful information on the nature of the error.  
 
 You can also put `console.log(...)` statements into the replacement code.  It wil lbe logged to your `Help/Toggle Developer Tools/Console`.  
-
-<br/>
 
 ### Doing math on replacements
 
@@ -627,15 +622,9 @@ Use the special syntax **` $${<some math op>}$$ `** as a replace or find value. 
 }
 ```  
 
-<br/>
-
 > **IMPORTANT**: you must use semicolons at the end of statements - except for the final `return` statement (or if the only statement is a `return something`).  Anything with multiple statements must use semicolons.  The operations will be loaded into a `Function` which uses `"use strict"` which requires semicolons.  
 
-<br/>
-
 ### A `jsOperation` written as an array of statements:  
-
-<br/>
 
  &nbsp; &nbsp; &nbsp; If you use the expanded form of replacement with a `jsOperation` written as an array (as in the last example immediately above), that entire array will be transformed into a single long array item like `$${ <multiple statements> }$$` and so it will then become a single replace array item.  So this replacement:
 
@@ -668,11 +657,7 @@ The above is 2 `replace`'s.  The first one will be applied to the first `find`. 
 
 -------------  
 
-<br/>  
-
 ### Doing string operations on replacements
-
-<br/>
 
 You can also do string operations inside the special syntax ` $${<operations>}$$ `.  But you will need to ***"cast"*** the string in backticks, single quotes or escaped double quotes like so:  
 
@@ -751,11 +736,7 @@ that capture group will be from the `replace/replaceAll` as you would expect.  O
 
 -------------  
 
-<br/>  
-
 ### Using the vscode api on replacements
-
-<br/>  
 
 If you wish to use [the vscode api](https://code.visualstudio.com/api/references/vscode-api) in a replacement you can do so easily. For instance, to insert the current filename capitalized you could use this keybinding:
 
@@ -957,11 +938,7 @@ Better is to use the built-in `vscode.workspace.fs` for file operations:
 
 ----------------
 
-<br/>
-
 ### Doing other javascript operations on replacements
-
-<br/>
 
 > In a `replace` there **must be one or more `return` statements** inside the ` $${...}$$ ` for whatever you want returned.  
 
@@ -1106,14 +1083,12 @@ This pattern of a `find` - which will select all the matches as limited by the `
 
 ## Special variables
 
-<br/>
-
 ### Variables defined by this extension for use in args  
 
 ```diff
 ${resultsFiles}            ** explained below ** Only available in a 'runInSearchPanel' command
 
-- ${getFindInput}                 deprecated, see ${getInput} 
+- ${getFindInput}                 deprecated, use ${getInput} 
 
 + ${getInput}              to enter the Find query or replacement text or cursorMoveSelect text or postCommand text
 +                           or filesToInclude or filesToExclude via an INPUT BOX rather than in the keybinding/setting
@@ -1183,8 +1158,7 @@ The `${getDocumentText}` variable allows you to look anywhere in a document for 
     
     "find": "${getInput}",     // enter plain text or a regular expression in the input box that pops up
     
-    "find": "${getInput} stuff ${getInput}",    // don't use multiple ${getInput} variables in a find
-                                                // ONLY the last will be replaced by the input text1!!
+    "find": "${getInput} stuff \\U${getInput}",    // can use multiple ${getInput} variables
 
     // you can mix text with what you will input
     "find": "before ${getInput} after",
@@ -1280,8 +1254,6 @@ These variables should have the same resolved values as found at &nbsp; [vscode'
 
 > Examples are given below using `lineIndex/Number` and `matchIndex/Number`.  
 
-<br/>
-
 ### Snippet variables
 
 ```text
@@ -1364,8 +1336,6 @@ The above will, after a reload, appear in the Command Palette as 'Find-Transform
 
 ### Case modifier transforms
 
-<br/>
-
  The find query and the replace transforms can include ***case modifiers*** like:  
 
 ```text
@@ -1408,11 +1378,7 @@ Example:
 
 > Note, the above case modifiers must be double-escaped in the settings or keybindings.  So `\U$1` should be `\\U$1` in the settings.  VS Code will show an error if you do not double-escape the modifiers (similar to other escaped regexp items like `\\w`).
 
-<br/>
-
 ### Conditional replacements in `findInCurrentFile` commands or keybindings
-
-<br/>
 
 Vscode **snippets** allow you to make conditional replacements, see [vscode's snippet grammar documentation](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_grammar).  However you cannot use those in the find/replace widget.  This extension allows you to use those conditionals in a `findInCurrentFile` command or keybinding.  Types of conditionals and their meaning:
 
@@ -1460,11 +1426,7 @@ Examples:
 1. Groups within conditionals (which is not possible even in a vscode snippet), must be surrounded by backticks.  
 2. If you want to use the character `}` in a replacement within a conditional, it must be double-escaped `\\}`.  
 
-<br/>
-
 ### Snippet-like transforms: replacements in `findInCurrentFile` commands or keybindings
-
-<br/>
 
 The following can be used in a `replace` field for a `findInCurrentFile` command:
 
@@ -1547,11 +1509,7 @@ The above works by performing 2 replacements (with no find).  First, insert at t
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/screamingFileName.gif?raw=true" width="500" height="200" alt="insert screaming snake case filename"/>
 
-<br/>
-
 ----------------
-
-<br/>
 
 > **Careful**: with `isRegex` set to true and you use settings like:
 
@@ -1572,8 +1530,6 @@ You would effectively be replacing the match `trouble` with nothing, so all matc
 > If `isRegex` is set to `false` (the same as not setting it at all), the replace value, even one like `\\U$2` will be interpreted as literal plain text.  
 
 ---------------
-
-<br/>
 
 ## Using `restrictFind` with the `matchAroundCursor` option  
 
@@ -1626,8 +1582,6 @@ For example this `run` argument will take the selected text - like from the `fin
 ```
 
 ---------------
-
-<br/>
 
 ## Details on the `restrictFind` and `cursorMoveSelect` arguments
 
@@ -1736,17 +1690,11 @@ Note `^` and `$` work for `restrictFind` selections/line/onceIncludeCurrentWord/
 
 > When you use the `cursorMoveSelect` argument for a `restrictFind: document` or the `nextMoveCursor` or `nextSelect` options for the `restrictFind` key, it is assumed that you actually want to go there and see the result.  So the editor will be scrolled to reveal the line of that match if it is not curently visible in the editor's viewport.  For `selections/line/onceIncludeCurrentWord/onceExcludeCurrentWord` no scrolling will occur - it is assumed that you can see the resulting match already (the only way that wouldn't typically be true is if you had a long selection that went off-screen).  
 
-<br/>
-
 > Note: if there is no find and no replace or a find but no replace, the `cursorMoveSelect` argument is ignored.  
-
-<br/>
 
 -----------
 
 ### Some `"restrictFind": "next...` option examples
-
-<br/>
 
 ```jsonc
 {
@@ -1834,8 +1782,6 @@ Explanation for above: Find the end of non-empty lines and append '-' and that l
   }
 }
 ```
-
-<br/>  
 
 -------------------
 
@@ -2037,13 +1983,9 @@ In this way you can specify a keybinding to run a generic `findInCurrentFile` co
 
 The downside to this method is that these `findInCurrentFile` keybinding-only versions cannot be found through the Command Palette.  
 
-<br/>
-
 --------------------
 
 ### `"nearest words at cursors"`
-
-<br/>  
 
 > Important:  &nbsp; What are &nbsp; **`"nearest words at cursors"`**? &nbsp; In VS Code, a cursor immediately next to or in a word is a selection (even though no text may actually be selected!).  This extension takes advantage of that: if you run a `findInCurrentFile` command with no `find` arg it will treat any and all "nearest words at cursors" as if you were asking to find those words.  Actual selections and "nearest words at cursors" can be mixed by using multiple cursors and they will all be searched for in the document.  It appears that a word at a cursor is defined generally as this: `\b[a-zA-Z0-9_]\b` (consult the word separators for your given language) although some languages may define it differently.  
 
@@ -2054,8 +1996,6 @@ The downside to this method is that these `findInCurrentFile` keybinding-only ve
 > So with the cursor at the start or end of `FIXME` or anywhere within the word, `FIXME` is the word at the cursor.  `FIXME-Soon` consists of two words (in most languages).  If the cursor followed the `*` in `FIXME*` then `FIXME` is **not** the word at the cursor.  
 
 This is demonstrated in some of the demos below.  
-
-<br/>  
 
 * Generic `run` command in `keybindings.json`, no `find` or `replace` keys in the `args`
 
@@ -2078,8 +2018,6 @@ Explanation for above: With no `find` key, find matches of selections or nearest
 
 > Finally, if you select multiple instances of the same text the generated `find` term will have any duplicates removed.  `Set.add()` is a beautiful thing.  
 
-<br/>
-
 ```jsonc
 {
   "key": "alt+y",
@@ -2094,8 +2032,6 @@ Explanation for above: With no `find` key, find matches of selections or nearest
 The above will repeatedly select the next matching word under the cursor (the 'matchCase' option is up to you).  
 
 ---------------
-
-<br/>  
 
 ### `find` and `replace` keys with no `restrictFind`
 
@@ -2117,8 +2053,6 @@ Explanation for above: Find and replace each with its value in the `args` field.
 
 ----------------
 
-<br/>  
-
 ### `find` and `replace` with `"restrictFind": "selections"`
 
 ```jsonc
@@ -2139,15 +2073,9 @@ Explanation for above: Find and replace each with its value in the `args` field.
 
 Explanation for above: Using `restrictFind` arg set to `selections`, find will only occur within any selections.  Selections can be multiple and selections do include "nearest words at cursors". Using `cursorMoveSelect` to select all instances of `TABLE`.  
 
-<br/>
-
 > Note a subtle difference in the above demo.  If you make an actual full selection of a word or words, only text within that selection will be searched.  But if you make a "nearest word"-type selection (a cursor in or next to a word) then all matching words in the document will be searched for, even if they are not in a selection of their own.  If you want to restrict the search to a selection, make an actual selection - do not rely on the nearest word functionality.  
 
-<br/>  
-
 #### If `restrictFind` is not set to anything, it defaults to `document`.  So the entire document will be searched and any selections will be ignored, since a `find` has been set.  Remember if no `find` is set, then any selections will be interpreted as the `find` values.  
-
-<br/>  
 
 The above keybinding is no different than this setting (in your `settings.json`):  
 
@@ -2165,8 +2093,6 @@ The above keybinding is no different than this setting (in your `settings.json`)
 ```
 
 except that a **reload of vscode is required** prior to using the generated command from this setting (no reload necessary for the keybinding) and the `title`, in this case `"Uppercase selected Keywords"` will appear and be searchable in the Command Palette (not true for keybinding "commands").  
-
-<br/>
 
 --------------------
 
@@ -2212,8 +2138,6 @@ If you have set `"restrictFind": "document"` any actual selections in the file w
 
 ------------
 
-<br/>  
-
 ### with a `replace` key but NO `find` key
 
 ```jsonc
@@ -2240,8 +2164,6 @@ In a keybinding/setting with no find BUT a capture group in the replace, like in
 2. `false`: the word at the cursor (or more likely the selection) is NOT treated as a regex.  It is treated as plain text, so any special regex characters will be **escaped** so that a regex match can be performed on that text - necessary since the replace may contain a capture group reference, like `$1`.  Example: `find*me` becomes `find\*me` so that the literal text `find*me` is searched for.  
 
 ---------------
-
-<br/>  
 
 ## Demonstrating `cursorMoveSelect` after replacement
 
@@ -2274,15 +2196,11 @@ In a keybinding/setting with no find BUT a capture group in the replace, like in
 
 Explanation for above: Find the first `>` within selection(s) and replace them with ` class=\"@\">`.  Then move the cursor(s) to `@` and select it.  `cursorMoveSelect` value can be any text, even the regexp delimiters `^` and `$`.  
 
-<br/>
-
 * `"restrictFind": "onceExcludeCurrentWord"` => find the FIRST instance of the `find` query AFTER the cursor (so if your cursor is in the middle of a word, only part of that word is **after** the cursor), replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.  
 
 * `"restrictFind": "onceIncludeCurrentWord"` => find the FIRST instance of the `find` query from the BEGINNING of the current word (so if your cursor is in the middle of a word, that entire word will be searched), replace it and then go to and select the `cursorMoveSelect` value if any.  Works the same for multiple cursors.
 
 * `"restrictFind": "line"` => find all instances of the `find` query on the entire line with the cursor, replace them and then go to and select All `cursorMoveSelect` values if any.  Works on each line if multiple cursors.  But it only considers the line where the cursor(s) is, so if there is a multi-line selection, only the line with the cursor is searched.  
-
-<br/>
 
 ----------------------
 
@@ -2310,8 +2228,6 @@ These variables can be used in the `replace` and/or `cursorMoveSelect` positions
 
 Explanation for above: The match in this case is "text$" ('text' at the end of a line).  The first instance of a match has `matchNumber` = 1 and that will be used in the replacement.  `${matchIndex}` is the same but 0-based.  
 
-<br/>  
-
 ```jsonc  
 {
   "key": "alt+y",
@@ -2328,8 +2244,6 @@ Explanation for above: The match in this case is "text$" ('text' at the end of a
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/matchNumberCase.gif?raw=true" width="600" height="400" alt="demo of using ${matchNumber} with case transform"/>
 
-<br/>  
-
 -------------------
 
 ## `reveal` Options
@@ -2343,8 +2257,6 @@ The `reveal` argument to the `findInCurrentFile` command can take three options:
 If you do not want the editor to scroll to reveal any find match, simply do not include a `reveal` option at all.  Certain other arguments like `"restrictFind": "nextMoveCursor/previousMoveCursor/previousSelect/nextSelect/nextDontMoveCursor/previousDontMoveCursor"` etc. will always scroll to reveal, eben if there is no `reveal` argument.  
 
 * Note: The `reveal` argument will do nothing if you have a `cursorMoveSelect` argument in your keybinding or setting.  `cursorMoveSelect` will take precedence.  
-
-<br/>
 
 -------------------  
 
@@ -2374,8 +2286,6 @@ someWord-A        someWord-B
 
  And the `ignoreWhiteSpace` argument can be used in a search across files too.  
 
-<br/>
-
 -------------------  
 
 ## Using the `preserveSelections` argument  
@@ -2388,11 +2298,7 @@ But, you may not need that functionality (which is the default).  Perhaps you ar
 
 For certain options, `preserveSelections` has no effect.  For instance, if you have a `find` and no `replace` (or no `find` and no `replace`) then the find matches will be selected regardless of the `preserveSelections` setting.  If you use the `cursorMoveSelect` argument then naturally any of its matches will be selected.  If you are using one of the `next/previous` options, then `preserveSelections` has no effect as those options call for a new selection or already prevent the cursor from moving.  
 
-<br/>
-
 -------------------  
-
-<br/>
 
 > Note: Regex lookbehinds that are **not fixed-length** (also called fixed-width sometimes), like `(?<=^Art[\w]*)` are not supported in the Search Panel.  But non-fixed-length lookbehinds are supported in vscode's Find in a file (as in using the Find widget) so they can be used in `findInCurrentFile` settings or keybindings.  
 
@@ -2448,7 +2354,6 @@ And put your cursor on any empty line.  They will be matched and replaced.  If y
 With the following keybinding, you can easily go to the next matching word (note there is no `find`).  So if your cursor starts on an empty line, it will match the next empty line.  If your cursor started on a word, then the cursor would go to that word.
 
 ```json
-```json
 {
   "key": "alt+l",
   "command": "findInCurrentFile",
@@ -2481,8 +2386,6 @@ And, if you want to put a cursor on all empty lines within your selections, use 
 
 -----------------------
 
-<br/>
-
 ## TODO
 
 * Add more error messages, e.g., if a capture group used in replace but none in the find.
@@ -2500,6 +2403,10 @@ And, if you want to put a cursor on all empty lines within your selections, use 
 ## Release Notes
 
 See [CHANGELOG](CHANGELOG.md) for notes on prior releases.  
+
+* 5.1.0 Enabled multiple `${getInput}`'s in an argument.  Added regex.js for commonly used regular expressions.  
+&emsp;&emsp; - Fix lineNumber/Index matching.  
+&emsp;&emsp; - Fix  `matchAroundCursor`  bug - set regex true.  
 
 * 5.0.0 Much work on making the code more asynchronous.  Using `replaceAsync`.  
 &emsp;&emsp; - `${getInput}` is replacing `${getFindInput}`.  It now works in `replace`, `run`, `postCommands`, `cursorMoveSelect`, `filesToInclude` and `filesToExclude` arguments.  

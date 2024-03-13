@@ -1,6 +1,8 @@
 const { Range, Position, Selection } = require('vscode');
 
 const resolve = require('../resolveVariables');
+const regexp = require('../regex');
+
 const transforms = require('../transform');
 const prePostCommands = require('../prePostCommands');
 
@@ -35,7 +37,8 @@ exports.findAndSelect = async function (editor, args) {
     // resolvedFind = "(^(?!\n)$(?!\n))", if on an empty line
     if (resolvedFind) {
 
-      if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
+      // if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
+      if (resolvedFind?.search(regexp.lineNumberIndexRE) !== -1) {
         // lineCount is 1-based, so need to subtract 1 from it
         const lastLineRange = document?.lineAt(document.lineCount - 1).range;
         docRange = new Range(0, 0, document?.lineCount - 1, lastLineRange?.end?.character);
@@ -90,7 +93,8 @@ exports.findAndSelect = async function (editor, args) {
         else selectedRange = new Range(selection.start, selection.end);
         if (!selectedRange) return;
 
-        if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1)
+        // if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1)
+        if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1)
           matches = transforms.buildLineNumberMatches(resolvedFind, selectedRange);
 
         else if (resolvedFind?.length) {
@@ -99,7 +103,8 @@ exports.findAndSelect = async function (editor, args) {
         }
         
         matches?.forEach((match) => {
-          const selectionStartIndex = document.offsetAt(selectedRange.start);
+          // const selectionStartIndex = document.offsetAt(selectedRange.start);
+          const selectionStartIndex = 0;  // FIX
           const startPos = document.positionAt(selectionStartIndex + match.index);
           const endPos = document.positionAt(selectionStartIndex + match.index + match[0].length);
           // reveal will use the **last** selection's foundSelections
@@ -120,7 +125,8 @@ exports.findAndSelect = async function (editor, args) {
 
         let lineIndex = 0;
 
-        if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+        // if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+        if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1) {
           let selectedLineRange = document.lineAt(selection.active.line).range;
           matches = transforms.buildLineNumberMatches(resolvedFind, selectedLineRange);
         }
@@ -130,7 +136,10 @@ exports.findAndSelect = async function (editor, args) {
           lineIndex = document.offsetAt(new Position(selection.active.line, 0));
         }
 
-        matches?.forEach((match) => {
+       matches?.forEach((match) => {
+         // FIX
+         lineIndex = 0;
+        
           const startPos = document.positionAt(lineIndex + match.index);
           const endPos = document.positionAt(lineIndex + match.index + match[0].length);
           foundSelections.push(new Selection(startPos, endPos));
@@ -142,7 +151,8 @@ exports.findAndSelect = async function (editor, args) {
 
         const currentWordRange = document.getWordRangeAtPosition(selection.active);
 
-        if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+        // if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+        if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1) {
           
           let lineRange = document.lineAt(selection.active.line).range;
           let subLineRange = lineRange.with({ start: selection.active });
@@ -170,7 +180,7 @@ exports.findAndSelect = async function (editor, args) {
           
         if (matches?.length) {
           
-          const lineIndex = document.offsetAt(new Position(selection.active.line, 0));
+          let lineIndex = document.offsetAt(new Position(selection.active.line, 0));
           let subStringIndex = selection.active?.character;
           let doContinue = true;
           
@@ -194,13 +204,15 @@ exports.findAndSelect = async function (editor, args) {
           }
           
           if (doContinue) {
-            
+           
             lineMatches.push({ lineIndex, subStringIndex });
         
             if ((args.restrictFind === "onceIncludeCurrentWord") && currentWordRange) {
               subStringIndex = currentWordRange?.start?.character;
             }
-
+            // FIX
+            lineIndex = 0; subStringIndex = 0;
+         
             const startPos = document.positionAt(lineIndex + subStringIndex + matches[0].index);
             const endPos = document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
             foundSelections.push(new Selection(startPos, endPos));

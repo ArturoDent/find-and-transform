@@ -1,4 +1,5 @@
 const { window, workspace, Selection, Position, env, extensions, commands, Uri } = require('vscode');
+const resolve = require('./resolveVariables');
 
 const languageConfigs = require('./getLanguageConfig');
 const path = require('path');
@@ -64,9 +65,9 @@ exports.getTextOfSelection = async function (sel) {
  */
 exports.getInput = async function (type) {
   
-  if (type === "ignoreLineNumbers") type = "find query";
-  else if (type === "find") type = "find query";
-  else if (type === "findSearch") type = "search query";
+  if (type === "ignoreLineNumbers") type = "find query - for ${getInput}";
+  else if (type === "find") type = "find query - for ${getInput}";
+  else if (type === "findSearch") type = "search query - for ${getInput}";
   
   const title = type[0].toLocaleUpperCase() + type.substring(1);
   let prompt = "";
@@ -513,10 +514,36 @@ exports.replaceAsync = async function (toResolve, regexp, replacerFunction) {
   
   const replacements = await Promise.all(
       Array.from(toResolve.matchAll(regexp),
-          // async match => await replacerFunction(...match)));  // no difference
-        match => replacerFunction(...match)
+          async match => await replacerFunction(...match)  // no difference
+        // match => replacerFunction(...match)
     )
   );
   let i = 0;
   return toResolve.replace(regexp, () => replacements[i++]);
+};
+
+
+
+/**
+ * An async version of replaceAll.  Called in resolveVariables.resolveVariables() and search.js.
+ * Specifically for extension-derived variable resolution, notably ${getInput}
+ * 
+ * @param {string} toResolve - string to resolve
+ * @param {RegExp} regex
+ * @param {Function} asyncFn - the async replacer function
+ * 
+ * @returns {Promise<string>}
+ */
+exports.replaceAsync2 = async function (toResolve, regex, asyncFn, args, caller) {
+ 
+ const matches = toResolve.match(regex);
+ 
+  if (matches) {
+  //  const replacement = await resolve.resolveExtensionDefinedVariables(matches[0], args, caller);
+   const replacement = await asyncFn(matches[0], args, caller);
+   toResolve = toResolve.replace(matches[0], replacement);
+   toResolve = await this.replaceAsync2(toResolve, regex, asyncFn, args, caller);
+ }
+ 
+  return toResolve;
 }

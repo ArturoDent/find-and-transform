@@ -1,6 +1,7 @@
 const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
 const registerCommands = require('./registerCommands');
 const resolve = require('./resolveVariables');
+const regexp = require('./regex');
 
 
 /**
@@ -49,7 +50,8 @@ exports.matchAroundCursor = function (args, resolvedFind, selection) {
   let foundSelection;
   let foundMatch;
 
-  if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+ if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1) {
+   
     let selectedLineRange = document.lineAt(selection.active.line).range;
     // matches = module.exports.buildLineNumberMatches(resolvedFind, selectedLineRange);
     matches = this.buildLineNumberMatches(resolvedFind, selectedLineRange);
@@ -226,6 +228,8 @@ exports.buildLineNumberMatches = function (find, range) {
     const lineIndex = document.offsetAt(new Position(line, 0));
     let lineText = document.lineAt(line).text;
 
+    // if no lineText continue
+   
     // for selections/once/onceIncludeCurrentWord/onceExcludeCurrentWord
     // change lineText to start of wordAtCursor?
     
@@ -236,7 +240,8 @@ exports.buildLineNumberMatches = function (find, range) {
     const lineMatches = [...lineText.matchAll(new RegExp(resolved, "g"))];
 
     for (const match of lineMatches) {
-      match["line"] = line;
+     match["line"] = line;
+     // should lineIndex be included at all?
       if (range.start.line === line) match["index"] = lineIndex + match.index + range.start.character;
       else match["index"] = lineIndex + match.index;  // don't add range.start.character to non-first line of selections
       matches.push(match);

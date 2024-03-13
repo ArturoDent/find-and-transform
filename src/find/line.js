@@ -192,12 +192,6 @@ exports.replaceInLine = async function (editor, args) {
     // do this so editBuilder will select the replacements, but have originalSelectons for later
     if (foundSelections.length) editor.selections = foundSelections;
   
-    // await editor.edit(editBuilder => {
-    //   textEdits.forEach(textEdit => {
-    //     editBuilder.replace(textEdit.range, textEdit.newText);
-    //   });
-    // });
-    
     if (textEdits.length) {
       await editor.edit(editBuilder => {
         textEdits.forEach(textEdit => {
@@ -420,12 +414,6 @@ exports.replaceInLine = async function (editor, args) {
     
       // do this so editBuilder will select the replacements, but have originalSelectons for later
       if (foundSelections.length) editor.selections = foundSelections;
-    
-      // await editor.edit(editBuilder => {
-      //   textEdits.forEach(textEdit => {
-      //     editBuilder.replace(textEdit.range, textEdit.newText);
-      //   });
-    // });
     
       if (textEdits.length) {
         await editor.edit(editBuilder => {

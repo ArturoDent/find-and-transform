@@ -1,7 +1,8 @@
 const vscode = require('vscode');
 const { window, workspace, env, Range } = require('vscode');
 
-const variables = require('./variables'); 
+const variables = require('./variables');
+const regexp = require('./regex');
 const path = require('path');        
 const os = require('os');     
 const utilities = require('./utilities');
@@ -89,10 +90,14 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   // need to set a flag for presence of 'await' in jsOp BEFORE any variable substitution,
   // in case some variable has "await" in it like ${selectedText}, but not part of jsOp
     
+  const jsOpRE = regexp.jsOpRE;
+ 
   if (caller === "run" || caller === "replace") {
-    const re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
+   // const re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
+  //  const re = regexp.jsOpRE;
     
-    const matches = [...replaceValue.matchAll(re)];
+    // const matches = [...replaceValue.matchAll(re)];
+    const matches = [...replaceValue.matchAll(jsOpRE)];
     let i = 0;
     
     for await (const match of matches) {
@@ -106,7 +111,8 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   // if jsOp replace all \w => \\w
   if (groups?.length && (caller === "replace" || caller === "run")) {
     
-    let jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+   // let jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+  //  const jsOpRE = regexp.jsOpRE;
     
     if (jsOpRE.test(args.replace) || jsOpRE.test(args.run)) {
     
@@ -130,9 +136,9 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   let re;
   let groupNames = {};
   
-  // --------------------  path variables -----------------------------------------------------------
-  let vars = variables.getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-  re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<path>${ vars })`, 'g');
+ // --------------------  path variables -----------------------------------------------------------
+ 
+  re = regexp.pathGlobalRE;
   
   resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2) {
     
@@ -147,12 +153,11 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   // --------------------  path variables -----------------------------------------------------------
   
   
-  // --------------------  snippet variables -----------------------------------------------------------
-  vars = variables.getSnippetVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-  re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<snippetVars>${ vars })`, 'g');
+ // --------------------  snippet variables -----------------------------------------------------------
+ 
+ re = regexp.snippetRE;
   
   resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2) {
-    // const variableToResolve = _resolveSnippetVariables(match, args, caller, selection, groups);
     const variableToResolve = await _resolveSnippetVariables(match, args, caller, selection, groups);
     groupNames = {
       pathCaseModifier: p1,
@@ -164,29 +169,23 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   // --------------------  snippet variables -----------------------------------------------------------
   
   
-  // --------------------  extension-defined variables -------------------------------------------
-  vars = variables.getExtensionDefinedVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-  re = new RegExp(`(?<caseModifier>\\\\[UuLl])?(?<extensionVars>${ vars })`, 'g');
+ // --------------------  extension-defined variables -------------------------------------------
+ 
+  re = regexp.extensionGlobalRE;
   
-  resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2) {
-    const variableToResolve = await _resolveExtensionDefinedVariables(match, args, caller);
-    groupNames = {
-      caseModifier: p1,
-      extensionVars: p2
-    }
-    if (!groupNames.caseModifier) return variableToResolve;
-    else return _applyCaseModifier(groupNames, groups, variableToResolve);
-  });
+  resolved = await utilities.replaceAsync2(resolved, re, this.resolveExtensionDefinedVariables, args, caller); 
+ 
   // --------------------  extension-defined variables ----------------------------------------------
 
   
   if (caller !== "find" && caller !== "snippet") {  // caller === "find"  caseModifier and capGroups handled in replaceFindCaptureGroups
   
-    // --------------------  caseModifier/capGroup --------------------------------------------------
-    re = new RegExp("(?<caseModifier>\\\\[UuLl])(?<capGroup>\\$\\{?\\d(?!:)\\}?)", "g");
+   // --------------------  caseModifier/capGroup --------------------------------------------------
+   
+   re = regexp.capGroupCaseModifierRE;
     
     if (!resolved || resolved === '') return '';  // TODO add to all/rest
-    resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2) {
+    resolved = await utilities.replaceAsync(resolved, re, await function (match, p1, p2) {
 
       groupNames = {
         caseModifier: p1,
@@ -200,8 +199,8 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
 
   
   // --------------------  caseTransform ----------------------------------------------------------
-  re = new RegExp("(?<caseModifier>\\\\[UuLl])?(?<caseTransform>\\$\\{(\\d):\\/((up|down|pascal|camel|snake)case|capitalize)\\})", "g");
-
+  re = regexp.caseTransformRE;
+ 
   resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2, p3, p4) {
     const variableToResolve = _applyCaseTransform(p3, p4, groups);
     groupNames = {
@@ -211,25 +210,15 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
     if (!groupNames.caseModifier) return variableToResolve;
     else return _applyCaseModifier(groupNames, groups, variableToResolve);
   });
-  
-  // resolved = resolved?.replaceAll(re, (match, p1, p2, p3, p4, p5, offset, string, namedGroups) => {
-  //   const variableToResolve = _applyCaseTransform(p3, p4, groups);
-  //   if (!namedGroups.caseModifier) return variableToResolve;
-  //   else return _applyCaseModifier(namedGroups, groups, variableToResolve);
-  // });
-  
   // --------------------  caseTransform ----------------------------------------------------------
 
   
-  // --------------------  conditional ------------------------------------------------------------
+ // --------------------  conditional ------------------------------------------------------------
+ 
   // if (caller !== "snippet") {  // because you can have a conditional like '${2:else}' which is a good snippet
 
-  // replace \\} here with !@#% and then replace it back at end
-  // or do a bracket count ${1:+${PWD\\}}${2:+$PWD} , regex above does not work!
-
-  // re = new RegExp("(?<caseModifier>\\\\[UuLl])?(?<conditional>\\$\\{(\\d):([-+?]?)(.*?)\\})", "g");
   // can handle one \\} within the conditional
-  re = new RegExp("(?<caseModifier>\\\\[UuLl])?(?<conditional>(\\$\\{(\\d):([-+?]?)(.*?\\\\\}.*?|.*?))\\})", "g");
+ re = regexp.conditionalRE;
   
   resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2, p3, p4, p5, p6) {
     const variableToResolve = _applyConditionalTransform(match, p4, p5, p6, groups);
@@ -247,8 +236,9 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   // --------------------  conditional -----------------------------------------------------------
 
   
-  // --------------------  capGroupOnly ----------------------------------------------------------
-  re = new RegExp("(?<capGroupOnly>(?<!\\$)\\$\{(\\d)\\}|(?<!\\$)\\$(\\d))", "g");
+ // --------------------  capGroupOnly ----------------------------------------------------------
+ 
+ re = regexp.capGroupOnlyRE;
   
   resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2, p3, offset) {
     // So can use 'replace(/.../, '$nn?')` in a jsOp and use the replace's capture group
@@ -270,7 +260,8 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   // -------------------  jsOp ------------------------------------------------------------------
   
   // can have multiple $${...}$$ in a replace
-  re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+//  re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+  re = regexp.jsOpRE;
   
   try {
     
@@ -325,7 +316,6 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
     throw new Error(jsOPError.stack);
   }
   // -------------------  jsOp ------------------------------------------------------------------
-  // }
   
   // if still have a '${` or `$n` re-resolve
   // if (!error && caller !== "snippet" && resolved.search(/\$[\{\d]/) !== -1) {  // could this be replaced with a while loop up top?
@@ -350,7 +340,6 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
  * @returns {Promise<object>} { findValue,  isRegex }
  */
 exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, matchWholeWord, ignoreWhiteSpace, madeFind) {
-// async function adjustValueForRegex (findValue, replaceValue, isRegex, matchWholeWord, ignoreWhiteSpace, madeFind) {
 
   if (findValue === "") return { findValue, isRegex };
 	if (matchWholeWord) findValue = findValue?.replace(/\\b/g, "@%@");
@@ -362,7 +351,7 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
     const re = /\$(\d+)/g;
     const capGroups = [...replaceValue?.matchAll(re)];
     
-    if (capGroups) {
+    if (capGroups.length) {
   
       if (!ignoreWhiteSpace) findValue = findValue?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
       findValue = `(${ findValue })`;
@@ -572,9 +561,9 @@ async function _resolveExtensionDefinedVariables (variableToResolve, args, calle
 
   if (!lineTextMatch?.groups) {
 
-    const namedGroups = resolved?.match(/(?<varCaseModifier>\\[UuLl])?(?<definedVars>\$\{\s*.*?\s*\})/).groups;
+    const namedGroups = resolved?.match(regexp.pathCaseModifierRE)?.groups;
 
-    switch (namedGroups.definedVars) {
+    switch (namedGroups.vars) {
     
       case "${getDocumentText}": case "${ getDocumentText }":
         resolved = document?.getText();
@@ -589,14 +578,11 @@ async function _resolveExtensionDefinedVariables (variableToResolve, args, calle
       case "${getFindInput}": case "${ getFindInput }": case "${getInput}": case "${ getInput }":
         // "ignoreLineNumbers" or "replace"
         const input = await utilities.getInput(caller);
-        const re = new RegExp('\\$\\{\\s*getInput\\s*\\}|\\$\\{\\s*getFindInput\\s*\\}', 'g');
         
         if (input || input === '')  // accept inputBox with nothing in it = ''
-          resolved = resolved?.replaceAll(re, input);
-          
+          resolved = input;
         else {
-          // escaped out of inputBox : input = undefined
-          resolved = resolved?.replaceAll(re, '');
+          resolved = '';
         }
         break;
   
@@ -605,11 +591,15 @@ async function _resolveExtensionDefinedVariables (variableToResolve, args, calle
     }
   }
 
-	// escape .*{}[]?^$ if using in a find or findSearch
-  if (!args.isRegex && caller === "find") return resolved?.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-  else if (!args.isRegex && caller === "findSearch") return resolved?.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+ // removing as seems unecessary
+   // escape .*{}[]?^$ if using in a find or findSearch
+  // if (!args.isRegex && (caller === "find" || caller === "findSearch")) return resolved?.replaceAll(regexp.escapeRegExCharacters, "\\$1");
+ 
+  // if (!args.isRegex && caller === "find") return resolved?.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+  // else if (!args.isRegex && caller === "findSearch") return resolved?.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
 
-  else if (caller === "filesToInclude" && resolved === ".") return  "./";
+  // else if (caller === "filesToInclude" && resolved === ".") return  "./";
+  if (caller === "filesToInclude" && resolved === ".") return  "./";
   
   else return resolved;
 };
@@ -683,9 +673,11 @@ async function _resolvePathVariables (variableToResolve, args, caller, selection
 	else relativePath = workspace?.asRelativePath(document.uri, false);
 
   let resolved = variableToResolve;
-  const namedGroups = resolved?.match(/(?<pathCaseModifier>\\[UuLl])?(?<path>\$\{\s*.*?\s*\})/)?.groups;
 
-  switch (namedGroups?.path) {
+ 
+  const namedGroups = resolved?.match(regexp.pathCaseModifierRE)?.groups;
+
+  switch (namedGroups?.vars) {
 
     case "${file}":  case "${ file }":
       if (os.type() === "Windows_NT") resolved = filePath?.substring(4);
@@ -718,7 +710,6 @@ async function _resolvePathVariables (variableToResolve, args, caller, selection
      
     case "${workspaceFolder}": case "${ workspaceFolder }":
       resolved = workspace?.getWorkspaceFolder(document.uri).uri.path;
-      const qweqwe =  workspace?.getWorkspaceFolder(document.uri).uri;
       break;
 
     case "${relativeFileDirname}": case "${ relativeFileDirname }":
@@ -763,10 +754,10 @@ async function _resolvePathVariables (variableToResolve, args, caller, selection
        else if (caller !== "ignoreLineNumbers") {
       //  else if (caller !== "ignoreLineadasdbers") {
          if (args.restrictFind === "selections") {
-           const line = document?.positionAt(match.index + selectionStartIndex).line;
+           const line = document?.positionAt(match?.index + selectionStartIndex).line;
            resolved = String(line);
          }
-         else if (args.restrictFind.startsWith("next") || args.restrictFind.startsWith("previous")) {
+         else if (args.restrictFind?.startsWith("next") || args.restrictFind?.startsWith("previous")) {
            resolved = String(document?.positionAt(selectionStartIndex).line); //  works for wholeDocument
          }
          else if (args.restrictFind === "document") resolved = String(document?.positionAt(match.index).line);
@@ -781,10 +772,10 @@ async function _resolvePathVariables (variableToResolve, args, caller, selection
 
       else if (caller !== "ignoreLineNumbers") {
         if (args.restrictFind === "selections") {
-          const line = document?.positionAt(match.index + selectionStartIndex).line;
+          const line = document?.positionAt(match?.index + selectionStartIndex).line;
           resolved = String(line + 1);
         }
-        else if (args.restrictFind.startsWith("next") || args.restrictFind.startsWith("previous")) {
+        else if (args.restrictFind?.startsWith("next") || args.restrictFind?.startsWith("previous")) {
           resolved = String(document?.positionAt(selectionStartIndex).line + 1); //  works for wholeDocument
         }
         else if (args.restrictFind === "document") resolved = String(document?.positionAt(match?.index).line + 1); //  works for wholeDocument
@@ -794,25 +785,20 @@ async function _resolvePathVariables (variableToResolve, args, caller, selection
       break;
 
     case "${CLIPBOARD}": case "${ CLIPBOARD }":
-      // resolved = args?.clipText;
-      
       resolved = await env.clipboard.readText();    // need to make function async
-      // env.clipboard.readText().then(string => {     // doesn't work
-      //   resolved = string;
-      // });
       break;
 
     default:
       break;
    }
 
-  
-	// escape .*{}[]?^$+|/ if using in a find
-  if (!args.isRegex && caller === "find") return resolved?.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-  else if (!args.isRegex && caller === "findSearch") return resolved?.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-    
+  // removed, see above
+  // escape .*{}[]?^$+()| if using in a find
+  //  if (!args.isRegex && (caller === "find" || caller === "findSearch")) return resolved?.replaceAll(regexp.escapeRegExCharacters, "\\$1");
+ 
     // in case use "let re = /${selectedText}/" and selectedText, etc. has a / in it, then must escape it
-  else if (caller === "replace") {
+  // else if (caller === "replace") {
+  if (caller === "replace") {
     const re = /\$\{[^}]*\}/m;
     // if args.replace is only a variable ${...} do nothing
     if (args.replace.match(re)) return resolved;
@@ -845,12 +831,12 @@ async function _resolveSnippetVariables (variableToResolve, args, caller, select
   if (typeof variableToResolve !== 'string') return variableToResolve;
 
   const _date = new Date();
-  // let blockCommentConfig = {};
 
   let resolved = variableToResolve;
-  const namedGroups = resolved?.match(/(?<pathCaseModifier>\\[UuLl])?(?<snippetVars>\$\{\s*.*?\s*\})/).groups;
 
-  switch (namedGroups?.snippetVars) {
+  const namedGroups = resolved?.match(regexp.pathCaseModifierRE)?.groups;
+
+  switch (namedGroups?.vars) {
      
     case "$TM_CURRENT_LINE": case "${TM_CURRENT_LINE}":
       let textLine = "";
@@ -973,11 +959,12 @@ async function _resolveSnippetVariables (variableToResolve, args, caller, select
       break;
    }
 
-	// escape .*{}[]?^$ if using in a find or findSearch
-  if (!args.isRegex && caller === "find") return resolved?.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
-  else if (!args.isRegex && caller === "findSearch") return resolved?.replaceAll(/([\.\*\?\{\}\[\]\^\$\+\|])/g, "\\$1");
+ // removed, see above for old code
+ // escape .*{}[]?^$ if using in a find or findSearch
+//  if (!args.isRegex && (caller === "find" || caller === "findSearch")) return resolved?.replaceAll(regexp.escapeRegExCharacters, "\\$1");
 
-  else if (caller === "filesToInclude" && resolved === ".") return  "./";
+  // else if (caller === "filesToInclude" && resolved === ".") return  "./";
+  if (caller === "filesToInclude" && resolved === ".") return  "./";
   
   else return resolved;
 };
@@ -995,28 +982,20 @@ async function _resolveSnippetVariables (variableToResolve, args, caller, select
  exports.resolveExtensionDefinedVariables = async function (replaceValue, args, caller) {
 
   if (replaceValue === "") return replaceValue;
-
-  let vars;
-  let re;
-  let resolved = replaceValue;
-
-  if (replaceValue !== null) {
-
-    vars = variables.getExtensionDefinedVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-    re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<extensionVars>${ vars })`, 'g');
-    
-    resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2, offset, string, namedGroups) {
-      const variableToResolve =  await _resolveExtensionDefinedVariables(match, args, caller);
-      return _applyCaseModifier(namedGroups, undefined, variableToResolve);
-    });
   
-    // resolved = replaceValue?.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
-      
-    //   const variableToResolve =  _resolveExtensionDefinedVariables(match, args, caller);
-    //   return _applyCaseModifier(namedGroups, undefined, variableToResolve);
-    // });
-  };
-  return resolved;
+  let resolved = replaceValue;
+  
+  let re = regexp.extensionNotGlobalRE;
+
+  // if (replaceValue !== null && !searchCaller) {
+  if (replaceValue !== null) {
+   
+   let resolved = await _resolveExtensionDefinedVariables(replaceValue, args, caller);
+   const found = replaceValue.match(re);
+   
+   if (!found.groups.caseModifier) return resolved;
+   else return _applyCaseModifier(found.groups, undefined, resolved);
+  }
 }
 
 /**
@@ -1039,11 +1018,8 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
 
   if (replaceValue !== null) {
 
-    let vars = variables.getPathVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-    vars = `(?<pathCaseModifier>\\\\[UuLl])?(?<path>${ vars })`;
-
-    re = new RegExp(`${ vars }`, "g");
-    identifiers = [...replaceValue?.matchAll(re)];
+   re = regexp.pathGlobalRE;
+   identifiers = [...replaceValue?.matchAll(re)];
   }
 
   if (!identifiers.length) return replaceValue;
@@ -1086,20 +1062,13 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
 
   if (replaceValue !== null) {
 
-    vars = variables.getSnippetVariables().join("|").replaceAll(/([\$][\{])([^\}]+)(})/g, "\\$1\\s*$2\\s*$3");
-    re = new RegExp(`(?<pathCaseModifier>\\\\[UuLl])?(?<snippetVars>${ vars })`, 'g');
+   re = regexp.snippetRE;
     
     resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2, offset, string, namedGroups) {
       // const variableToResolve =  _resolveSnippetVariables(match, args, caller, selection, undefined);
       const variableToResolve =  await _resolveSnippetVariables(match, args, caller, selection, undefined);
       return _applyCaseModifier(namedGroups, undefined, variableToResolve);
     });
-  
-    // resolved = replaceValue?.replaceAll(re, function (match, p1, p2, offset, string, namedGroups) {
-      
-    //   const variableToResolve =  _resolveSnippetVariables(match, args, caller, selection, undefined);
-    //   return _applyCaseModifier(namedGroups, undefined, variableToResolve);
-    // });
   };
   return resolved;
 }

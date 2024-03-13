@@ -2,8 +2,6 @@ const { window } = require('vscode');
 
 let outputChannel;
 
-
-
 /**
  * Write text to outputChannel
  *  

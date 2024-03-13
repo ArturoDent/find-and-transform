@@ -1,6 +1,8 @@
 const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
 
 const resolve = require('../resolveVariables');
+const regexp = require('../regex');
+
 const transforms = require('../transform');
 const prePostCommands = require('../prePostCommands');
 
@@ -88,13 +90,14 @@ exports.replaceInSelections = async function (editor, args) {
     //   args.isRegex = true;
     // }
 
-    // can this be moved to resolveVariables?
-    const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
+    const lineIndexNumberRE = regexp.lineNumberIndexRE;
 
-    if (args.find.search(lineIndexNumberRE) !== -1)
-      resolvedFind = await resolve.resolveVariables(args, "find", null, selection, null, index);
-    else
-      resolvedFind = await resolve.resolveVariables(args, "ignoreLineNumbers", null, selection, null, index);
+    // if (args.find.search(lineIndexNumberRE) !== -1)
+    //   resolvedFind = await resolve.resolveVariables(args, "find", null, selection, null, index);
+    // else
+   //   resolvedFind = await resolve.resolveVariables(args, "ignoreLineNumbers", null, selection, null, index);
+   
+    resolvedFind = await resolve.resolveVariables(args, "ignoreLineNumbers", null, selection, null, index);
 
     const obj = await resolve.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.ignoreWhiteSpace, args.madeFind);
     resolvedFind = obj.findValue;
@@ -102,7 +105,7 @@ exports.replaceInSelections = async function (editor, args) {
     
     if (!resolvedFind && !args.replace) return;
     
-    if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
+    if (resolvedFind?.search(regexp.lineNumberIndexRE) !== -1) {
       matches = transforms.buildLineNumberMatches(resolvedFind, selectedRange);
       selectionStartIndex = 0;
     }

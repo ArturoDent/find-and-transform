@@ -1,6 +1,8 @@
 const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
 
 const resolve = require('../resolveVariables');
+const regexp = require('../regex');
+
 const transforms = require('../transform');
 const prePostCommands = require('../prePostCommands');
 
@@ -40,7 +42,8 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
 
   if (!resolvedFind) return;
 
-  if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+  // if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
+  if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1) {
     // lineCount is 1-based, so need to subtract 1 from it
     const lastLineRange = document.lineAt(document.lineCount - 1).range;
     const restOfDocRange = new Range(editor.selection.active.line, editor.selection.active.character, document.lineCount - 1, lastLineRange.end.character);
@@ -51,12 +54,13 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
   }
   else {
     const re = new RegExp(resolvedFind, args.regexOptions);
+    // consider cursorIndex+1 to skip 0-index match
     let restOfDocument = docString.substring(cursorIndex);  // text after cursor
     nextMatches = [...restOfDocument.matchAll(re)];
     
     // skip first match if it is the current find location
     if (nextMatches[0]?.index === 0) nextMatches.shift();
-
+    
     const documentBeforeCursor = docString.substring(0, cursorIndex);
     previousMatches = [...documentBeforeCursor.matchAll(re)];
     
@@ -113,7 +117,8 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
   // }
   
   if (previousMatches.length || nextMatches.length) {
-  
+    cursorIndex = 0;  // FIX this fixes it, but why??
+    
     let startPos = document.positionAt(cursorIndex + match.index);
     let endPos = document.positionAt(cursorIndex + match.index + match[0].length);
   

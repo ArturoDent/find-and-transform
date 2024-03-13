@@ -1,6 +1,9 @@
 const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
 
 const resolve = require('../resolveVariables');
+const regexp = require('../regex');
+
+
 const utilities = require('../utilities');
 const transforms = require('../transform');
 const prePostCommands = require('../prePostCommands');
@@ -56,7 +59,7 @@ exports.replaceInWholeDocument = async function (editor, args) {
   
   else {
 
-    if (resolvedFind?.search(/\$\{\s*line(Number|Index)\s*\}/) !== -1) {
+    if (resolvedFind?.search(regexp.lineNumberIndexRE) !== -1) {
       // lineCount is 1-based, so need to subtract 1 from it
       const lastLineRange = document.lineAt(document.lineCount - 1).range;
       docRange = new Range(0, 0, document.lineCount - 1, lastLineRange.end.character);

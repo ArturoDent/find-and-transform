@@ -1,16 +1,11 @@
 const { window } = require('vscode');
 
-
-
-
 // const registerCommands = require('./registerCommands');
 const parseCommands = require('./parseCommands');
 const searchCommands = require('./search');
 const utilities = require('./utilities');
 const outputChannel = require('./outputChannel');
 const prePostCommands = require('./prePostCommands');
-
-
 
 
 /**

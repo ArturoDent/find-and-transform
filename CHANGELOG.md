@@ -94,4 +94,8 @@
 &emsp;&emsp; - `${/}` path separator variable added.  
 &emsp;&emsp; - Work on matching empty lines.  
 
+* 5.1.0 Enabled multiple `${getInput}`'s in an argument.  Added regex.js for commonly used regular expressions.  
+&emsp;&emsp; - Fix lineNumber/Index matching.  
+&emsp;&emsp; - Fix  `matchAroundCursor`  bug - set regex true.  
+
 -----------------------
