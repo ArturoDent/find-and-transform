@@ -3,7 +3,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options.",
- "version": "5.1.1",
+ "version": "5.1.2",
  "engines": {
   "vscode": "^1.69.0"
  },
@@ -101,16 +101,6 @@
    {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.bumpSaveVersion",
-    "title": "Transform to PascalCase",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.Calculate",
-    "title": "Calculator",
     "category": "Find-Transform"
    }
   ],
