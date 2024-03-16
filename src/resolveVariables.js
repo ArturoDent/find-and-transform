@@ -90,11 +90,11 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   // need to set a flag for presence of 'await' in jsOp BEFORE any variable substitution,
   // in case some variable has "await" in it like ${selectedText}, but not part of jsOp
     
-  const jsOpRE = regexp.jsOpRE;
+//  const jsOpRE = regexp.jsOpRE;
+  const jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g"); 
  
   if (caller === "run" || caller === "replace") {
    // const re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
-  //  const re = regexp.jsOpRE;
     
     // const matches = [...replaceValue.matchAll(re)];
     const matches = [...replaceValue.matchAll(jsOpRE)];
@@ -260,8 +260,8 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   // -------------------  jsOp ------------------------------------------------------------------
   
   // can have multiple $${...}$$ in a replace
-//  re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
-  re = regexp.jsOpRE;
+ re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+//  re = regexp.jsOpRE;  // doesn't work although it is the same?
   
   try {
     

@@ -23,7 +23,8 @@ exports.caseTransformRE = new RegExp("(?<caseModifier>\\\\[UuLl])?(?<caseTransfo
 exports.conditionalRE = new RegExp("(?<caseModifier>\\\\[UuLl])?(?<conditional>(\\$\\{(\\d):([-+?]?)(.*?\\\\\}.*?|.*?))\\})", "g");
 
 // there is no jsOp in runInSearchPanel
-exports.jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+// below is not working in resolveVaraibles for some reason
+// exports.jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
 
 //  lineNumber/lineIndex
 exports.lineNumberIndexRE = new RegExp("\\$\\{line(Number|Index)\\}");

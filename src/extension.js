@@ -1,4 +1,4 @@
-const { window, workspace, commands, env, Uri, Position, Selection } = require('vscode');
+const { window, workspace, commands, env, Uri } = require('vscode');
 
 const configs = require('./configs');
 const drivers = require('./drivers');

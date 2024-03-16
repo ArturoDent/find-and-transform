@@ -1,6 +1,6 @@
-const { commands, languages, extensions, window, Range, Position,
+const { languages, extensions, window, Range, Position,
   CompletionItem, CompletionItemKind, CompletionTriggerKind,
-  MarkdownString, SnippetString, Selection } = require('vscode');
+  MarkdownString, SnippetString } = require('vscode');
   
 const jsonc = require("jsonc-parser");
 
