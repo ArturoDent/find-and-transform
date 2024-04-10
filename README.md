@@ -2407,6 +2407,7 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 * 5.1.0 Enabled multiple `${getInput}`'s in an argument.  Added regex.js for commonly used regular expressions.  
 &emsp;&emsp; - Fix lineNumber/Index matching.  
 &emsp;&emsp; - Fix  `matchAroundCursor`  bug - set regex true.  
+&emsp;&emsp; 5.1.3 Fix next/previous  bug - calculate cursorIndex again.  
 
 * 5.0.0 Much work on making the code more asynchronous.  Using `replaceAsync`.  
 &emsp;&emsp; - `${getInput}` is replacing `${getFindInput}`.  It now works in `replace`, `run`, `postCommands`, `cursorMoveSelect`, `filesToInclude` and `filesToExclude` arguments.  

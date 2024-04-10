@@ -117,7 +117,6 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
   // }
   
   if (previousMatches.length || nextMatches.length) {
-    cursorIndex = 0;  // FIX this fixes it, but why??
     
     let startPos = document.positionAt(cursorIndex + match.index);
     let endPos = document.positionAt(cursorIndex + match.index + match[0].length);
