@@ -241,7 +241,7 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 ## Using newlines
 
-* Find: Use `\r?\n` with `isRegex` set to true is probably the safest across operating systems.  
+* Find: Use `\r?\n` with `isRegex` set to true is probably the safest across operating systems.  But in a `[]` in a regex just use `[\n]`, not `[\r?\n]`.  
 * Replace: `\n` is probably sufficient, if not, try `\r\n`.  
 * In a javascript operation replacement, make sure it is included in backticks so the newline is interpreted as a string ``` $${ `first line \n second line` }$$ ```.  
 * If you use a variable like `${getDocumentText}` or anything that **might** have newlines in the text, surround that variable with backticks like this example:
@@ -583,7 +583,7 @@ You can also put `console.log(...)` statements into the replacement code.  It wi
 
 ### Doing math on replacements
 
-Use the special syntax **` $${<some math op>}$$ `** as a replace or find value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations, e.g., string operations (see below).  [This does **not** use the `eval()` function.]  Examples:  
+Use the special syntax **` $${<some math op>}$$ `** as a replace or find value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations, e.g., string operations (see below).  This does **not** use the `eval()` function.  Examples:  
 
 ```jsonc
 {
@@ -2014,7 +2014,7 @@ Explanation for above: With no `find` key, find matches of selections or nearest
 
 > That should only be a problem if you select text that gets generated into a `find` term that itself contains regexp special characters, like `.?*^$`, etc.  They will not be treated as literal characters but as their usual regexp functionality.  
 
-> If you are usong no `find` and select text that you want treated as a regular expression (like `\n text (\d)`) do not double- escape those special regex characters.  Just use the same regex you would use in the Find Widget.  Remember to have `isRegex` set to true in this case.  
+> If you are using no `find` but are selecting text that you want treated as a regular expression (like `\n text (\d)`) do not double-escape those special regex characters.  Just use the same regex you would use in the Find Widget.  Remember to have `isRegex` set to true in this case.  
 
 > Finally, if you select multiple instances of the same text the generated `find` term will have any duplicates removed.  `Set.add()` is a beautiful thing.  
 
@@ -2403,6 +2403,9 @@ And, if you want to put a cursor on all empty lines within your selections, use 
 ## Release Notes
 
 See [CHANGELOG](CHANGELOG.md) for notes on prior releases.  
+
+* 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
+&emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  
 
 * 5.1.0 Enabled multiple `${getInput}`'s in an argument.  Added regex.js for commonly used regular expressions.  
 &emsp;&emsp; - Fix lineNumber/Index matching.  

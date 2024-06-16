@@ -368,8 +368,16 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
   if (matchWholeWord && !madeFind) findValue = findValue?.replace(/(\\b)+/g, "\\b");
   if (matchWholeWord && !madeFind) findValue = findValue?.replace(/(?<!\\b)(\|)(?!\\b)/g, "\\b$1\\b");
 
-  // since all \n are replaced by \r?\n by vscode
-  if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<!\\r\?)\\n/g, "\r?\n");
+  // since all \n are replaced by \r?\n by vscode - except in [\n] ?
+  // below has trouble with \\n in a []
+  // if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<!\\r\?)\\n/g, "\r?\n");
+  
+  if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<!\[[^\]]*)(\\(\\)*n)(?![^\[]*?\])/g, "\r?\n");
+  // see https://regex101.com/r/QDJrT1/1
+  
+  // [\r?\n] doesn't work, the ? is treated as an excluded character and so is not found
+  // if (isRegex && !ignoreWhiteSpace && findValue === "[^\r?\n]") findValue = "[^\r\n]";
+  
   
   if (isRegex) {
     if (findValue === "^") findValue = "^(?!\n)";

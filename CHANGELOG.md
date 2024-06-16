@@ -1,5 +1,8 @@
 # CHANGELOG  
 
+* 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
+&emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  
+
 * 5.1.0 Enabled multiple `${getInput}`'s in an argument.  Added regex.js for commonly used regular expressions.  
 &emsp;&emsp; - Fix lineNumber/Index matching.  
 &emsp;&emsp; - Fix  `matchAroundCursor`  bug - set regex true.  

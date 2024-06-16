@@ -1,4 +1,4 @@
-const { languages, CodeAction, CodeActionKind} = require('vscode');
+const { languages, CodeAction, CodeActionKind } = require('vscode');
 
 
 /**

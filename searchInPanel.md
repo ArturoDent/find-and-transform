@@ -3,7 +3,7 @@
 For multiple successive searches, see **Multiple Searches** below.  
 At the end of this file, see how to use the **context menus** to run a search.  
 
---------------------  
+--------------------
 
 ## An example setting (in your settings.json):
 
@@ -41,7 +41,7 @@ This extension will generate a command for each of the settings, they will appea
 
 "ignoreWhiteSpace": <boolean>                    // default = false, makes the find work across newlines and other whitespace 
 
-"replace": <string or array[strings]>,
+"replace": <string>,
 
 "triggerSearch": <boolean or array[booleans]>,      // searches and shows the results
 
@@ -193,7 +193,7 @@ If you include no `delay` field and you are using multiple successive searches, 
 
 ### Variables resolved based on current file only
 
-There is no way to avoid this with the present api.  If you use any variables in the various args, like `${LINE_COMMENT}` or `${relativeFile}`, their values will be resolved based on the current editor.  So, for example, `${LINE_COMMENT}` will be how line comments appear in the current editor only.  
+There is no way to avoid this with the present vscode extension api.  If you use any variables in the various args, like `${LINE_COMMENT}` or `${relativeFile}`, their values will be resolved based on the current editor.  So, for example, `${LINE_COMMENT}` will be how line comments appear in the current editor only.  
 
 -------
 
@@ -526,27 +526,30 @@ Like the `findInCurrentFile` keybindings or settings, you can use capture groups
 
 ```jsonc
 "find": "(\\$1\\s+\\d+)",  // the capture group MUST be double-escaped in a find
+"isRegex": true,
 "replace": "\\U$1",    // don't escape capture group in replace
 "matchCase": true
 ```
 
-Explanation: find `someSelectedText 1234`, replace with `SOMESELECTEDTEXT 1234`
+Explanation for above: find `someSelectedText 1234`, replace with `SOMESELECTEDTEXT 1234`
 
 ```jsonc
 "find": "(\\U\\$1)",   // the capture group MUST be double-escaped in a find
+"isRegex": true,
 "replace": "\\L$1",    // don't escape capture group in replace
 "matchCase": true      // need this here to get ONLY the upper-cased versions of the selections
 ```
 
-Explanation: find the uppercased version of the selection(s).  So if you select (or the cursor is on) the word `hello` or `Hello`, etc. - this would search for `HELLO` and replace with `hello`.
+Explanation for above: find the uppercased version of the selection(s).  So if you select (or the cursor is on) the word `hello` or `Hello`, etc. - this would search for `HELLO` and replace with `hello`.
 
 ```jsonc
 "find": "\\U\\$1-\\L\\$2",
+"isRegex": true,
 "replace": "\\L$1-\\U$2",
 "matchCase": true
 ```
 
-Explanation: find the uppercased version of the first selection and the lower-cased version of the second selection and swap their cases.  
+Explanation for above: find the uppercased version of the first selection and the lower-cased version of the second selection and swap their cases.  
 
 <br/>
 
