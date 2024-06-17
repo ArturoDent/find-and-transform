@@ -98,6 +98,21 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
       }
     }
   }
+  else if (previous && previousMatches?.length) {
+    match = previousMatches.at(-1);  // the last array item
+    cursorIndex = 0;
+  }
+  else if (previous && !previousMatches?.length && nextMatches.length) {
+    match = nextMatches.at(-1);   // the last array item
+  }
+  else if (next && nextMatches?.length) {
+    match = nextMatches[0];
+  }
+  else if (next && !nextMatches?.length && previousMatches.length) {
+    match = previousMatches[0];
+    cursorIndex = 0;
+  }
+  
   
   // else {
   //   if (args.run && args.runWhen === "onceOnNoMatches")
