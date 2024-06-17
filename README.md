@@ -2406,6 +2406,7 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 
 * 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
 &emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  
+&emsp;&emsp; 5.2.1 - Fix next/previous `^/$/^$`. More vscode.EndOfLine.CRLF in resolveFind.  
 
 * 5.1.0 Enabled multiple `${getInput}`'s in an argument.  Added regex.js for commonly used regular expressions.  
 &emsp;&emsp; - Fix lineNumber/Index matching.  

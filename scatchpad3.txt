@@ -1,4 +1,138 @@
+https://www.jsonschemavalidator.net/s/PrE9VDee : minimal test
+
+https://www.jsonschemavalidator.net/s/MJ6JoKc4  : fuller test
 
 
-(12345678)+(9876543)-(123789456)
+
+                "dependentRequired": {
+                  "triggerReplaceAll": [
+                    "triggerSearch"
+                  ]
+                },
+                
+                                  {
+                    "if": {
+                      "properties": {
+                        "triggerReplaceAll": { "const": true }
+                      },
+                      "required": ["triggerReplaceAll"]
+                    },
+                    "then": { 
+                      "properties": {
+                        "triggerSearch": { "const": true }
+                      },
+                      "required": ["triggerSearch"] 
+                    }
+                  },
+                
+                                  {
+                    "if": {
+                      "properties": {
+                        "triggerReplaceAll": { "const": true }
+                      },
+                      "required": ["triggerReplaceAll"]
+                    },
+                    "then": {
+                      "allOf": [
+                        
+                        {
+                          "properties": {
+                            "triggerSearch": { "const": true }
+                          }
+                        },
+                        {
+                          "required": ["triggerSearch"]
+                        }
+                        
+                      ]
+
+                    }
+                  },
+                  
+                  ,
+
+                  {
+                    "if": {
+                      "not": {
+                        "required": ["replace"]
+                      }
+                    },
+                    "then": {
+                      "anyOf": [
+                        {
+                          "properties": {
+                            "triggerReplaceAll": { "const": false }
+                          }
+                        },
+                        {
+                          "properties": {
+                            "triggerReplaceAll": { "const": null } 
+                          }
+                        }
+                      ]
+                    }
+                  }
+                  
+                  
+                  "if": {
+                      "properties": {
+                        "triggerReplaceAll": {
+                          "const": true
+                        },
+                        "required": ["triggerReplaceAll"]
+                      }
+                    },
+                    "then": {
+                      "required": ["triggerSearch"],
+                      "properties": {
+                        "triggerSearch": {
+                          "const": true
+                        }
+                      }
+                     }
+                     
+                     
+                                     "allOf": [
+                  
+                  {
+                    "if": {
+                      "properties": {
+                        "triggerReplaceAll": {
+                          "const": true
+                        },
+                        "required": ["triggerReplaceAll"]
+                      }
+                    },
+                    "then": {
+                      "required": ["triggerSearch"],
+                      "properties": {
+                        "triggerSearch": {
+                          "const": true
+                        }
+                      }
+                     }
+                   },
+
+                  {
+                    "if": {
+                      "not": {
+                        "required": ["replace"]
+                      }
+                    },
+                    "then": {
+                      "anyOf": [
+                        {
+                          "properties": {
+                            "triggerReplaceAll": { "const": false }
+                          }
+                        },
+                        {
+                          "properties": {
+                            "triggerReplaceAll": { "const": null } 
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ],
 

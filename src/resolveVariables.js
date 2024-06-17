@@ -372,14 +372,17 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
   // below has trouble with \\n in a []
   // if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<!\\r\?)\\n/g, "\r?\n");
   
-  if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<!\[[^\]]*)(\\(\\)*n)(?![^\[]*?\])/g, "\r?\n");
+  // TODO: make this depend on document.eol; vscode.EndOfLine.CRLF or vscode.EndOfLine.LF
+  
+  if (window.activeTextEditor.document.eol === vscode.EndOfLine.CRLF)
+    if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<!\[[^\]]*)(\\(\\)*n)(?![^\[]*?\])/g, "\r?\n");
   // see https://regex101.com/r/QDJrT1/1
   
   // [\r?\n] doesn't work, the ? is treated as an excluded character and so is not found
   // if (isRegex && !ignoreWhiteSpace && findValue === "[^\r?\n]") findValue = "[^\r\n]";
   
   
-  if (isRegex) {
+  if (isRegex && window.activeTextEditor.document.eol === vscode.EndOfLine.CRLF) {
     if (findValue === "^") findValue = "^(?!\n)";
     else if (findValue === "$") findValue = "$(?!\n)";
     // else if (findValue === "^$") findValue = "^(?!\n)$(?!\n)";
@@ -389,7 +392,8 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
   // two blank lines, use '(^$)\\n(^$)'
   
   // works in a more complex regex, like 'howdy\\n^$\\nthere' => with a blank line between
-  if (isRegex) findValue = findValue?.replaceAll(/\^\$/g, "^(?!\n)$(?!\n)");
+  if (window.activeTextEditor.document.eol === vscode.EndOfLine.CRLF)
+    if (isRegex) findValue = findValue?.replaceAll(/\^\$/g, "^(?!\n)$(?!\n)");
  
   return {
     findValue,

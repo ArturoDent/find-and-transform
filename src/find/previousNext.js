@@ -70,10 +70,12 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
   }
 
   // refactor to a function
-  if (resolvedFind === "^(?!\n)" || resolvedFind === "$(?!\n)") {
+  if (resolvedFind === "^(?!\n)" || resolvedFind === "$(?!\n)" || resolvedFind === "^" ||
+    resolvedFind === "^$" || resolvedFind === "^(?!\n)$(?!\n)") {
+    
     if (next) {
-      if (nextMatches.length > 1) match = nextMatches[1];
-      else if (previousMatches.length) {
+      if (nextMatches.length) match = nextMatches[0];
+      else if (!nextMatches.length && previousMatches.length) {
         match = previousMatches[0];
         cursorIndex = 0;
       }
@@ -83,8 +85,8 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
       }
     }
     else if (previous) {
-      if (previousMatches.length > 1) {
-        match = previousMatches.at(-2);
+      if (previousMatches.length) {
+        match = previousMatches.at(-1);
         cursorIndex = 0;
       }
       else if (nextMatches.length) {
@@ -96,20 +98,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
       }
     }
   }
-  else if (previous && previousMatches?.length) {
-    match = previousMatches.at(-1);  // the last array item
-    cursorIndex = 0;
-  }
-  else if (previous && !previousMatches?.length && nextMatches.length) {
-    match = nextMatches.at(-1);   // the last array item
-  }
-  else if (next && nextMatches?.length) {
-    match = nextMatches[0];
-  }
-  else if (next && !nextMatches?.length && previousMatches.length) {
-    match = previousMatches[0];
-    cursorIndex = 0;
-  }
+  
   // else {
   //   if (args.run && args.runWhen === "onceOnNoMatches")
   //     await resolve.resolveVariables(args, "run", null, editor.selection, null, null);
