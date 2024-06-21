@@ -287,8 +287,7 @@ exports.toSnakeCase = function (value) {
 };
 
 
-// TODO: check for \n, etc. not double-backslashed
-// no capture ground in find but $1, etc. in replace (unless isRegEx = true)
+// no capture group in find but $1, etc. in replace (unless isRegEx = true)
 // an apparent capture group in find, but isReg is missing (default is false)
 /**
  * Check args of commands: keys and values

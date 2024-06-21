@@ -369,23 +369,27 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
   if (matchWholeWord && !madeFind) findValue = findValue?.replace(/(?<!\\b)(\|)(?!\\b)/g, "\\b$1\\b");
 
   // since all \n are replaced by \r?\n by vscode - except in [\n] ?
-  // below has trouble with \\n in a []
-  // if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<!\\r\?)\\n/g, "\r?\n");
   
-  // TODO: make this depend on document.eol; vscode.EndOfLine.CRLF or vscode.EndOfLine.LF
+  // (?<!\[[^\]]*)(\\(\\)*n)(?![^\[]\[[^\]]*\]) - \n not in a []
+  // (?<=\[[^\]]*?)(\\(\\)*n)(?=[^\[]*?\]) - \n in a []
   
-  if (window.activeTextEditor.document.eol === vscode.EndOfLine.CRLF)
-    if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<!\[[^\]]*)(\\(\\)*n)(?![^\[]*?\])/g, "\r?\n");
-  // see https://regex101.com/r/QDJrT1/1
+  // (?<=\[[^\]]*?)(?<!(\\r|\r)\??)(\\n|\n)(?=[^\[]*?\]) - \n in a [] not preceded by \r?
+  // (?<!\[[^\]]*?)(?<!(\\r|\r)\??)(\\n|\n)(?![^\[]*?\]) - \n not in a [] and not preceded by \r?
   
   // [\r?\n] doesn't work, the ? is treated as an excluded character and so is not found
-  // if (isRegex && !ignoreWhiteSpace && findValue === "[^\r?\n]") findValue = "[^\r\n]";
   
+  if (window.activeTextEditor.document.eol === vscode.EndOfLine.CRLF) {
+
+    // \n not in a [] and not preceded by \r?
+    if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<!\[[^\]]*?)(?<!(\\r|\r)\??)(\\n|\n)(?![^\[]*?\])/g, "\r?\n");
+    
+    // \n in a [] not preceded by \r?
+    if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<=\[[^\]]*?)(?<!(\\r|\r)\??)(\\n|\n)(?=[^\[]*?\])/g, "\r\n");
+  }
   
   if (isRegex && window.activeTextEditor.document.eol === vscode.EndOfLine.CRLF) {
     if (findValue === "^") findValue = "^(?!\n)";
     else if (findValue === "$") findValue = "$(?!\n)";
-    // else if (findValue === "^$") findValue = "^(?!\n)$(?!\n)";
   }
   
   // find a blank line: '^$' => '^(?!\n)$(?!\n)'

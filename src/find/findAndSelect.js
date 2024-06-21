@@ -103,8 +103,7 @@ exports.findAndSelect = async function (editor, args) {
         }
         
         matches?.forEach((match) => {
-          // const selectionStartIndex = document.offsetAt(selectedRange.start);
-          const selectionStartIndex = 0;  // FIX
+          const selectionStartIndex = document.offsetAt(selectedRange.start);
           const startPos = document.positionAt(selectionStartIndex + match.index);
           const endPos = document.positionAt(selectionStartIndex + match.index + match[0].length);
           // reveal will use the **last** selection's foundSelections
@@ -137,9 +136,6 @@ exports.findAndSelect = async function (editor, args) {
         }
 
        matches?.forEach((match) => {
-         // FIX
-         lineIndex = 0;
-        
           const startPos = document.positionAt(lineIndex + match.index);
           const endPos = document.positionAt(lineIndex + match.index + match[0].length);
           foundSelections.push(new Selection(startPos, endPos));
@@ -210,8 +206,6 @@ exports.findAndSelect = async function (editor, args) {
             if ((args.restrictFind === "onceIncludeCurrentWord") && currentWordRange) {
               subStringIndex = currentWordRange?.start?.character;
             }
-            // FIX
-            lineIndex = 0; subStringIndex = 0;
          
             const startPos = document.positionAt(lineIndex + subStringIndex + matches[0].index);
             const endPos = document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);

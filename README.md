@@ -241,8 +241,10 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 ## Using newlines
 
-* Find: Use `\r?\n` with `isRegex` set to true is probably the safest across operating systems.  But in a `[]` in a regex just use `[\n]`, not `[\r?\n]`.  
-* Replace: `\n` is probably sufficient, if not, try `\r\n`.  
+* Find: Use `\r?\n` with `isRegex` set to true is probably the safest across operating systems.  But in a regular expression character class `[...]` just use `[\n]`, not `[\r?\n]`.  
+* In Windows, `[\n]` will be replaced by `[\r\n]` and `\n` (not in a character class) will be replaced by `\r?\n`.  So that you can find newlines with just `\n`.  
+* Find: `\n` and `\\n` should work identically.  
+* Replace: `\n` is probably sufficient, if not, try `\r\n` n Windows.  
 * In a javascript operation replacement, make sure it is included in backticks so the newline is interpreted as a string ``` $${ `first line \n second line` }$$ ```.  
 * If you use a variable like `${getDocumentText}` or anything that **might** have newlines in the text, surround that variable with backticks like this example:
 
@@ -2407,6 +2409,8 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 * 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
 &emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  
 &emsp;&emsp; 5.2.1 - Fix next/previous `^/$/^$`. More vscode.EndOfLine.CRLF in resolveFind.  
+&emsp;&emsp; 5.2.2 - Add the generic next/previous case handling back.  
+&emsp;&emsp; 5.2.3 - Better `[\n]` handling in and out of character classes.  
 
 * 5.1.0 Enabled multiple `${getInput}`'s in an argument.  Added regex.js for commonly used regular expressions.  
 &emsp;&emsp; - Fix lineNumber/Index matching.  

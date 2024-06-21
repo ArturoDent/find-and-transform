@@ -121,28 +121,22 @@ async function _buildSearchArgs(args, index)  {
    indexedArgs.find = await resolve.resolveSearchPathVariables(indexedArgs.find, indexedArgs, "findSearch", selections[0]);
    indexedArgs.find = await resolve.resolveSearchSnippetVariables(indexedArgs.find, indexedArgs, "findSearch", selections[0]);
   
-   // indexedArgs.find = await resolve.resolveExtensionDefinedVariables(indexedArgs.find, indexedArgs, "findSearch");
-   
-   // TODO: make a library of these regex's
    indexedArgs.find = await utilities.replaceAsync2(indexedArgs.find, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "findSearch"); 
   }
   
   if (indexedArgs.filesToInclude && indexedArgs.filesToInclude.search(re) !== -1) {
     indexedArgs.filesToInclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude", selections[0]);
-    // indexedArgs.filesToInclude = await resolve.resolveExtensionDefinedVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude");
     indexedArgs.filesToInclude = await utilities.replaceAsync2(indexedArgs.filesToInclude, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "filesToInclude"); 
   }
   
   if (indexedArgs.filesToExclude && indexedArgs.filesToExclude.search(re) !== -1) {
     indexedArgs.filesToExclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude", selections[0]);
-    // indexedArgs.filesToExclude = await resolve.resolveExtensionDefinedVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude");
     indexedArgs.filesToExclude = await utilities.replaceAsync2(indexedArgs.filesToExclude, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "filesToExclude"); 
   }
   
   if (indexedArgs.replace && indexedArgs.replace.search(re) !== -1) {
     indexedArgs.replace = await resolve.resolveSearchPathVariables(indexedArgs.replace, indexedArgs, "replace", selections[0]);
     indexedArgs.replace = await resolve.resolveSearchSnippetVariables(indexedArgs.replace, indexedArgs, "replace", selections[0]);
-   // indexedArgs.replace = await resolve.resolveExtensionDefinedVariables(indexedArgs.replace, indexedArgs, "replace");
    indexedArgs.replace = await utilities.replaceAsync2(indexedArgs.replace, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "replace"); 
   }
 
