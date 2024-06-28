@@ -22,7 +22,7 @@ exports.findAndSelect = async function (editor, args) {
   let foundSelections = [];
   let matches;
   let foundMatches = [];
-  
+
   if (args.restrictFind === "document") {
 
     let docRange;
@@ -50,7 +50,7 @@ exports.findAndSelect = async function (editor, args) {
         fullText = document.getText();
         matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
       }
-      
+
       // Any way to designate a capture group to select, like '\\$1(\\d+)' ?
       matches?.forEach((match, index) => {
         const startPos = document?.positionAt(match.index);
@@ -58,7 +58,7 @@ exports.findAndSelect = async function (editor, args) {
         const thisSelection = new Selection(startPos, endPos);
         foundSelections[index] = thisSelection;
       });
-      
+
       foundMatches.push(...matches);
     }
   }
@@ -67,9 +67,9 @@ exports.findAndSelect = async function (editor, args) {
 
     let selectedRange;
     let lineMatches = []; // to keep track of which lines have been processed for once...
-    
+
     await Promise.all(editor.selections.map(async (selection) => {
-      
+
       if (!args.find && args.restrictFind !== "selections") {
         const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
         // const findObject = resolve.makeFind(lineSelections, args);
@@ -81,7 +81,7 @@ exports.findAndSelect = async function (editor, args) {
       const findObject = await resolve.resolveFind(editor, args, null, selection);
       const resolvedFind = findObject.findValue;
       args.isRegex = findObject.isRegex;
-      
+
       let searchText;
 
       if (args.restrictFind === "selections") {
@@ -101,7 +101,7 @@ exports.findAndSelect = async function (editor, args) {
           searchText = document.getText(selectedRange);
           matches = [...searchText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
         }
-        
+
         matches?.forEach((match) => {
           const selectionStartIndex = document.offsetAt(selectedRange.start);
           const startPos = document.positionAt(selectionStartIndex + match.index);
@@ -109,12 +109,12 @@ exports.findAndSelect = async function (editor, args) {
           // reveal will use the **last** selection's foundSelections
           foundSelections.push(new Selection(startPos, endPos));
         });
-        
+
         foundMatches.push(...matches);
       }
-      
-      else if (args.restrictFind === "matchAroundCursor") { 
-        
+
+      else if (args.restrictFind === "matchAroundCursor") {
+
         let [foundSelection, foundMatch] = transforms.matchAroundCursor(args, resolvedFind, selection);
         if (foundSelection) foundSelections.push(foundSelection);
         if (foundMatch) foundMatches.push(foundMatch);
@@ -135,7 +135,7 @@ exports.findAndSelect = async function (editor, args) {
           lineIndex = document.offsetAt(new Position(selection.active.line, 0));
         }
 
-       matches?.forEach((match) => {
+        matches?.forEach((match) => {
           const startPos = document.positionAt(lineIndex + match.index);
           const endPos = document.positionAt(lineIndex + match.index + match[0].length);
           foundSelections.push(new Selection(startPos, endPos));
@@ -149,10 +149,10 @@ exports.findAndSelect = async function (editor, args) {
 
         // if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
         if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1) {
-          
+
           let lineRange = document.lineAt(selection.active.line).range;
           let subLineRange = lineRange.with({ start: selection.active });
-          
+
           if ((args.restrictFind === "onceIncludeCurrentWord") && currentWordRange)
             subLineRange = lineRange.with({ start: document.getWordRangeAtPosition(selection.active)?.start });
 
@@ -163,25 +163,25 @@ exports.findAndSelect = async function (editor, args) {
           const fullLine = document.lineAt(selection.active.line).text;
           const wordRangeAtCursor = document.getWordRangeAtPosition(selection.active);
           searchText = fullLine.substring(selection?.end?.character);  // once, onceExcludeCurrentWord
-          
+
           if ((args.restrictFind === "onceIncludeCurrentWord") && wordRangeAtCursor?.start) {
             searchText = fullLine.substring(wordRangeAtCursor?.start?.character);
           }
           if (!searchText) return;
-          
+
           matches = [...searchText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
         }
-        
+
         if (matches.length > 1) matches = [matches[0]];  // handles two+ matches in one line with one selection
-          
+
         if (matches?.length) {
-          
+
           let lineIndex = document.offsetAt(new Position(selection.active.line, 0));
           let subStringIndex = selection.active?.character;
           let doContinue = true;
-          
+
           const sameLineFound = lineMatches.findIndex(lineMatch => lineMatch.lineIndex === lineIndex);
-          
+
           if (sameLineFound !== -1) {
             const foundHigherIndex = lineMatches.findIndex(lineMatch => (lineMatch.lineIndex === lineIndex) && (lineMatch.subStringIndex > subStringIndex));
             if (foundHigherIndex !== -1) {
@@ -198,15 +198,15 @@ exports.findAndSelect = async function (editor, args) {
               // lineMatches.push({ lineIndex, subStringIndex });
             }
           }
-          
+
           if (doContinue) {
-           
+
             lineMatches.push({ lineIndex, subStringIndex });
-        
+
             if ((args.restrictFind === "onceIncludeCurrentWord") && currentWordRange) {
               subStringIndex = currentWordRange?.start?.character;
             }
-         
+
             const startPos = document.positionAt(lineIndex + subStringIndex + matches[0].index);
             const endPos = document.positionAt(lineIndex + subStringIndex + matches[0].index + matches[0][0].length);
             foundSelections.push(new Selection(startPos, endPos));
@@ -216,19 +216,19 @@ exports.findAndSelect = async function (editor, args) {
       }
     }));
   }
-  
+
   // 'run' might want to access the selections
-  
+
   // ignore args.preserveSelections in findAndSelect
   if (foundSelections.length) editor.selections = foundSelections;
-  
-  await transforms.runWhen(args, foundMatches, foundSelections, editor.selection);
-  
+
+  if (args.run) await transforms.runWhen(args, foundMatches, foundSelections, editor.selection);
+
   // get the "new" selections after 'run'
   // Object.assign() because editor.selections is readonly and cannot be directly set to foundSelections
   if (foundSelections.length && args.run) Object.assign(foundSelections, editor.selections);
-  
+
   // sendSequence will resolve certain vars automatically
-  
+
   if (args.postCommands) await prePostCommands.runPost(args, foundMatches, foundSelections, editor.selection);
 };

@@ -2406,6 +2406,9 @@ And, if you want to put a cursor on all empty lines within your selections, use 
 
 See [CHANGELOG](CHANGELOG.md) for notes on prior releases.  
 
+* 5.3.0 Make codeActions work better (including multiple actions)..
+&emsp;&emsp; - editBuilder awaits added.  
+
 * 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
 &emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  
 &emsp;&emsp; 5.2.1 - Fix next/previous `^/$/^$`. More vscode.EndOfLine.CRLF in resolveFind.  

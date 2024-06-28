@@ -34,7 +34,7 @@ exports.startFindInCurrentFile = async function (args, enableWarningDialog) {
   
   // if (replacement?.search(/\$\{resultsFiles\}/) !== -1) args.resultsFiles = await utilities.getSearchResultsFiles(args.clipText);
     
-  // could be an array of 1 : ["$${ return 'howdy', }$$"] or ["howdy $${ return 'pardner', }$$"]
+  // could be an array of 1 : ["$${ return '****', }$$"] or ["**** $${ return 'pardner', }$$"]
   // call a function that looks for all jsOp's $${...}$$ in args.replace
   if (args && Array.isArray(args.replace) && args.replace.find(el => el.search(/^\s*\$\$\{\s*/m) !== -1))
     args.replace = await parseCommands.buildJSOperationsFromArgs(args.replace);

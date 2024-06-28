@@ -125,7 +125,7 @@ async function activate(context) {
 
     // get this from keybinding:  { find: "(howdy)", replace: "\\U$1" }
     
-    drivers.startFindInCurrentFile(args, enableWarningDialog);
+    await drivers.startFindInCurrentFile(args, enableWarningDialog);
 	});
 
 	context.subscriptions.push(runDisposable);
@@ -135,7 +135,7 @@ async function activate(context) {
 	// make a generic "runInSearchPanel" command for keybindings args using the search panel
   let runInSearchPanelDisposable = commands.registerCommand('runInSearchPanel', async (args) => {
     
-    drivers.startRunInSearchPanel(args, enableWarningDialog);
+    await drivers.startRunInSearchPanel(args, enableWarningDialog);
 	});
 
 	context.subscriptions.push(runInSearchPanelDisposable);

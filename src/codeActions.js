@@ -10,11 +10,11 @@ exports.makeCodeActionProvider = async function (context, codeActionCommands) {
 	context.subscriptions.push(
 		languages.registerCodeActionsProvider('*',
 			{
-				provideCodeActions() {
+				async provideCodeActions() {
 
 					const commandArray = [];
 
-					for (const command of codeActionCommands) {
+					for await (const command of codeActionCommands) {
 						commandArray.push(_createCommand(command));
 					}
 					return commandArray;

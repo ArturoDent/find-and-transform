@@ -61,7 +61,7 @@ exports.runPost = async function (args, foundMatches, foundSelections, selection
       let index = 0;
       for await (const foundSelection of foundSelections) {
         if (resolvePostCommands) {
-          editor.selections = [foundSelection];  // if preserveSelections ?
+          editor.selections = [foundSelection];  // TODO: if preserveSelections ?
           postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, index);
         }
         await this.run(postCommands, "postCommands"); 

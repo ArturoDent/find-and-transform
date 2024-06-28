@@ -1,11 +1,8 @@
-
-
-const a = true; const b = true;
-const c = function () { return; };
+let LastModified="2024-06-26T15:11:17-06:00";
 
 
 
-
+// selection
 
 
 
@@ -32,21 +29,6 @@ const c = function () { return; };
 
 
 
-
-
-
-if ( a  &&  b )
-  c();
-  
-if( a  &&  b )
-  c();
-
-  
-if ( a  ||  b )
-  c();
-  
-if( a  ||  b )
-  c();
 
 
 
