@@ -1,4 +1,4 @@
-const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
+const { window, TextEdit, Range, Position, Selection } = require('vscode');
 
 const resolve = require('../resolveVariables');
 const regexp = require('../regex');
@@ -115,7 +115,8 @@ exports.replaceInWholeDocument = async function (editor, args) {
 
     // TODO
     // don't add to textEdits if resolvedReplace === resolvedFind
-    textEdits.push(new TextEdit(matchRange, resolvedReplace));
+    // need a foundReplacements for CMS below ?
+    // if (resolvedReplace !== resolvedFind)  textEdits.push(new TextEdit(matchRange, resolvedReplace));
 
     if (args.cursorMoveSelect) {  // to be used in cursorMoveSelect below to build matching text
       matches[index].range = new Range(startPos, new Position(startPos.line, startPos.character + resolvedReplace?.length));

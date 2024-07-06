@@ -5,6 +5,7 @@ const regexp = require('../regex');
 
 const transforms = require('../transform');
 const prePostCommands = require('../prePostCommands');
+const utilities = require('../utilities');
 
 
 
@@ -19,6 +20,8 @@ const prePostCommands = require('../prePostCommands');
 exports.findAndSelect = async function (editor, args) {
 
   const document = editor.document;
+  const cursorPosition = document.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
+  
   let foundSelections = [];
   let matches;
   let foundMatches = [];
@@ -221,6 +224,11 @@ exports.findAndSelect = async function (editor, args) {
 
   // ignore args.preserveSelections in findAndSelect
   if (foundSelections.length) editor.selections = foundSelections;
+  
+  if (foundSelections.length && args.reveal && !args.cursorMoveSelect) {
+    const selectionToReveal = await utilities.getSelectionToReveal(foundSelections, cursorPosition, args.reveal);
+    editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
+  }
 
   if (args.run) await transforms.runWhen(args, foundMatches, foundSelections, editor.selection);
 

@@ -2256,7 +2256,7 @@ The `reveal` argument to the `findInCurrentFile` command can take three options:
 2. `"reveal": "next"`   scroll the viewport to show the next find match in the document **after** the cursor, if necessary.
 3. `"reveal": "last "`  scroll the viewport to show the last find match in the document, if necessary.
 
-If you do not want the editor to scroll to reveal any find match, simply do not include a `reveal` option at all.  Certain other arguments like `"restrictFind": "nextMoveCursor/previousMoveCursor/previousSelect/nextSelect/nextDontMoveCursor/previousDontMoveCursor"` etc. will always scroll to reveal, eben if there is no `reveal` argument.  
+If you do not want the editor to scroll to reveal any find match, simply do not include a `reveal` option at all.  Certain other arguments like `"restrictFind": "nextMoveCursor/previousMoveCursor/previousSelect/nextSelect/nextDontMoveCursor/previousDontMoveCursor"` etc. will always scroll to reveal, even if there is no `reveal` argument.  
 
 * Note: The `reveal` argument will do nothing if you have a `cursorMoveSelect` argument in your keybinding or setting.  `cursorMoveSelect` will take precedence.  
 
@@ -2408,6 +2408,7 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 
 * 5.3.0 Make codeActions work better (including multiple actions)..
 &emsp;&emsp; - editBuilder awaits added.  
+&emsp;&emsp; 5.3.1 - Add `reveal` option  to findAndSelect.  
 
 * 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
 &emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  

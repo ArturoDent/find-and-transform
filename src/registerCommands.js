@@ -1,4 +1,4 @@
-const { workspace, commands, extensions, Selection } = require('vscode');
+const { commands } = require('vscode');
 const fs = require('fs');
 const path = require('path');
 
