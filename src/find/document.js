@@ -117,6 +117,8 @@ exports.replaceInWholeDocument = async function (editor, args) {
     // don't add to textEdits if resolvedReplace === resolvedFind
     // need a foundReplacements for CMS below ?
     // if (resolvedReplace !== resolvedFind)  textEdits.push(new TextEdit(matchRange, resolvedReplace));
+    
+    textEdits.push(new TextEdit(matchRange, resolvedReplace));
 
     if (args.cursorMoveSelect) {  // to be used in cursorMoveSelect below to build matching text
       matches[index].range = new Range(startPos, new Position(startPos.line, startPos.character + resolvedReplace?.length));

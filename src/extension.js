@@ -31,8 +31,8 @@ async function activate(context) {
   await _loadSettingsAsCommands(context, _disposables, firstRun);
 
   providers.makeKeybindingsCompletionProvider(context);
-	providers.makeSettingsCompletionProvider(context);
-
+  providers.makeSettingsCompletionProvider(context);
+  
 	enableWarningDialog = await workspace.getConfiguration().get('find-and-transform.enableWarningDialog');
 
 	// ---------------------------------------------------------------------------------------------
