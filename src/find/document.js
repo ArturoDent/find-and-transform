@@ -113,8 +113,6 @@ exports.replaceInWholeDocument = async function (editor, args) {
     const endPos = document.positionAt(match.index + match[0].length + lineIndex);
     const matchRange = new Range(startPos, endPos);
 
-    // TODO
-    // don't add to textEdits if resolvedReplace === resolvedFind
     // need a foundReplacements for CMS below ?
     // if (resolvedReplace !== resolvedFind)  textEdits.push(new TextEdit(matchRange, resolvedReplace));
     

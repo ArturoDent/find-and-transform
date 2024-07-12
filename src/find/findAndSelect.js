@@ -40,7 +40,6 @@ exports.findAndSelect = async function (editor, args) {
     // resolvedFind = "(^(?!\n)$(?!\n))", if on an empty line
     if (resolvedFind) {
 
-      // if (resolvedFind?.search(/\$\{line(Number|Index)\}/) !== -1) {
       if (resolvedFind?.search(regexp.lineNumberIndexRE) !== -1) {
         // lineCount is 1-based, so need to subtract 1 from it
         const lastLineRange = document?.lineAt(document.lineCount - 1).range;
@@ -75,7 +74,6 @@ exports.findAndSelect = async function (editor, args) {
 
       if (!args.find && args.restrictFind !== "selections") {
         const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
-        // const findObject = resolve.makeFind(lineSelections, args);
         const findObject = await resolve.makeFind(lineSelections, args);
         ({ find: args.find, emptyPointSelections: args.pointReplaces } = findObject);
         args.madeFind = true;
@@ -96,7 +94,6 @@ exports.findAndSelect = async function (editor, args) {
         else selectedRange = new Range(selection.start, selection.end);
         if (!selectedRange) return;
 
-        // if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1)
         if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1)
           matches = transforms.buildLineNumberMatches(resolvedFind, selectedRange);
 
@@ -127,7 +124,6 @@ exports.findAndSelect = async function (editor, args) {
 
         let lineIndex = 0;
 
-        // if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
         if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1) {
           let selectedLineRange = document.lineAt(selection.active.line).range;
           matches = transforms.buildLineNumberMatches(resolvedFind, selectedLineRange);
@@ -150,7 +146,6 @@ exports.findAndSelect = async function (editor, args) {
 
         const currentWordRange = document.getWordRangeAtPosition(selection.active);
 
-        // if (resolvedFind.search(/\$\{line(Number|Index)\}/) !== -1) {
         if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1) {
 
           let lineRange = document.lineAt(selection.active.line).range;
@@ -197,8 +192,6 @@ exports.findAndSelect = async function (editor, args) {
               const foundLowerIndex = lineMatches.findIndex(lineMatch => (lineMatch.lineIndex === lineIndex) && (lineMatch.subStringIndex > subStringIndex));
               if (foundLowerIndex === -1)
                 doContinue = false;
-              // const foundLowerIndex = lineMatches.findIndex(lineMatch => (lineMatch.lineIndex === lineIndex) && (lineMatch.subStringIndex > subStringIndex));
-              // lineMatches.push({ lineIndex, subStringIndex });
             }
           }
 

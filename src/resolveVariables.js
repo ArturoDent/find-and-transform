@@ -359,7 +359,6 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
     }
   }
 
-	// removed escaping the or | if madeFind
 	if (!isRegex && madeFind) findValue = findValue?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
   else if (!isRegex) findValue = findValue?.replace(/([+?^.\\*\[\]\(\)]|\$(?!{line(Number|Index)})|\{(?!line(Number|Index)})|(?<!\$\{lineNumber)(?<!\$\{lineIndex)\})/g, "\\$1");
   
@@ -376,8 +375,6 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
   // (?<=\[[^\]]*?)(?<!(\\r|\r)\??)(\\n|\n)(?=[^\[]*?\]) - \n in a [] not preceded by \r?
   // (?<!\[[^\]]*?)(?<!(\\r|\r)\??)(\\n|\n)(?![^\[]*?\]) - \n not in a [] and not preceded by \r?
   
-  // [\r?\n] doesn't work, the ? is treated as an excluded character and so is not found
-  
   if (window.activeTextEditor.document.eol === vscode.EndOfLine.CRLF) {
 
     // \n not in a [] and not preceded by \r?
@@ -393,12 +390,12 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
   }
   
   // find a blank line: '^$' => '^(?!\n)$(?!\n)'
-  // two blank lines, use '(^$)\\n(^$)'
+  // two blank lines, use '(^$)\n(^$)'  // works
   
   // works in a more complex regex, like 'howdy\\n^$\\nthere' => with a blank line between
   if (window.activeTextEditor.document.eol === vscode.EndOfLine.CRLF)
-    if (isRegex) findValue = findValue?.replaceAll(/\^\$/g, "^(?!\n)$(?!\n)");
- 
+    if (isRegex) findValue = findValue?.replaceAll(/\^\$/g, "^(?!\n)$(?!\n)");  // is this necessary? Yes
+  
   return {
     findValue,
     isRegex
@@ -1288,7 +1285,8 @@ exports.makeFind = async function (selections, args) {
 
       // so a cursor at the start of an empty line will find all empty lines
       if (emptyLine) {
-        selectedText = '^(?!\n)$(?!\n)';
+        // selectedText = '^(?!\n)$(?!\n)';  // the original re
+        selectedText = '^$';  // this is sufficient, but not in adjustValueForRegex()
         mustBeRegex = true;
       }
       else {

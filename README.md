@@ -2386,6 +2386,8 @@ And, if you want to put a cursor on all empty lines within your selections, use 
 }
 ```
 
+If you want to find two consecutive empty lines use `(^$)\n(^$)`.  For three empty lines use `(^$)\n(^$)\n(^$)`.  
+
 -----------------------
 
 ## TODO
@@ -2395,20 +2397,17 @@ And, if you want to put a cursor on all empty lines within your selections, use 
 * Explore adding a command `setCategory` setting.  Separate category for Search Panel commands?  
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
 * Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.  
-* `async/await` all code so `postCommands` are more reliable (and can use built-in `runCommands`).  
 * Deal with redundant "Extensions have been modified on disk.  Please reload..." notification.  
-* Investigate arg keys in package.json rather than completionProvider.  
 * Implement successive `${getFindInput}` input boxes.  
-* Get empty line match work in `selections`.  
-* Match any number of blank lines.  
 
 ## Release Notes
 
 See [CHANGELOG](CHANGELOG.md) for notes on prior releases.  
 
-* 5.3.0 Make codeActions work better (including multiple actions)..
+* 5.3.0 Make codeActions work better (including multiple actions).
 &emsp;&emsp; - editBuilder awaits added.  
 &emsp;&emsp; 5.3.1 - Add `reveal` option  to findAndSelect.  
+&emsp;&emsp; 5.3.3 - Fix empty line finds.  
 
 * 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
 &emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  

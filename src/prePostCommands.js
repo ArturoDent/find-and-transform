@@ -42,7 +42,7 @@ exports.runPost = async function (args, foundMatches, foundSelections, selection
   let postCommands = args.postCommands;
   const editor = window.activeTextEditor;
   
-  await _prePostHasVariable(args.postCommands);
+  // await _prePostHasVariable(args.postCommands);
   
   // does this work for a single object? No
   const argHasText = (command) => {
@@ -105,13 +105,11 @@ async function _prePostHasVariable (commands) {
   if (Array.isArray(commands)) {
     
     // for (const args of command)
-    // for (const [command, args] of command)
-    
+    // for (const [command, args] of command)    
     
     for await (const command of commands) {
       
       const args = command.args;
-      console.log(args);
       
       // for (const [command1, args] of command) {
       

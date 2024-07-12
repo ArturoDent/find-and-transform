@@ -2,6 +2,8 @@
 
 * 5.3.0 Make codeActions work better (including multiple actions).  
 &emsp;&emsp; - editBuilder awaits added.  
+&emsp;&emsp; 5.3.1 - Add `reveal` option  to findAndSelect.  
+&emsp;&emsp; 5.3.3 - Fix empty line finds.  
 
 * 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
 &emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  
