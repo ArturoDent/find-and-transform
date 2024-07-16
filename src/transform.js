@@ -95,7 +95,10 @@ exports.matchAroundCursor = function (args, resolvedFind, selection) {
  */
 exports.runWhen = async function (args, foundMatches, foundSelections, selection) {
 
-  if (args.run && foundMatches.length) {
+  if (args.runWhen === "onceIgnoreMatches")
+    await resolve.resolveVariables(args, "run", null, selection, null, null);  // no matches, run once
+  
+  else if (foundMatches.length) {
     
     if (args.runWhen === "onEveryMatch") {
       
@@ -111,7 +114,7 @@ exports.runWhen = async function (args, foundMatches, foundSelections, selection
       await resolve.resolveVariables(args, "run", foundMatches[0], foundSelections[0], null, null);
   }
   
-  else if (args.run && args.runWhen === "onceOnNoMatches")
+  else if (args.runWhen === "onceOnNoMatches")
     await resolve.resolveVariables(args, "run", null, selection, null, null);  // no matches, run once
 }
 

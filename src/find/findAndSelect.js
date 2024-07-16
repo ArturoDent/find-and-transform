@@ -54,12 +54,14 @@ exports.findAndSelect = async function (editor, args) {
       }
 
       // Any way to designate a capture group to select, like '\\$1(\\d+)' ?
-      matches?.forEach((match, index) => {
-        const startPos = document?.positionAt(match.index);
-        const endPos = document?.positionAt(match.index + match[0].length);
-        const thisSelection = new Selection(startPos, endPos);
-        foundSelections[index] = thisSelection;
-      });
+      if (args.runWhen !== "onceIgnoreMatches") {
+        matches?.forEach((match, index) => {
+          const startPos = document?.positionAt(match.index);
+          const endPos = document?.positionAt(match.index + match[0].length);
+          const thisSelection = new Selection(startPos, endPos);
+          foundSelections[index] = thisSelection; 
+        });
+      }
 
       foundMatches.push(...matches);
     }
@@ -216,6 +218,7 @@ exports.findAndSelect = async function (editor, args) {
   // 'run' might want to access the selections
 
   // ignore args.preserveSelections in findAndSelect
+  // if args.runWhen === onceIgnoreMatches don't do this
   if (foundSelections.length) editor.selections = foundSelections;
   
   if (foundSelections.length && args.reveal && !args.cursorMoveSelect) {

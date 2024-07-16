@@ -862,7 +862,8 @@ function _completeRunWhen(position) {
   return [
     _makeValueCompletionItem("onceIfAMatch", replaceRange, "onceIfAMatch", "01", "Do the `run` operation only one time for all matches, if there was at least one find match."),
     _makeValueCompletionItem("onEveryMatch", replaceRange, "onceIfAMatch", "02", "Do the `run` operation once for each find match."),
-    _makeValueCompletionItem("onceOnNoMatches", replaceRange, "onceIfAMatch", "03", "Do the `run` operation one time when there were no find matches.")
+    _makeValueCompletionItem("onceOnNoMatches", replaceRange, "onceIfAMatch", "03", "Do the `run` operation one time when there were no find matches."),
+    _makeValueCompletionItem("onceIgnoreMatches", replaceRange, "onceIfAMatch", "04", "Do the `run` operation one time without matching any find.")
   ];
 }
 
@@ -1031,7 +1032,8 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
   
   const runWhenText = ` "onceIfAMatch":  "one time only for all find matches"
  "onEveryMatch":  "one time for each match"
- "onceOnNoMatches":   "when there are no matches run one time"`;
+ "onceOnNoMatches":   "when there are no matches run one time"
+ "onceIgnoreMatches":  "run without matching any find query"`;
   
  const runPostCommandsText = ` "onceIfAMatch":  "one time only for all find matches"
  "onEveryMatch":  "EXPERIMENTAL: one time for each match"
