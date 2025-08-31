@@ -479,6 +479,7 @@ ${selectedText}
 ${CLIPBOARD}           // added by this extension  
 ${pathSeparator}
 ${lineNumber}
+${cursorNumber}
 ${resultsFiles}        // added by this extension, will be escaped
 ```
 

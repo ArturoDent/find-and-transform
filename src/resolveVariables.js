@@ -778,6 +778,10 @@ async function _resolvePathVariables (variableToResolve, args, caller, selection
        }
        // "ignoreLineNumbers" will pass through unresolved
       break;
+    
+    case "${columnNumber}": case "${ columnNumber }":   // 1-based
+      resolved = String(window.activeTextEditor.selection?.active?.character);
+      break;
 
     case "${lineNumber}":  case "${ lineNumber }":   // 1-based
       if (caller === "cursorMoveSelect" && args.restrictFind !== "document") resolved = String(match + 1);

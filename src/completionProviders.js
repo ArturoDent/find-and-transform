@@ -652,6 +652,7 @@ function _completePathVariables(position, trigger) {
     
     _makeValueCompletionItem("${lineIndex}", replaceRange, "", "043", "The line number of the **first** cursor in the current editor, lines start at 0."),
 		_makeValueCompletionItem("${lineNumber}", replaceRange, "", "044", "The line number of the **first** cursor in the current editor, lines start at 1."),
+		_makeValueCompletionItem("${columnNumber}", replaceRange, "", "045", "The column number of the **first** cursor in the current editor, columns start at 1."),
 
     _makeValueCompletionItem("${matchIndex}", replaceRange, "", "05", "The 0-based find match index. Is this the first, second, etc. match?"),
     _makeValueCompletionItem("${matchNumber}", replaceRange, "", "051", "The 1-based find match index. Is this the first, second, etc. match?"),

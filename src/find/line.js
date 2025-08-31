@@ -346,6 +346,7 @@ exports.replaceInLine = async function (editor, args) {
         const startPos = document.positionAt(selectionIndex + matches[0].index);
         const endPos = document.positionAt(selectionIndex + matches[0].index + matches[0][0].length);
 
+        // TODO: add | selection
         let resolvedReplace = await resolve.resolveVariables(args, "replace", matches[0], foundSelections[index], null, index);
 
         const matchRange = new Range(startPos, endPos);
