@@ -1245,7 +1245,7 @@ ${CLIPBOARD}
 ${lineIndex}               line index starts at 0
 ${lineNumber}              line number start at 1
 
-${cursorNumber}            character position on the line
+${columnNumber}            character position on the line
 
 ${matchIndex}              0-based, replace with the find match index - first match, second, etc.   
 ${matchNumber}             1-based, replace with the find match number
@@ -2410,7 +2410,7 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 &emsp;&emsp; - editBuilder awaits added.  
 &emsp;&emsp; 5.3.1 - Add `reveal` option  to findAndSelect.  
 &emsp;&emsp; 5.3.3 - Fix empty line finds.  
-&emsp;&emsp; 5.3.4 - Added `cursorNumber` variable.  
+&emsp;&emsp; 5.3.4 - Added `columnNumber` variable.  
 
 * 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
 &emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  
