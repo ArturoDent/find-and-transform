@@ -41,3 +41,19 @@
     
     
   c:\Program Files\Git\etc\bash.bashrc c:\Program Files\Git\etc\DIR_COLORS c:\Program Files\Git\etc\docx2txt.config c:\Program Files\Git\etc\bash.bash_logout
+
+
+#   ____________________________________________________________________________
+#   Extract raw data                                                        ####
+
+#   ____________________________________________________________________________
+#   e                                                                       ####
+
+
+
+
+
+
+
+
+

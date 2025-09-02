@@ -3,7 +3,7 @@
  "name": "find-and-transform",
  "displayName": "Find and Transform",
  "description": "Find or search with many options and variables.",
- "version": "5.3.6",
+ "version": "5.3.7",
  "engines": {
   "vscode": "^1.69.0"
  },

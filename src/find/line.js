@@ -93,7 +93,7 @@ exports.replaceInLine = async function (editor, args) {
       let resolvedFind;
 
       // call makeFind(selections, args) here with currentLine selections only
-      if (!args.find) {
+      if (!args.find) {   // TODO: should this be args.find !== undefined
         const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
         const findObject = await resolve.makeFind(lineSelections, args);
         ({ find: args.find, emptyPointSelections: args.pointReplaces } = findObject);
@@ -101,7 +101,8 @@ exports.replaceInLine = async function (editor, args) {
         args.isRegex ||= findObject.mustBeRegex;
       }
 
-      if (!args.find) return;
+      // if (!args.find) return;
+      if (args.find === undefined) return;
 
       if (args.ignoreWhiteSpace && args.madeFind) {
         args.find = args.find.trim();
@@ -133,7 +134,8 @@ exports.replaceInLine = async function (editor, args) {
       for await (const match of matches) {
 
         lineIndex = document.offsetAt(new Position(selection.active.line, 0));
-        let resolvedReplace = await resolve.resolveVariables(args, "replace", match, foundSelections[index], null, index);
+        // let resolvedReplace = await resolve.resolveVariables(args, "replace", match, foundSelections[index], null, index);
+        let resolvedReplace = await resolve.resolveVariables(args, "replace", match, selection, null, index);
 
         const startPos = document.positionAt(lineIndex + match.index);
         const endPos = document.positionAt(lineIndex + match.index + match[0].length);
@@ -296,7 +298,7 @@ exports.replaceInLine = async function (editor, args) {
       args.find = findArg; // reset to the original args.find
 
       // call makeFind(selections, args) here with currentLine selections only
-      if (!args.find) {
+      if (!args.find) {   // TODO: should this be args.find !== undefined
         const lineSelections = editor.selections.filter(eachSelection => eachSelection.active.line === selection.active.line);
         const findObject = await resolve.makeFind(lineSelections, args);
         ({ find: args.find, emptyPointSelections: args.pointReplaces } = findObject);

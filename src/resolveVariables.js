@@ -780,7 +780,8 @@ async function _resolvePathVariables (variableToResolve, args, caller, selection
       break;
     
     case "${columnNumber}": case "${ columnNumber }":   // 1-based
-      resolved = String(window.activeTextEditor.selection?.active?.character);
+      // resolved = String(window.activeTextEditor.selection?.active?.character);
+      resolved = String(selection?.active?.character);
       break;
 
     case "${lineNumber}":  case "${ lineNumber }":   // 1-based
