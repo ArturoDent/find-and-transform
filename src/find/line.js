@@ -303,7 +303,8 @@ exports.replaceInLine = async function (editor, args) {
         args.madeFind = true;
         args.isRegex ||= findObject.mustBeRegex;
       }
-      if (!args.find) return;
+      // if (!args.find) return;
+      if (args.find === undefined) return;  // fix for '' empty string
 
       // handle ignoreWhiteSpace heren excluded from parseCommands, because there
       // madeFind is not called for once..., thus args.madeFind is false
