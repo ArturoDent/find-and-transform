@@ -2,6 +2,9 @@ const path = require('path');
 const Mocha = require('mocha');
 const glob = require('glob');
 
+/**
+ * @returns {Promise<void>}
+ */
 function run() {
 	// Create the mocha test
 	const mocha = new Mocha({

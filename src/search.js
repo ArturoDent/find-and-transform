@@ -59,7 +59,7 @@ exports.runAllSearches = async function (args) {
   for (let index = 0; index < most; index++) { 
 
     const splitArgs = await _buildSearchArgs(expandedArgs, index);
-    await this.useSearchPanel(splitArgs);
+    await exports.useSearchPanel(splitArgs);
     
     // need a delay to get results files, if necessary
     if (splitArgs.delay) await new Promise(r => setTimeout(r, splitArgs.delay));
@@ -76,8 +76,10 @@ exports.runAllSearches = async function (args) {
 async function _buildSearchArgs(args, index)  {
 
   const editor = window.activeTextEditor;
+  if (!editor) return {};
   const { selections } = editor;
-  
+
+	/** @type {Object} */
 	let  indexedArgs = { isRegex: false, matchWholeWord: false, matchCase: false, triggerReplaceAll: false, filesToInclude: undefined };
   const splitArgs = await _returnArgsByIndex(args, index);
 	Object.assign(indexedArgs, splitArgs);

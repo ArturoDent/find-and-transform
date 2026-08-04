@@ -22,7 +22,7 @@ exports.findAndSelect = async function ( editor, args ) {
   const cursorPosition = document.getWordRangeAtPosition( editor.selection.active )?.end || editor.selection.end;
 
   let foundSelections = [];
-  let matches;
+  let matches = [];
   let foundMatches = [];
 
   if ( args.restrictFind === "document" ) {

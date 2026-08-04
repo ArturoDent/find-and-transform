@@ -14,25 +14,25 @@ const outputChannel = require('./outputChannel');
  * Else, resolve later in transform.js for each line of document/selection/line.
  * Only works on 'find' value, not 'replace', etc.
  * 
- * @param {window.activeTextEditor} editor
+ * @param {import("vscode").TextEditor} editor
  * @param {Object} args - keybinding/settings args
- * @param {Number} matchIndex - which match is it: first, second, etc.
- * @param {import("vscode").Selection} selection
+ * @param {Number | null} matchIndex - which match is it: first, second, etc.
+ * @param {import("vscode").Selection | null} selection
  * @returns {Promise<object>} findValue, isRegex
  */
 exports.resolveFind = async function (editor, args, matchIndex, selection) {
 
   let resolvedFind = "";
-  let cursorIndex = editor?.document?.offsetAt(editor.selection?.active);
+  let cursorIndex = editor?.document?.offsetAt(editor.selection?.active) ?? null;
 
   const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
 
   if (args.find && args?.find?.search(lineIndexNumberRE) !== -1)
-    resolvedFind = await this.resolveVariables(args, "find", null, selection ?? editor.selection, cursorIndex, matchIndex);
+    resolvedFind = await exports.resolveVariables(args, "find", null, selection ?? editor?.selection, cursorIndex, matchIndex);
   else
-    resolvedFind = await this.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor?.selection, cursorIndex, matchIndex);
+    resolvedFind = await exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor?.selection, cursorIndex, matchIndex);
 
-  return await this.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.ignoreWhiteSpace, args.madeFind);
+  return await exports.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.ignoreWhiteSpace, args.madeFind);
 };
 
 
@@ -43,15 +43,15 @@ exports.resolveFind = async function (editor, args, matchIndex, selection) {
  * @param {Object} args - keybinding/settings args
  * @param {string} caller - find/replace/cursorMoveSelect
  * @param {Object} groups - may be a single match
- * @param {import("vscode").Selection} selection - the current selection
- * @param {number} selectionStartIndex
- * @param {number} matchIndex - which match is it
+ * @param {import("vscode").Selection | null} selection - the current selection
+ * @param {number | null} selectionStartIndex
+ * @param {number | null} matchIndex - which match is it
  * @returns {Promise<string>} - the resolved string
  */
 exports.resolveVariables = async function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
 
   // if (!window.activeTextEditor) return;  // or return ""
-  const { document } = window.activeTextEditor;
+  const document = window.activeTextEditor?.document;
   let replaceValue;
   let jsOPerationHasAwait = [];
 
@@ -80,7 +80,7 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   else if (caller === "snippet") replaceValue = args?.snippet;
   // else if (caller === "postCommands") replaceValue = args?.postCommands[matchIndex]?.args?.text;
   else if (caller === "postCommands") {
-    if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex]?.args?.text;
+    if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex ?? 0]?.args?.text;
     else replaceValue = args?.postCommands?.args?.text;
     // if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex]?.args?.lineNumber;
     // else replaceValue = args?.postCommands?.args?.lineNumber;
@@ -174,7 +174,7 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
 
   re = regexp.extensionGlobalRE;
 
-  resolved = await utilities.replaceAsync2(resolved, re, this.resolveExtensionDefinedVariables, args, caller);
+  resolved = await utilities.replaceAsync2(resolved, re, exports.resolveExtensionDefinedVariables, args, caller);
 
   // --------------------  extension-defined variables ----------------------------------------------
 
@@ -308,13 +308,14 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   }
 
   catch (jsOPError) {  // this doesn't run async
+    const jsOPErrorStack = jsOPError instanceof Error ? jsOPError.stack : String(jsOPError);
     resolved = 'Error: jsOPError';
-    outputChannel.write(`\n${ jsOPError.stack }\n`);
+    outputChannel.write(`\n${ jsOPErrorStack }\n`);
 
     // below: could be in 'run' value, not 'replace'
     window.showWarningMessage("There was an error in the `$${<operations>}$$`.  See the Output channel: `find-and-transform` for more.");
 
-    throw new Error(jsOPError.stack);
+    throw new Error(jsOPErrorStack);
   }
   // -------------------  jsOp ------------------------------------------------------------------
 
@@ -338,7 +339,7 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
  * @param {boolean} ignoreWhiteSpace  * 
  * @param {boolean} madeFind 
  * 
- * @returns {Promise<object>} { findValue,  isRegex }
+ * @returns {Promise<{findValue: string, isRegex: boolean}>} { findValue,  isRegex }
  */
 exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, matchWholeWord, ignoreWhiteSpace, madeFind) {
 
@@ -376,7 +377,7 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
   // (?<=\[[^\]]*?)(?<!(\\r|\r)\??)(\\n|\n)(?=[^\[]*?\]) - \n in a [] not preceded by \r?
   // (?<!\[[^\]]*?)(?<!(\\r|\r)\??)(\\n|\n)(?![^\[]*?\]) - \n not in a [] and not preceded by \r?
 
-  if (window.activeTextEditor.document.eol === vscode.EndOfLine.CRLF) {
+  if (window.activeTextEditor?.document.eol === vscode.EndOfLine.CRLF) {
 
     // \n not in a [] and not preceded by \r?
     if (isRegex && !ignoreWhiteSpace) findValue = findValue?.replaceAll(/(?<!\[[^\]]*?)(?<!(\\r|\r)\??)(\\n|\n)(?![^\[]*?\])/g, "\r?\n");
@@ -468,6 +469,7 @@ exports.replaceFindCaptureGroups = async function (findValue) {
 
   const selections = window.activeTextEditor?.selections;
   const document = window.activeTextEditor?.document;
+  if (!selections || !document) return findValue;
 
   findValue = findValue?.replace(/(\\[UuLl])?\\\$(\d+)/g, (match, p1, p2) => {
 
@@ -536,6 +538,7 @@ function _modifyCaseOfFindCaptureGroup(caseModifier, resolvedCaptureGroup) {
 async function _resolveExtensionDefinedVariables(variableToResolve, args, caller) {
 
   const document = window.activeTextEditor?.document;
+  if (!document) return variableToResolve;
 
   if (typeof variableToResolve !== 'string') return variableToResolve;
 
@@ -577,7 +580,7 @@ async function _resolveExtensionDefinedVariables(variableToResolve, args, caller
 
     const namedGroups = resolved?.match(regexp.pathCaseModifierRE)?.groups;
 
-    switch (namedGroups.vars) {
+    switch (namedGroups?.vars) {
 
       case "${getDocumentText}": case "${ getDocumentText }":
         resolved = document?.getText();
@@ -646,10 +649,11 @@ exports.resolveMatchVariable = async function (variableToResolve, replaceIndex) 
 exports.resolveLineVariable = async function (variableToResolve, index) {
 
   const document = window.activeTextEditor?.document;
+  if (!document) return variableToResolve;
 
   if (typeof variableToResolve !== 'string') return variableToResolve;
 
-  const line = document?.positionAt(index).line;
+  const line = document.positionAt(index).line;
 
   variableToResolve = variableToResolve?.replaceAll(/\$\{\s*lineIndex\s*\}/g, String(line));
   variableToResolve = variableToResolve?.replaceAll(/\$\{\s*lineNumber\s*\}/g, String(line + 1));
@@ -663,29 +667,33 @@ exports.resolveLineVariable = async function (variableToResolve, index) {
  * @param {string} variableToResolve - the "filesToInclude/find/replace" value 
  * @param {Object} args -  keybinding/settings args
  * @param {string} caller - if called from a find.parseVariables() or replace or filesToInclude 
- * @param {import("vscode").Selection} selection - current selection
+ * @param {import("vscode").Selection | null} selection - current selection
  * @param {Object} match - the current match
- * @param {number} selectionStartIndex - in the start index of this selection
- * @param {number} matchIndex - which match is it
- * 
- * @returns {Promise<string>} - the resolved path variable
+ * @param {number | null} selectionStartIndex - in the start index of this selection
+ * @param {number | null} matchIndex - which match is it
+ *
+ * @returns {Promise<string | undefined>} - the resolved path variable
  */
 async function _resolvePathVariables(variableToResolve, args, caller, selection, match, selectionStartIndex, matchIndex) {
 
-  const document = window.activeTextEditor?.document;
+  const editor = window.activeTextEditor;
+  if (!editor) return variableToResolve;
+  const document = editor.document;
 
   if (typeof variableToResolve !== 'string') return variableToResolve;
 
   selectionStartIndex = selectionStartIndex ?? 0;
+  if (!selection) selection = editor.selection;
   const filePath = document.uri.path;
 
   let relativePath;
-  if ((caller === "filesToInclude" || caller === "filesToExclude") && workspace.workspaceFolders.length > 1) {
+  if ((caller === "filesToInclude" || caller === "filesToExclude") && (workspace.workspaceFolders?.length ?? 0) > 1) {
     relativePath = workspace?.asRelativePath(document.uri, true);
     relativePath = `./${ relativePath }`;
   }
   else relativePath = workspace?.asRelativePath(document.uri, false);
 
+  /** @type {string | undefined} */
   let resolved = variableToResolve;
 
 
@@ -719,11 +727,11 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
       break;
 
     case "${fileWorkspaceFolder}": case "${ fileWorkspaceFolder }":
-      resolved = workspace?.getWorkspaceFolder(document.uri).uri.path;
+      resolved = workspace?.getWorkspaceFolder(document.uri)?.uri.path;
       break;
 
     case "${workspaceFolder}": case "${ workspaceFolder }":
-      resolved = workspace?.getWorkspaceFolder(document.uri).uri.path;
+      resolved = workspace?.getWorkspaceFolder(document.uri)?.uri.path;
       break;
 
     case "${relativeFileDirname}": case "${ relativeFileDirname }":
@@ -735,12 +743,10 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
       break;
 
     case "${workspaceFolderBasename}": case "${ workspaceFolderBasename }":
-      resolved = path.basename(workspace?.getWorkspaceFolder(document.uri).uri.path);
+      resolved = path.basename(workspace?.getWorkspaceFolder(document.uri)?.uri.path ?? '');
       break;
 
     case "${selectedText}": case "${ selectedText }":
-      if (!selection) selection = window.activeTextEditor.selection;
-
       if (selection.isEmpty) {
         const wordRange = document?.getWordRangeAtPosition(selection.start);
         if (wordRange) resolved = document?.getText(wordRange);
@@ -758,7 +764,7 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
       break;
 
     case "${matchNumber}": case "${ matchNumber }":
-      resolved = String(matchIndex + 1);
+      resolved = String((matchIndex ?? 0) + 1);
       break;
 
     case "${lineIndex}": case "${ lineIndex }":    // 0-based
@@ -836,7 +842,7 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
  * @param {string} variableToResolve - the "filesToInclude/find/replace" value 
  * @param {Object} args -  keybinding/settings args
  * @param {string} caller - if called from a find.parseVariables() or replace or filesToInclude 
- * @param {import("vscode").Selection} selection - current selection
+ * @param {import("vscode").Selection | null} selection - current selection
  * @param {Object} groups - the current match
 
  * @returns {Promise<string>} - the resolved path variable
@@ -844,8 +850,11 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
 // function _resolveSnippetVariables (variableToResolve, args, caller, selection, groups) {
 async function _resolveSnippetVariables(variableToResolve, args, caller, selection, groups) {
 
-  const document = window.activeTextEditor?.document;
+  const editor = window.activeTextEditor;
+  if (!editor) return variableToResolve;
+  const document = editor.document;
   const filePath = document.uri.path;
+  if (!selection) selection = editor.selection;
 
   let comments;
 
@@ -1002,7 +1011,7 @@ async function _resolveSnippetVariables(variableToResolve, args, caller, selecti
  * @param {Object} args - keybinding/setting args
  * @param {string} caller - find/replace/cursorMoveSelect
  * 
- * @returns {Promise<string>} - the resolved string
+ * @returns {Promise<string | undefined>} - the resolved string
  */
 exports.resolveExtensionDefinedVariables = async function (replaceValue, args, caller) {
 
@@ -1018,9 +1027,10 @@ exports.resolveExtensionDefinedVariables = async function (replaceValue, args, c
     let resolved = await _resolveExtensionDefinedVariables(replaceValue, args, caller);
     const found = replaceValue.match(re);
 
-    if (!found.groups.caseModifier) return resolved;
+    if (!found?.groups?.caseModifier) return resolved;
     else return _applyCaseModifier(found.groups, undefined, resolved);
   }
+  return undefined;
 };
 
 /**
@@ -1038,7 +1048,7 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
 
   if (replaceValue === "") return replaceValue;
 
-  let identifiers;
+  let identifiers = [];
   let re;
 
   if (replaceValue !== null) {
@@ -1054,9 +1064,9 @@ exports.resolveSearchPathVariables = async function (replaceValue, args, caller,
     let resolved = "";
 
     if (identifier?.groups?.path) {
-      resolved = await _resolvePathVariables(identifier.groups.path, args, caller, selection, null, null, null);
+      resolved = await _resolvePathVariables(identifier.groups.path, args, caller, selection, null, null, null) ?? '';
       if (identifier.groups.pathCaseModifier)
-        resolved = _applyCaseModifier(identifier.groups, identifiers, resolved);
+        resolved = _applyCaseModifier(identifier.groups, identifiers, resolved) ?? '';
     }
 
     replaceValue = replaceValue?.replace(identifier[0], resolved);
@@ -1093,7 +1103,7 @@ exports.resolveSearchSnippetVariables = async function (replaceValue, args, call
       // const variableToResolve =  _resolveSnippetVariables(match, args, caller, selection, undefined);
       const variableToResolve = await _resolveSnippetVariables(match, args, caller, selection, undefined);
       return _applyCaseModifier(namedGroups, undefined, variableToResolve);
-    });
+    }) ?? resolved;
   };
   return resolved;
 };
@@ -1103,8 +1113,8 @@ exports.resolveSearchSnippetVariables = async function (replaceValue, args, call
  * Apply case modifier, like '\\U' to capture groups $1, etc..
  * @param {Object} namedGroups
  * @param {Object} groups
- * @param {string} resolvedPathVariable
- * @returns {string} - case-modified text
+ * @param {string | undefined} resolvedPathVariable
+ * @returns {string | undefined} - case-modified text
  */
 function _applyCaseModifier(namedGroups, groups, resolvedPathVariable) {
 
@@ -1133,7 +1143,7 @@ function _applyCaseModifier(namedGroups, groups, resolvedPathVariable) {
       break;
 
     case "\\u":
-      resolved = resolved[0]?.toLocaleUpperCase() + resolved?.substring(1);
+      resolved = (resolved?.[0]?.toLocaleUpperCase() ?? '') + (resolved?.substring(1) ?? '');
       break;
 
     case "\\L":
@@ -1141,7 +1151,7 @@ function _applyCaseModifier(namedGroups, groups, resolvedPathVariable) {
       break;
 
     case "\\l":
-      resolved = resolved[0]?.toLocaleLowerCase() + resolved?.substring(1);
+      resolved = (resolved?.[0]?.toLocaleLowerCase() ?? '') + (resolved?.substring(1) ?? '');
       break;
 
     default:
@@ -1156,7 +1166,7 @@ function _applyCaseModifier(namedGroups, groups, resolvedPathVariable) {
  * @param   {string} p2 - capture group 2
  * @param   {string} p3 - capture group 3
  * @param   {Object} groups
- * @returns {string} - modified text
+ * @returns {string | undefined} - modified text
  */
 function _applyCaseTransform(p2, p3, groups) {
 
@@ -1255,7 +1265,7 @@ function _checkForCaptureGroupsInConditionalReplacement(replacement, groups) {
   const capGroups = [...replacement?.matchAll(re)];
 
   for (let i = 0; i < capGroups.length; i++) {
-    if (capGroups[i].groups.ticks) {
+    if (capGroups[i].groups?.ticks) {
       replacement = replacement?.replace(capGroups[i][0], groups[capGroups[i][2]] ?? "");
     }
   }
@@ -1283,6 +1293,8 @@ exports.makeFind = async function (selections, args) {
   let find = "";
   let mustBeRegex = false;
   let emptyPointSelections = new Set();
+
+  if (!document) return { find, mustBeRegex, emptyPointSelections };
 
   // only use the first selection for these options: nextSelect/nextMoveCursor/nextDontMoveCursor
   if (args?.restrictFind?.startsWith("next") || args?.restrictFind?.startsWith("previous")) {

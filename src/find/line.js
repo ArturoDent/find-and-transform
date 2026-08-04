@@ -1,4 +1,4 @@
-const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
+const { WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
 
 const resolve = require('../resolveVariables');
 const utilities = require('../utilities');
@@ -11,7 +11,7 @@ const prePostCommands = require('../prePostCommands');
  * Replace find matches on the current line.  
  * restrictFind = line/once...
  *
- * @param {window.activeTextEditor} editor
+ * @param {import("vscode").TextEditor} editor
  * @param {Object} args - keybinding/settings args
  */
 exports.replaceInLine = async function (editor, args) {
@@ -246,7 +246,7 @@ exports.replaceInLine = async function (editor, args) {
           // put cursor at the old start of the/each line          
           if (cursorMoveSelect === "^(?!\n)") cmsMatches = [cmsMatches[0]];
           // put cursor at the new end of the/each line
-          else if (cursorMoveSelect === "$(?!\n)") cmsMatches = [cmsMatches.at(-1)];
+          else if (cursorMoveSelect === "$(?!\n)") cmsMatches = [cmsMatches[cmsMatches.length - 1]];
 
           for (const match of cmsMatches) {
             const startPos = document.positionAt(selectionStartIndex + selectionStartAdjust + match.index);

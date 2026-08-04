@@ -17,7 +17,10 @@ const findArgs = require('./args/findOptions');
  */
 exports.isEmptySelectionOnOwnLine = async function (curPos) {
 
-  const currentLineIsEmpty = window.activeTextEditor.document.lineAt(curPos.start.line).text.length === 0;
+  const document = window.activeTextEditor?.document;
+  if (!document) return false;
+
+  const currentLineIsEmpty = document.lineAt(curPos.start.line).text.length === 0;
   if (!currentLineIsEmpty) return false;
 
   return curPos.start.isEqual(curPos.end) && curPos.start.character === 0;
@@ -31,10 +34,13 @@ exports.isEmptySelectionOnOwnLine = async function (curPos) {
  */
 exports.getNumLinesOfSelection = async function (sel) {
 
+  const document = window.activeTextEditor?.document;
+  if (!document) return 0;
+
   let numEmptyLines = 0;
 
   for (let line = sel.start.line; line <= sel.end.line; line++) {
-    if (window.activeTextEditor.document.lineAt(line).text.length === 0) numEmptyLines++;
+    if (document.lineAt(line).text.length === 0) numEmptyLines++;
   }
 
   return numEmptyLines;
@@ -47,10 +53,13 @@ exports.getNumLinesOfSelection = async function (sel) {
  */
 exports.getTextOfSelection = async function (sel) {
 
+  const document = window.activeTextEditor?.document;
+  if (!document) return 0;
+
   let numEmptyLines = 0;
 
   for (let line = sel.start.line; line <= sel.end.line; line++) {
-    if (window.activeTextEditor.document.lineAt(line).text.length === 0) numEmptyLines++;
+    if (document.lineAt(line).text.length === 0) numEmptyLines++;
   }
 
   return numEmptyLines;
@@ -59,7 +68,7 @@ exports.getTextOfSelection = async function (sel) {
 /**
  * Trigger a QuickInput to get args.find/replace/run/cursorMoveSelect from the user.
  * @param {string} type - called by find/replace/run/cursorMoveSelect
- * @returns {Promise<String>}
+ * @returns {Promise<String | undefined>}
  */
 exports.getInput = async function (type) {
 
@@ -104,7 +113,9 @@ exports.escapePathsForFilesToInclude = async function (path) {
  */
 exports.getPackageJSON = async function () {
 
-  const extensionPath = extensions.getExtension('ArturoDent.find-and-transform').extensionPath;
+  const extension = extensions.getExtension('ArturoDent.find-and-transform');
+  if (!extension) throw new Error('find-and-transform extension not found');
+  const extensionPath = extension.extensionPath;
 
   const packageJSONUri = Uri.file(path.join(extensionPath, 'package.json'));
   const packageContents = (await workspace.fs.readFile(packageJSONUri)).toString();
@@ -157,7 +168,8 @@ exports.getRelativeFolderPath = function (filePath) {
  */
 exports.getlanguageConfigComments = async function (args) {
 
-  const document = window.activeTextEditor.document;
+  const document = window.activeTextEditor?.document;
+  if (!document) return undefined;
 
   // do only if $LINE_COMMENT, $BLOCK_COMMENT_START, $BLOCK_COMMENT_END in find or replace
   let re = /\$\{LINE_COMMENT\}|\$\{BLOCK_COMMENT_START\}|\$\{BLOCK_COMMENT_END\}/;
@@ -188,13 +200,13 @@ exports.getSearchResultsFiles = async function (clipText) {
     let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
 
     let pathArray = resultsArray.filter(result => result !== "");
-    pathArray = pathArray.map(path => this.getRelativeFilePath(path));
+    pathArray = pathArray.map(path => exports.getRelativeFilePath(path));
 
     // restore original clipboard content
     await env.clipboard.writeText(clipText);
 
     // return await module.exports.escapePathsForFilesToInclude( pathArray.join(", ") );
-    return await this.escapePathsForFilesToInclude(pathArray.join(", "));
+    return await exports.escapePathsForFilesToInclude(pathArray.join(", "));
   }
   else {
     // notifyMessage?
@@ -286,8 +298,8 @@ exports.toSnakeCase = function (value) {
  */
 exports.checkArgs = async function (args, fromWhere) {
 
-  let goodKeys;
-  let goodValues;
+  let goodKeys = [];
+  let goodValues = {};
   let badKeys = [];
   let badValues = [];
 
@@ -365,7 +377,7 @@ exports.getSelectionToReveal = async function (foundSelections, cursorPosition, 
   if (foundSelections.length === 1) return foundSelections[0];
 
   if (whichReveal === "first") return foundSelections[0];
-  else if (whichReveal === "last") return foundSelections.at(-1);
+  else if (whichReveal === "last") return foundSelections.at(-1) ?? foundSelections[0];
   else if (whichReveal === "next") {   // so next = default, should wrap
     const next = foundSelections.find(found => {
       return (found.active.line > cursorPosition.line) ||
@@ -373,7 +385,7 @@ exports.getSelectionToReveal = async function (foundSelections, cursorPosition, 
     });
     return next || foundSelections[0];  // so it wraps
   }
-  else if (!whichReveal) return null;
+  else return foundSelections[0];
 };
 
 
@@ -385,8 +397,8 @@ exports.getSelectionToReveal = async function (foundSelections, cursorPosition, 
  * @param {string} toResolve - string to resolve
  * @param {RegExp} regexp
  * @param {Function} replacerFunction
- * 
- * @returns {Promise<string>}
+ *
+ * @returns {Promise<string | undefined>}
  */
 exports.replaceAsync = async function (toResolve, regexp, replacerFunction) {
 
@@ -422,7 +434,7 @@ exports.replaceAsync2 = async function (toResolve, regex, asyncFn, args, caller)
     //  const replacement = await resolve.resolveExtensionDefinedVariables(matches[0], args, caller);
     const replacement = await asyncFn(matches[0], args, caller);
     toResolve = toResolve.replace(matches[0], replacement);
-    toResolve = await this.replaceAsync2(toResolve, regex, asyncFn, args, caller);
+    toResolve = await exports.replaceAsync2(toResolve, regex, asyncFn, args, caller);
   }
 
   return toResolve;

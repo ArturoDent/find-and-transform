@@ -1,4 +1,4 @@
-const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
+const { WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
 
 const resolve = require('../resolveVariables');
 const regexp = require('../regex');
@@ -11,7 +11,7 @@ const prePostCommands = require('../prePostCommands');
 /**
  * Replace matches within each selection range
  *
- * @param {window.activeTextEditor} editor - the active editor
+ * @param {import("vscode").TextEditor} editor - the active editor
  * @param {Object} args - keybinding/settings args
  */
 exports.replaceInSelections = async function (editor, args) {

@@ -41,7 +41,9 @@ exports.runPost = async function (args, foundMatches, foundSelections, selection
   
   let postCommands = args.postCommands;
   const editor = window.activeTextEditor;
-  
+  if (!editor) return;
+
+
   // await _prePostHasVariable(args.postCommands);
   
   // does this work for a single object? No
@@ -64,7 +66,7 @@ exports.runPost = async function (args, foundMatches, foundSelections, selection
           editor.selections = [foundSelection];  // TODO: if preserveSelections ?
           postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, index);
         }
-        await this.run(postCommands, "postCommands"); 
+        await exports.run(postCommands, "postCommands"); 
         index++;
       };
     }
@@ -76,13 +78,13 @@ exports.runPost = async function (args, foundMatches, foundSelections, selection
         editor.selections = [foundSelections[0]];  // if preserveSelections ?
         postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
       }
-      await this.run(postCommands, "postCommands");
+      await exports.run(postCommands, "postCommands");
     }
   }
   else if (args.runPostCommands === "onceOnNoMatches") {
     if (resolvePostCommands) postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
     // postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
-    await this.run(postCommands, "postCommands");  // no matches, run once
+    await exports.run(postCommands, "postCommands");  // no matches, run once
   }
 };
 

@@ -193,22 +193,19 @@ async function _buildFindArgs(args, index) {
  * 
  * @param {Array} commandArgs 
  * @param {string} resourceType - file or folder
- * @returns {Promise<String>} - folders/files for the 'filesToInclude' arg
+ * @returns {Promise<String | undefined>} - folders/files for the 'filesToInclude' arg
  */
 exports.parseArgs = async function (commandArgs, resourceType) {
 
-  const { document } = window.activeTextEditor;
-
-  let editorPath = document.uri.path;
   let getRelativePath;
 
   if (resourceType === "folder") getRelativePath = utilities.getRelativeFolderPath;
   else getRelativePath = utilities.getRelativeFilePath;              // resourceType === "file"
 
-  if (!commandArgs.length) return getRelativePath(editorPath);      // from Command Palette or keybinding with no args
-
-  else if (commandArgs?.length === 1) {                              // keybindings and editor/context
-    return getRelativePath(editorPath);
+  if (!commandArgs.length || commandArgs?.length === 1) {      // from Command Palette or keybinding with no args
+    const document = window.activeTextEditor?.document;
+    if (!document) return undefined;
+    return getRelativePath(document.uri.path);
   }
 
   else if (commandArgs?.length === 2) {
@@ -220,6 +217,7 @@ exports.parseArgs = async function (commandArgs, resourceType) {
       return resources.join(', ');
     }
   }
+  return undefined;
 };
 
 

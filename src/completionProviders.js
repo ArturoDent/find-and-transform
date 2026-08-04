@@ -1,4 +1,4 @@
-const { languages, extensions, window, Range, Position,
+const { languages, extensions, Range, Position,
   CompletionItem, CompletionItemKind, CompletionTriggerKind,
   MarkdownString, SnippetString } = require('vscode');
   
@@ -29,6 +29,7 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           if (linePrefix.search(/^\s*"command":\s*"(runInSearchPanel)\./) !== -1) search = true;
           
           const thisExtension = extensions.getExtension('ArturoDent.find-and-transform');
+          if (!thisExtension) return undefined;
           const packageCommands = thisExtension.packageJSON.contributes.commands;
 
 					if (find || search) {
@@ -51,16 +52,19 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           let curLocation;
 							
           const rootNode = jsonc.parseTree(document.getText());
-          
+          if (!rootNode) return undefined;
+
           try {   // some kind of a parsing bug in jsonc-parser?
             curLocation = jsonc.getLocation(document.getText(), document.offsetAt(position));
           }
           catch (error) {
             // console.log(error)
           }
+          if (!curLocation) return undefined;
 
           if (curLocation.path[1] === '') return undefined;  // trying to get command/args/key/when of keybinding
           const thisConfig = _findConfig(rootNode, document.offsetAt(position));
+          if (!thisConfig) return undefined;
           const nodeValue = jsonc.getNodeValue(thisConfig);
           const command = nodeValue.command;
 
@@ -104,9 +108,9 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           // curLocation.path = [26, 'args', 'postCommands', ''] = bad
           if ((curLocation?.path[2] !== '' && !curLocation?.path[2]) || curLocation?.path[1] !== 'args' || curLocation?.path[3] === '') return undefined;
 
-          const argsNode = thisConfig.children.filter(entry => {
-            return entry.children[0].value === "args";
-          })
+          const argsNode = thisConfig.children?.filter(entry => {
+            return entry.children?.[0]?.value === "args";
+          }) ?? [];
 
           const argsStartingIndex = argsNode[0].offset;
           const argsLength = argsStartingIndex + argsNode[0].length;
@@ -137,8 +141,8 @@ exports.makeKeybindingsCompletionProvider = async function(context) {
           // }
           else if ((completionContext.triggerKind == CompletionTriggerKind.Invoke) && !textLine.isEmptyOrWhitespace) {
             // '"reveal": "first"  select reveal and invoke
-            const lineRange = window.activeTextEditor.document.lineAt(position.line).range;
-            const wordRange = window.activeTextEditor.document.getWordRangeAtPosition(position);
+            const lineRange = document.lineAt(position.line).range;
+            const wordRange = document.getWordRangeAtPosition(position);
             if (wordRange)
               replaceRange = new Range(wordRange?.start, lineRange.end);
             else {
@@ -189,21 +193,22 @@ exports.makeSettingsCompletionProvider = async function(context) {
         let findCommandNode;
         let searchCommandNode;
 				const rootNode = jsonc.parseTree(document.getText());
-        
+        if (!rootNode) return undefined;
+
         if (document.fileName.endsWith('.code-workspace')) {
-          const settingsNode = rootNode.children?.find(child => child.children[0]?.value === "settings").children[1];
-          
-          findCommandNode = settingsNode.children?.find(child => {
-            return child.children[0]?.value === "findInCurrentFile";
+          const settingsNode = rootNode.children?.find(child => child.children?.[0]?.value === "settings")?.children?.[1];
+
+          findCommandNode = settingsNode?.children?.find(child => {
+            return child.children?.[0]?.value === "findInCurrentFile";
           });
-          
-          searchCommandNode = settingsNode.children?.find(child => {
-            return child.children[0]?.value === "runInSearchPanel";
+
+          searchCommandNode = settingsNode?.children?.find(child => {
+            return child.children?.[0]?.value === "runInSearchPanel";
           });
         }
         else {
-          findCommandNode = rootNode.children?.find(child => child.children[0]?.value === "findInCurrentFile");
-          searchCommandNode = rootNode.children?.find(child => child.children[0]?.value === "runInSearchPanel");
+          findCommandNode = rootNode.children?.find(child => child.children?.[0]?.value === "findInCurrentFile");
+          searchCommandNode = rootNode.children?.find(child => child.children?.[0]?.value === "runInSearchPanel");
         }
 				if (!findCommandNode && !searchCommandNode) return undefined;
 
@@ -216,7 +221,8 @@ exports.makeSettingsCompletionProvider = async function(context) {
         catch (error) {
           // console.log(error)
         }
-        
+        if (!curLocation) return undefined;
+
         // because path[0] = "settings" in .code-workspace file settings
         if (document.fileName.endsWith('.code-workspace')) curLocation.path.shift();
         
@@ -277,15 +283,17 @@ exports.makeSettingsCompletionProvider = async function(context) {
           //   return sub.children[0].value === subCommand;
           // });
           
-          if (find) subCommandNode = findCommandNode.children[1].children.find(sub => {
-            return sub.children[0].value === subCommand;
+          if (find) subCommandNode = findCommandNode?.children?.[1]?.children?.find(sub => {
+            return sub.children?.[0]?.value === subCommand;
           });
-          else if (search) subCommandNode = searchCommandNode.children[1].children.find(sub => {
-            return sub.children[0].value === subCommand;
+          else if (search) subCommandNode = searchCommandNode?.children?.[1]?.children?.find(sub => {
+            return sub.children?.[0]?.value === subCommand;
           });
-          const subCommandArgs = subCommandNode.children[1];
-					const keysRange = new Range(document.positionAt(subCommandArgs.offset), document.positionAt(subCommandArgs.offset + subCommandArgs.length));
-					keysText = document.getText(keysRange);
+          const subCommandArgs = subCommandNode?.children?.[1];
+          if (subCommandArgs) {
+            const keysRange = new Range(document.positionAt(subCommandArgs.offset), document.positionAt(subCommandArgs.offset + subCommandArgs.length));
+            keysText = document.getText(keysRange);
+          }
 				}
 
         const runFindArgs   = findArgs.getKeys();
@@ -297,8 +305,8 @@ exports.makeSettingsCompletionProvider = async function(context) {
         
         if ((completionContext.triggerKind == CompletionTriggerKind.Invoke) && !textLine.isEmptyOrWhitespace) {
         
-          const lineRange = window.activeTextEditor.document.lineAt(position.line).range;
-          const wordRange = window.activeTextEditor.document.getWordRangeAtPosition(position);
+          const lineRange = document.lineAt(position.line).range;
+          const wordRange = document.getWordRangeAtPosition(position);
           if (wordRange)
           replaceRange = new Range(wordRange?.start, lineRange.end);
           else {
@@ -338,7 +346,7 @@ exports.makeSettingsCompletionProvider = async function(context) {
  * @param   {boolean} find 
  * @param   {boolean} search 
  * @param   {jsonc.Location} curLocation
- * @returns {Array<CompletionItem>}
+ * @returns {Array<CompletionItem> | undefined}
  */
 function _completeArgs(linePrefix, position, find, search, curLocation) {
   
@@ -458,11 +466,11 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
  * 
  * @param {jsonc.Node} rootNode - all parsed confogs in keybindings.json
  * @param {number} offset - of cursor position
- * @returns {jsonc.Node} - the node where the cursor is located
+ * @returns {jsonc.Node | undefined} - the node where the cursor is located
  */
 function _findConfig(rootNode, offset)  {
 
-  for (const node of rootNode.children) {
+  for (const node of rootNode.children ?? []) {
     if (node.offset <= offset && (node.offset + node.length > offset))
       return node;
   }
@@ -574,13 +582,14 @@ function _filterCompletionsItemsNotUsed(context, argArray, argsText, replaceRang
  * 
  * @param   {import("vscode").Position} position
  * @param   {string} trigger - triggered by '$' so include its range
+ * @param   {boolean} [search] - true if completing for a search-panel command
  * @returns {Array<CompletionItem>}
  */
 function _completeExtensionDefinedVariables(position, trigger, search) {
 
   // triggered by '$' or '${'}, so include them to complete w/o two '$${file}'
   let replaceRange;
-  let searchCompletions = undefined;
+  let searchCompletions = [];
   
   const text = `
   

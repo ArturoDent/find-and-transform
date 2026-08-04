@@ -1,4 +1,4 @@
-const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
+const { WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
 
 const resolve = require('../resolveVariables');
 const regexp = require('../regex');
@@ -12,7 +12,7 @@ const prePostCommands = require('../prePostCommands');
  * Replace the previous or next find match in the entire document
  * Select or not
  *
- * @param {window.activeTextEditor} editor
+ * @param {import("vscode").TextEditor} editor
  * @param {Object} args - keybinding/settings args
  */
 exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
@@ -65,7 +65,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
     previousMatches = [...documentBeforeCursor.matchAll(re)];
     
     // skip last match if it is the current find location
-    const { selection } = window.activeTextEditor;
+    const { selection } = editor;
     if (previousMatches.at(-1)?.index === document.offsetAt(selection.active)) previousMatches.pop();
   }
 

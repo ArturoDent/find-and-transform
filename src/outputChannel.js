@@ -1,6 +1,6 @@
 const { window } = require('vscode');
 
-let outputChannel;
+exports.outputChannel = undefined;
 
 /**
  * Write text to outputChannel
@@ -10,12 +10,12 @@ let outputChannel;
  */
 exports.write = function (text) {
   
-  if (!this.outputChannel) this.outputChannel = window.createOutputChannel("find-and-transform");
+  if (!exports.outputChannel) exports.outputChannel = window.createOutputChannel("find-and-transform");
     // @ts-ignore
-  else if (this.outputChannel) this.outputChannel.clear();
+  else if (exports.outputChannel) exports.outputChannel.clear();
   
-  this.outputChannel.appendLine(text);
-  this.outputChannel?.show(false);
+  exports.outputChannel.appendLine(text);
+  exports.outputChannel?.show(false);
 }
 
 
@@ -27,8 +27,8 @@ exports.clear = async function () {
   
   // hide() closes the Panel too!
   
-  if (!this.outputChannel) return;
-  else return this.outputChannel.clear();
+  if (!exports.outputChannel) return;
+  else return exports.outputChannel.clear();
 };
 
 
@@ -38,8 +38,8 @@ exports.clear = async function () {
  */
 exports.hide = async function () {
   
-  if (!this.outputChannel) return;
-  else return this.outputChannel.hide();
+  if (!exports.outputChannel) return;
+  else return exports.outputChannel.hide();
 };
 
 
@@ -49,8 +49,8 @@ exports.hide = async function () {
  */
 exports.dispose = async function () {
   
-  if (!this.outputChannel) return;
-  else return this.outputChannel.dispose();
+  if (!exports.outputChannel) return;
+  else return exports.outputChannel.dispose();
 };
 
 
@@ -64,15 +64,15 @@ exports.writeBadArgs = async function (argsBadObject) {
 
   let output;
   
-  if (!this.outputChannel) this.outputChannel = window.createOutputChannel("find-and-transform");
+  if (!exports.outputChannel) exports.outputChannel = window.createOutputChannel("find-and-transform");
     // @ts-ignore
-  else if (this.outputChannel) this.outputChannel.clear();
+  else if (exports.outputChannel) exports.outputChannel.clear();
 
   if (argsBadObject.badKeys.length) {
     output = Object.entries(argsBadObject.badKeys).map(badItem => {
       return `\n\t"${ badItem[1] }"`;
     });
-    this.outputChannel.appendLine(`\nBad Keys: ${ output }`);
+    exports.outputChannel.appendLine(`\nBad Keys: ${ output }`);
   }
   
   if (argsBadObject.badValues.length) {
@@ -82,10 +82,10 @@ exports.writeBadArgs = async function (argsBadObject) {
       else return `\n\t"${ Object.entries(badItem[1])[0][0] }": "${ Object.entries(badItem[1])[0][1] }"`;
     });
     
-    this.outputChannel.appendLine(`\nBad Values: ${ output }`);
-    this.outputChannel.appendLine(`_________________________________`);
+    exports.outputChannel.appendLine(`\nBad Values: ${ output }`);
+    exports.outputChannel.appendLine(`_________________________________`);
   }
-  if (output) this.outputChannel.show(false);
+  if (output) exports.outputChannel.show(false);
 };
 
 /**

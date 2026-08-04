@@ -7,11 +7,11 @@ const regexp = require('./regex');
 /**
  * Add any empty/words at cursor position to the editor.selections.
  * Modifies existing selections.
- * @param {window.activeTextEditor} editor
+ * @param {import("vscode").TextEditor} editor
  */
 exports.addEmptySelectionMatches = async function (editor) {
 
-  const { document } = window.activeTextEditor;
+  const document = window.activeTextEditor?.document;
 
   for await (const selection of editor.selections) {
 
@@ -44,17 +44,19 @@ exports.addEmptySelectionMatches = async function (editor) {
  */
 exports.matchAroundCursor = function (args, resolvedFind, selection) {
 
-  const document = window.activeTextEditor.document;
   let lineIndex = 0;
   let matches = [];
   let foundSelection;
   let foundMatch;
 
+  const document = window.activeTextEditor?.document;
+  if (!document) return [foundSelection, foundMatch, lineIndex];
+
  if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1) {
-   
+
     let selectedLineRange = document.lineAt(selection.active.line).range;
     // matches = module.exports.buildLineNumberMatches(resolvedFind, selectedLineRange);
-    matches = this.buildLineNumberMatches(resolvedFind, selectedLineRange);
+    matches = exports.buildLineNumberMatches(resolvedFind, selectedLineRange);
   }
   else if (resolvedFind?.length) {
       
@@ -125,9 +127,11 @@ exports.runWhen = async function (args, foundMatches, foundSelections, selection
  */
 exports.buildLineNumberMatches = function (find, range) {
 
-  const document = window.activeTextEditor.document;
-
   let matches = [];
+
+  const document = window.activeTextEditor?.document;
+  if (!document) return matches;
+
   const startLineNumber = range.start.line;
   const endLineNumber = range.end.line;
 
