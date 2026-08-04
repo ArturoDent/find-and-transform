@@ -54,6 +54,43 @@
 
 
 
+secondAA
+
+error
+
+secondAA
+
+first
+
+
+404
+
+
+a short line
+
+a longer line with more text
+
+q
+
+q;
 
 
 
+
+
+matches is not iterable (cannot read property undefined)
+
+  {
+    "key": "alt+f", // whatever keybinding you want
+    "command": "findInCurrentFile",
+    "description": "modify the clipboard",
+    "args": {
+      "find": "",
+      "run": [
+        "$${",
+        "await vscode.env.clipboard.writeText(`${fileDirname}`);",
+        "}$$"
+      ],
+      "restrictFind": "line"
+    }
+  }

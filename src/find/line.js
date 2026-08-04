@@ -16,6 +16,7 @@ const prePostCommands = require('../prePostCommands');
  */
 exports.replaceInLine = async function (editor, args) {
 
+  if (!editor) return;
   const document = editor.document;
   const cursorPosition = document.getWordRangeAtPosition(editor.selection?.active)?.end || editor.selection?.end;
   const findArg = args.find;
@@ -194,10 +195,10 @@ exports.replaceInLine = async function (editor, args) {
     // do this so editBuilder will select the replacements, but have originalSelectons for later
     if (foundSelections.length) editor.selections = foundSelections;
 
-    if (textEdits.length) {  
+    if (textEdits.length) {
       await editor.edit(editBuilder => {
         textEdits.forEach(async textEdit => {
-          await editBuilder.replace(textEdit.range, textEdit.newText);
+          editBuilder.replace(textEdit.range, textEdit.newText);
         });
       });
     }
@@ -419,14 +420,14 @@ exports.replaceInLine = async function (editor, args) {
     // do this so editBuilder will select the replacements, but have originalSelectons for later
     if (foundSelections.length) editor.selections = foundSelections;
 
-    if (textEdits.length) {  
+    if (textEdits.length) {
       await editor.edit(editBuilder => {
         textEdits.forEach(async textEdit => {
-          await editBuilder.replace(textEdit.range, textEdit.newText);
+          editBuilder.replace(textEdit.range, textEdit.newText);
         });
       });
     }
-        
+
     if (args.preserveSelections && foundSelections.length) editor.selections = originalSelectons;
 
     if (args.cursorMoveSelect && !args.preserveSelections) {

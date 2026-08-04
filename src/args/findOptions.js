@@ -4,11 +4,10 @@
  */
 exports.getKeys = function () {
   // preserveCase ?
-  return ["title", "description", "preCommands", "find", "replace", "run", "runWhen", "isRegex", "postCommands", "preserveSelections", 
-  // return ["title", "description", "preCommands", "find", "replace (string)", "replace (js operation)","run", "runWhen", "isRegex", "postCommands", "preserveSelections", 
-  "runPostCommands", "ignoreWhiteSpace", "matchCase", "matchWholeWord", "restrictFind", "reveal", "cursorMoveSelect"];
+  return ["title", "description", "preCommands", "find", "replace", "run", "runWhen", "isRegex", "postCommands", "preserveSelections",
+    // return ["title", "description", "preCommands", "find", "replace (string)", "replace (js operation)","run", "runWhen", "isRegex", "postCommands", "preserveSelections", 
+    "runPostCommands", "ignoreWhiteSpace", "matchCase", "matchWholeWord", "restrictFind", "reveal", "cursorMoveSelect"];
 };
-
 
 /**
  * Get just the findInCurrentFile args values, like true/false, "selections", etc.
@@ -17,7 +16,7 @@ exports.getKeys = function () {
 exports.getValues = function () {
   // preserveCase support
   return {
-    title: "string", description: "string", find: "string", replace: "string", run: "string", preserveSelections: "boolean",  
+    title: "string", description: "string", find: "string", replace: "string", run: "string", preserveSelections: "boolean",
     // title: "string", description: "string", find: "string", replace: ["string", "object"], run: "string", preserveSelections: "boolean",  
     runWhen: ["onceIfAMatch", "onEveryMatch", "onceOnNoMatches"], preCommands: ["string", "object"], postCommands: ["string", "object"],
     runPostCommands: ["onceIfAMatch", "onEveryMatch", "onceOnNoMatches"], isRegex: "boolean", matchCase: "boolean", matchWholeWord: "boolean", ignoreWhiteSpace: "boolean",
@@ -40,7 +39,7 @@ exports.getDefaults = function () {
     "find": "",
     "ignoreWhiteSpace": false,
     "replace": "",
-    
+
     // "replace (string)": "",
     // "replace (js operation)": 
     "run": "",

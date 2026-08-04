@@ -1,11 +1,9 @@
 const { window, workspace, Selection, Position, env, extensions, commands, Uri } = require('vscode');
-const resolve = require('./resolveVariables');
+// const resolve = require('./resolveVariables');
 
 const languageConfigs = require('./getLanguageConfig');
 const path = require('path');
 const os = require('os');
-
-// let outputChannel;
 
 const searchArgs = require('./args/searchOptions');
 const findArgs = require('./args/findOptions');
@@ -18,10 +16,10 @@ const findArgs = require('./args/findOptions');
  * @returns {Promise<boolean>}
  */
 exports.isEmptySelectionOnOwnLine = async function (curPos) {
-  
+
   const currentLineIsEmpty = window.activeTextEditor.document.lineAt(curPos.start.line).text.length === 0;
   if (!currentLineIsEmpty) return false;
-  
+
   return curPos.start.isEqual(curPos.end) && curPos.start.character === 0;
 };
 
@@ -32,13 +30,13 @@ exports.isEmptySelectionOnOwnLine = async function (curPos) {
  * @returns {Promise<number>}
  */
 exports.getNumLinesOfSelection = async function (sel) {
-  
+
   let numEmptyLines = 0;
-  
-  for ( let line = sel.start.line; line <= sel.end.line; line++ ) {
-    if (window.activeTextEditor.document.lineAt(line).text.length === 0) numEmptyLines++;    
+
+  for (let line = sel.start.line; line <= sel.end.line; line++) {
+    if (window.activeTextEditor.document.lineAt(line).text.length === 0) numEmptyLines++;
   }
-  
+
   return numEmptyLines;
 };
 
@@ -48,13 +46,13 @@ exports.getNumLinesOfSelection = async function (sel) {
  * @returns {Promise<number>}
  */
 exports.getTextOfSelection = async function (sel) {
-  
+
   let numEmptyLines = 0;
-  
-  for ( let line = sel.start.line; line <= sel.end.line; line++ ) {
-    if (window.activeTextEditor.document.lineAt(line).text.length === 0) numEmptyLines++;    
+
+  for (let line = sel.start.line; line <= sel.end.line; line++) {
+    if (window.activeTextEditor.document.lineAt(line).text.length === 0) numEmptyLines++;
   }
-  
+
   return numEmptyLines;
 };
 
@@ -64,17 +62,17 @@ exports.getTextOfSelection = async function (sel) {
  * @returns {Promise<String>}
  */
 exports.getInput = async function (type) {
-  
+
   if (type === "ignoreLineNumbers") type = "find query - for ${getInput}";
   else if (type === "find") type = "find query - for ${getInput}";
   else if (type === "findSearch") type = "search query - for ${getInput}";
-  
+
   const title = type[0].toLocaleUpperCase() + type.substring(1);
   let prompt = "";
   let placeHolder = "";
-  
+
   // add preCommands if its variables are ever resolved
-  
+
   if (type === "find") placeHolder = "A string, number or regex to find.";
   else if (type === "replace") placeHolder = "A string, number or regex for the replacement.";
   else if (type === "run") placeHolder = "Enter the text or number to be used in the run operation.";
@@ -83,7 +81,7 @@ exports.getInput = async function (type) {
   else if (type === "filesToInclude") placeHolder = "Enter a glob to be used within the 'files to include' search option.";
   else if (type === "filesToExclude") placeHolder = "Enter a glob to be used within the 'files to exclude' search option.";
 
-  const options = { title, placeHolder };  
+  const options = { title, placeHolder };
   return await window.showInputBox(options);
 };
 
@@ -106,14 +104,14 @@ exports.escapePathsForFilesToInclude = async function (path) {
  */
 exports.getPackageJSON = async function () {
 
-	const extensionPath = extensions.getExtension('ArturoDent.find-and-transform').extensionPath;
-  
+  const extensionPath = extensions.getExtension('ArturoDent.find-and-transform').extensionPath;
+
   const packageJSONUri = Uri.file(path.join(extensionPath, 'package.json'));
   const packageContents = (await workspace.fs.readFile(packageJSONUri)).toString();
   const packageJSON = JSON.parse(packageContents);
 
-	return packageJSON;
-}
+  return packageJSON;
+};
 
 /**
  * Get the relative path to the workspace folder  
@@ -122,20 +120,20 @@ exports.getPackageJSON = async function () {
  */
 exports.getRelativeFilePath = function (filePath) {
 
-	const basename = path.basename(filePath);
-	let relativePath = workspace.asRelativePath(filePath, false);
+  const basename = path.basename(filePath);
+  let relativePath = workspace.asRelativePath(filePath, false);
 
-	if (basename === "settings.json" || basename === "keybindings.json") {
-		if (os.type() === "Windows_NT") relativePath = filePath.substring(3);  // for Windows
-		// else relativePath = filePath.substring(1); // test for linux/mac
-	}
-	// else {
-	// 	const wsFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(filePath)).uri.path;
-	// 	relativePath = path.posix.relative(wsFolder, filePath);
-	// }
+  if (basename === "settings.json" || basename === "keybindings.json") {
+    if (os.type() === "Windows_NT") relativePath = filePath.substring(3);  // for Windows
+    // else relativePath = filePath.substring(1); // test for linux/mac
+  }
+  // else {
+  // 	const wsFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(filePath)).uri.path;
+  // 	relativePath = path.posix.relative(wsFolder, filePath);
+  // }
 
-	return relativePath;
-}
+  return relativePath;
+};
 
 /**
  * Get the relative path to the workspace folder  
@@ -144,13 +142,13 @@ exports.getRelativeFilePath = function (filePath) {
  */
 exports.getRelativeFolderPath = function (filePath) {
 
-	// const isWindows = process.platform === 'win32';
-	// const env = process.env;
-	// const homedir = os.homedir();
+  // const isWindows = process.platform === 'win32';
+  // const env = process.env;
+  // const homedir = os.homedir();
 
-	const dirname = path.dirname(filePath);
-	return workspace.asRelativePath(dirname);
-}
+  const dirname = path.dirname(filePath);
+  return workspace.asRelativePath(dirname);
+};
 
 
 /**
@@ -158,17 +156,17 @@ exports.getRelativeFolderPath = function (filePath) {
  * @returns {Promise<object|undefined>} comments object
  */
 exports.getlanguageConfigComments = async function (args) {
-  
+
   const document = window.activeTextEditor.document;
-   
+
   // do only if $LINE_COMMENT, $BLOCK_COMMENT_START, $BLOCK_COMMENT_END in find or replace
   let re = /\$\{LINE_COMMENT\}|\$\{BLOCK_COMMENT_START\}|\$\{BLOCK_COMMENT_END\}/;
   if (args.find?.search(re) !== -1 || args.replace?.search(re) !== -1) {
     const documentLanguageId = document.languageId;
     return await languageConfigs.get(documentLanguageId, 'comments');
   }
-	else return undefined;
-}
+  else return undefined;
+};
 
 // works with the search results tree or list view option
 /**
@@ -178,33 +176,33 @@ exports.getlanguageConfigComments = async function (args) {
  * @returns {Promise<string>} comma-joined string of paths or empty string
  */
 exports.getSearchResultsFiles = async function (clipText) {
-  
+
   if (!clipText) clipText = await env.clipboard.readText();
-  
-	await commands.executeCommand('search.action.copyAll');
-  
-	let results = await env.clipboard.readText();
 
-	if (results)  {
-		results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
-		let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
+  await commands.executeCommand('search.action.copyAll');
 
-		let pathArray = resultsArray.filter(result => result !== "");
+  let results = await env.clipboard.readText();
+
+  if (results) {
+    results = results.replaceAll(/^\s*\d.*$\s?|^$\s/gm, "");
+    let resultsArray = results.split(/[\r\n]{1,2}/);  // does this cover all OS's?
+
+    let pathArray = resultsArray.filter(result => result !== "");
     pathArray = pathArray.map(path => this.getRelativeFilePath(path));
-    
+
     // restore original clipboard content
     await env.clipboard.writeText(clipText);
-    
-		// return await module.exports.escapePathsForFilesToInclude( pathArray.join(", ") );
-		return await this.escapePathsForFilesToInclude( pathArray.join(", ") );
-	}
-	else {
-		// notifyMessage?
+
+    // return await module.exports.escapePathsForFilesToInclude( pathArray.join(", ") );
+    return await this.escapePathsForFilesToInclude(pathArray.join(", "));
+  }
+  else {
+    // notifyMessage?
     // restore original clipboard content
     await env.clipboard.writeText(clipText);
-		return "";
-	}
-} 
+    return "";
+  }
+};
 
 
 /**
@@ -218,14 +216,14 @@ exports.getSearchResultsFiles = async function (clipText) {
  * @param {string} value - string to transform to PascalCase  
  * @returns {string} transformed value  
  */
-exports.toPascalCase = function(value) {
-  
+exports.toPascalCase = function (value) {
+
   value = value.trim();  // whitespaces are removed
   // split on uppercase letter that is followed by a lowercase letter or a '-' or an '_'
   const words = value.split(/(?=[A-Z])|[-_]/);
   const capitalizedWords = words.map(word => word.charAt(0).toUpperCase() + word.slice(1));
   return capitalizedWords.join('');
-}
+};
 
 
 /**
@@ -237,21 +235,21 @@ exports.toPascalCase = function(value) {
  * @returns {string} transformed value  
  */
 exports.toCamelCase = function (value) {
-  
+
   value = value.trim();
 
-	const match = value.match(/[a-z0-9]+/gi);
-	if (!match) {
-		return value;
-	}
-	return match.map((word, index) => {
-		if (index === 0) {
-			return word.toLocaleLowerCase();
-		} else {
-			return word[0].toLocaleUpperCase() + word.substring(1).toLocaleLowerCase();
-		}
-	})
-		.join('');
+  const match = value.match(/[a-z0-9]+/gi);
+  if (!match) {
+    return value;
+  }
+  return match.map((word, index) => {
+    if (index === 0) {
+      return word.toLocaleLowerCase();
+    } else {
+      return word[0].toLocaleUpperCase() + word.substring(1).toLocaleLowerCase();
+    }
+  })
+    .join('');
 };
 
 /**
@@ -263,12 +261,12 @@ exports.toCamelCase = function (value) {
  * @returns {string} transformed value  
  */
 exports.toSnakeCase = function (value) {
-  
+
   value = value.trim();
-  
+
   const caseBoundary = /(\p{Ll})(\p{Lu})/gmu;
   const singleLetters = /(\p{Lu}|\p{N})(\p{Lu})(\p{Ll})/gmu;
-  
+
   return (value
     .replace(caseBoundary, '$1_$2')
     .replace(singleLetters, '$1_$2$3')
@@ -288,34 +286,34 @@ exports.toSnakeCase = function (value) {
  */
 exports.checkArgs = async function (args, fromWhere) {
 
-	let goodKeys;
-	let goodValues;
-	let badKeys = [];
-	let badValues = [];
-  
+  let goodKeys;
+  let goodValues;
+  let badKeys = [];
+  let badValues = [];
+
   const simpleKeys = ["restrictFind", "reveal", "runWhen", "runPostCommands"];
 
-	if (fromWhere === "findBinding" || fromWhere === "findSetting") {
-		goodKeys = findArgs.getKeys();     // an array
-		goodValues = findArgs.getValues(); // an object
-	}
-	else if (fromWhere === "searchBinding" || fromWhere === "searchSetting") {
-		goodKeys = searchArgs.getKeys();     // an array
-		goodValues = searchArgs.getValues(); // an object
+  if (fromWhere === "findBinding" || fromWhere === "findSetting") {
+    goodKeys = findArgs.getKeys();     // an array
+    goodValues = findArgs.getValues(); // an object
   }
-  
-	badKeys = Object.keys(args).filter(arg => !goodKeys.includes(arg));
-	
+  else if (fromWhere === "searchBinding" || fromWhere === "searchSetting") {
+    goodKeys = searchArgs.getKeys();     // an array
+    goodValues = searchArgs.getValues(); // an object
+  }
+
+  badKeys = Object.keys(args).filter(arg => !goodKeys.includes(arg));
+
   for (const key of goodKeys) {
-    
+
     // "title" cannot be an array
     if (key === "title" && (args["title"] || args["title"] === "")) {
       if (Array.isArray(args["title"])) badValues.push({ [key]: `<value should not be an array>` });
       else if (args[key] && typeof args[key] !== "string") badValues.push({ [key]: args[key] });
     }
-    
+
     else if ((key === "preCommands" || key === "postCommands") && args[key]) {
-      
+
       // if array, check each item for string or object
       if (Array.isArray(args[key])) {
         await Promise.all(args[key].map(async (value) => {
@@ -328,16 +326,16 @@ exports.checkArgs = async function (args, fromWhere) {
     else if (args[key] || args[key] === "" || typeof args[key] === "boolean") {
       // for key === 'restrictFind' and others that may come later
       if (Array.isArray(args[key]) && Array.isArray(goodValues[key])) {
-        
+
         await Promise.all(args[key].map(async (value) => {
           if (!goodValues[key].includes(value)) badValues.push({ [key]: value });
         }));
       }
-      
+
       else if (simpleKeys.includes(key)) {
         if (!goodValues[key].includes(args[key])) badValues.push({ [key]: args[key] });
       }
-      
+
       else if (Array.isArray(args[key])) {
         await Promise.all(args[key].map(async (value) => {
           if (typeof value !== goodValues[key]) badValues.push({ [key]: value });
@@ -350,8 +348,8 @@ exports.checkArgs = async function (args, fromWhere) {
       }
     }
   }
-	if (badKeys.length || badValues.length) return { fromWhere: fromWhere, badKeys: badKeys, badValues: badValues}
-	else return {};
+  if (badKeys.length || badValues.length) return { fromWhere: fromWhere, badKeys: badKeys, badValues: badValues };
+  else return {};
 };
 
 
@@ -363,9 +361,9 @@ exports.checkArgs = async function (args, fromWhere) {
  * @returns {Promise<Selection>}
  */
 exports.getSelectionToReveal = async function (foundSelections, cursorPosition, whichReveal) {
-  
+
   if (foundSelections.length === 1) return foundSelections[0];
-  
+
   if (whichReveal === "first") return foundSelections[0];
   else if (whichReveal === "last") return foundSelections.at(-1);
   else if (whichReveal === "next") {   // so next = default, should wrap
@@ -391,13 +389,13 @@ exports.getSelectionToReveal = async function (foundSelections, cursorPosition, 
  * @returns {Promise<string>}
  */
 exports.replaceAsync = async function (toResolve, regexp, replacerFunction) {
-  
+
   if (!toResolve) return;
-  
+
   const replacements = await Promise.all(
-      Array.from(toResolve.matchAll(regexp),
-          async match => await replacerFunction(...match)  // no difference
-        // match => replacerFunction(...match)
+    Array.from(toResolve.matchAll(regexp),
+      async match => await replacerFunction(...match)  // no difference
+      // match => replacerFunction(...match)
     )
   );
   let i = 0;
@@ -417,15 +415,15 @@ exports.replaceAsync = async function (toResolve, regexp, replacerFunction) {
  * @returns {Promise<string>}
  */
 exports.replaceAsync2 = async function (toResolve, regex, asyncFn, args, caller) {
- 
- const matches = toResolve.match(regex);
- 
+
+  const matches = toResolve.match(regex);
+
   if (matches) {
-  //  const replacement = await resolve.resolveExtensionDefinedVariables(matches[0], args, caller);
-   const replacement = await asyncFn(matches[0], args, caller);
-   toResolve = toResolve.replace(matches[0], replacement);
-   toResolve = await this.replaceAsync2(toResolve, regex, asyncFn, args, caller);
- }
- 
+    //  const replacement = await resolve.resolveExtensionDefinedVariables(matches[0], args, caller);
+    const replacement = await asyncFn(matches[0], args, caller);
+    toResolve = toResolve.replace(matches[0], replacement);
+    toResolve = await this.replaceAsync2(toResolve, regex, asyncFn, args, caller);
+  }
+
   return toResolve;
-}
+};

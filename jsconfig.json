@@ -2,7 +2,8 @@
 	"compilerOptions": {
 		"module": "CommonJS",
 		"target": "ES2022",
-		"checkJs": true,  /* Typecheck .js files. */
+		"checkJs": true, /* Typecheck .js files. */
+		"noImplicitAny": false,
 		"lib": [
 			"ES2022"
 		]

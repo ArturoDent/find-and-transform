@@ -18,7 +18,10 @@ const prePostCommands = require('../prePostCommands');
  */
 exports.replaceInWholeDocument = async function (editor, args) {
 
+  if (!editor) return;
   const document = editor.document;
+  if (!document) return;
+
   const cursorPosition = document.getWordRangeAtPosition(editor.selection.active)?.end || editor.selection.end;
   const originalSelectons = editor.selections;
 
@@ -115,7 +118,7 @@ exports.replaceInWholeDocument = async function (editor, args) {
 
     // need a foundReplacements for CMS below ?
     // if (resolvedReplace !== resolvedFind)  textEdits.push(new TextEdit(matchRange, resolvedReplace));
-    
+
     textEdits.push(new TextEdit(matchRange, resolvedReplace));
 
     if (args.cursorMoveSelect) {  // to be used in cursorMoveSelect below to build matching text
@@ -128,10 +131,10 @@ exports.replaceInWholeDocument = async function (editor, args) {
     index++;
   }
 
-  if (textEdits.length) {  
+  if (textEdits.length) {
     await editor.edit(editBuilder => {
       textEdits.forEach(async textEdit => {
-        await editBuilder.replace(textEdit.range, textEdit.newText);
+        editBuilder.replace(textEdit.range, textEdit.newText);
       });
     });
   }

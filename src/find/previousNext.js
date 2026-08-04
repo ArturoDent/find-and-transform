@@ -162,7 +162,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
   if (textEdits.length) {  
     await editor.edit(editBuilder => {
       textEdits.forEach(async textEdit => {
-        await editBuilder.replace(textEdit.range, textEdit.newText);
+        editBuilder.replace(textEdit.range, textEdit.newText);
       });
     });
   }

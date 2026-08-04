@@ -136,3 +136,11 @@ https://www.jsonschemavalidator.net/s/MJ6JoKc4  : fuller test
                   }
                 ],
 
+
+secondAA
+
+first
+
+(?=[\w\W\n]*first)(?=[\w\W\n]*secondAA)
+
+(?=.*secondAA)(?=.*first)
