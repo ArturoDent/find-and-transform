@@ -102,11 +102,6 @@
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
     "category": "Find-Transform"
-   },
-   {
-    "command": "findInCurrentFile.updateLastModified",
-    "title": "Update LastModified Attribute",
-    "category": "Find-Transform"
    }
   ],
   "configuration": [
@@ -508,11 +503,12 @@
   "@types/mocha": "^7.0.2",
   "@types/node": "^18.19.3",
   "@types/vscode": "^1.56.0",
-  "eslint": "^6.8.0",
+  "@vscode/test-electron": "^3.1.0",
+  "eslint": "^9.39.5",
   "glob": "^7.1.7",
+  "globals": "^17.9.0",
   "mocha": "^7.1.2",
-  "typescript": "^3.9.10",
-  "vscode-test": "^1.5.2"
+  "typescript": "^3.9.10"
  },
  "extensionKind": [
   "ui",

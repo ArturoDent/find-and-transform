@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const { window, workspace, env, Range } = require('vscode');
 
-const variables = require('./variables');
+// const variables = require('./variables');
 const regexp = require('./regex');
 const path = require('path');
 const os = require('os');
@@ -159,7 +159,7 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   re = regexp.snippetRE;
 
   resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2) {
-    const variableToResolve = await _resolveSnippetVariables(match, args, caller, selection, groups);
+    const variableToResolve = await _resolveSnippetVariables(match, args, caller, selection);
     groupNames = {
       pathCaseModifier: p1,
       snippetVars: p2
@@ -843,12 +843,10 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
  * @param {Object} args -  keybinding/settings args
  * @param {string} caller - if called from a find.parseVariables() or replace or filesToInclude 
  * @param {import("vscode").Selection | null} selection - current selection
- * @param {Object} groups - the current match
-
+ *
  * @returns {Promise<string>} - the resolved path variable
  */
-// function _resolveSnippetVariables (variableToResolve, args, caller, selection, groups) {
-async function _resolveSnippetVariables(variableToResolve, args, caller, selection, groups) {
+async function _resolveSnippetVariables(variableToResolve, args, caller, selection) {
 
   const editor = window.activeTextEditor;
   if (!editor) return variableToResolve;
@@ -873,7 +871,7 @@ async function _resolveSnippetVariables(variableToResolve, args, caller, selecti
       break;
 
     case "$TM_CURRENT_LINE": case "${TM_CURRENT_LINE}":
-      let textLine = "";
+      // let textLine = "";
       const selectionOffset = document?.offsetAt(selection.active);
       // what is groups doing here?  replace in selections?
       // if (caller === 'replace' && groups  && (args.restrictFind !== 'line')) {     // caller === replace
@@ -1007,17 +1005,17 @@ async function _resolveSnippetVariables(variableToResolve, args, caller, selecti
  * Build the replaceString by updating the setting 'replaceValue' to
  * account for case modifiers, capture groups and conditionals
  *
- * @param {string} replaceValue
+ * @param {string | null} replaceValue
  * @param {Object} args - keybinding/setting args
  * @param {string} caller - find/replace/cursorMoveSelect
- * 
+ *
  * @returns {Promise<string | undefined>} - the resolved string
  */
 exports.resolveExtensionDefinedVariables = async function (replaceValue, args, caller) {
 
   if (replaceValue === "") return replaceValue;
 
-  let resolved = replaceValue;
+  // let resolved = replaceValue;
 
   let re = regexp.extensionNotGlobalRE;
 
@@ -1090,9 +1088,7 @@ exports.resolveSearchSnippetVariables = async function (replaceValue, args, call
 
   if (replaceValue === "") return replaceValue;
 
-  let vars;
   let re;
-  // let resolved;
   let resolved = replaceValue;
 
   if (replaceValue !== null) {
@@ -1101,7 +1097,7 @@ exports.resolveSearchSnippetVariables = async function (replaceValue, args, call
 
     resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, p2, offset, string, namedGroups) {
       // const variableToResolve =  _resolveSnippetVariables(match, args, caller, selection, undefined);
-      const variableToResolve = await _resolveSnippetVariables(match, args, caller, selection, undefined);
+      const variableToResolve = await _resolveSnippetVariables(match, args, caller, selection);
       return _applyCaseModifier(namedGroups, undefined, variableToResolve);
     }) ?? resolved;
   };

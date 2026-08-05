@@ -1,4 +1,4 @@
-const { WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
+const { TextEdit, Range, Selection } = require('vscode');
 
 const resolve = require('../resolveVariables');
 const regexp = require('../regex');
@@ -20,7 +20,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
   // make work for multiple selections
   const document = editor.document;
   const originalSelecton = editor.selection;
-  
+
   let resolvedReplace;
 
   let previous = args.restrictFind?.startsWith('previous') || false;
@@ -30,7 +30,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
   let previousMatches;
   let match;
   let foundSelections = [];
-  
+
   const textEdits = [];  // TextEdit[]
 
   const docString = document.getText();
@@ -57,13 +57,13 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
     // consider cursorIndex+1 to skip 0-index match
     let restOfDocument = docString.substring(cursorIndex);  // text after cursor
     nextMatches = [...restOfDocument.matchAll(re)];
-    
+
     // skip first match if it is the current find location
     if (nextMatches[0]?.index === 0) nextMatches.shift();
-    
+
     const documentBeforeCursor = docString.substring(0, cursorIndex);
     previousMatches = [...documentBeforeCursor.matchAll(re)];
-    
+
     // skip last match if it is the current find location
     const { selection } = editor;
     if (previousMatches.at(-1)?.index === document.offsetAt(selection.active)) previousMatches.pop();
@@ -72,7 +72,7 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
   // refactor to a function
   if (resolvedFind === "^(?!\n)" || resolvedFind === "$(?!\n)" || resolvedFind === "^" ||
     resolvedFind === "^$" || resolvedFind === "^(?!\n)$(?!\n)") {
-    
+
     if (next) {
       if (nextMatches.length) match = nextMatches[0];
       else if (!nextMatches.length && previousMatches.length) {
@@ -112,27 +112,27 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
     match = previousMatches[0];
     cursorIndex = 0;
   }
-  
-  
+
+
   // else {
   //   if (args.run && args.runWhen === "onceOnNoMatches")
   //     await resolve.resolveVariables(args, "run", null, editor.selection, null, null);
   //   // return;
   // }
-  
+
   if (previousMatches.length || nextMatches.length) {
-    
+
     let startPos = document.positionAt(cursorIndex + match.index);
     let endPos = document.positionAt(cursorIndex + match.index + match[0].length);
-  
+
     if (args.restrictFind === "previousSelect")
       foundSelections.push(new Selection(endPos, startPos));
     else
       foundSelections.push(new Selection(startPos, endPos));
-  
+
     editor.selections = foundSelections;
   }
-  
+
 
   if (!previousMatches.length && !nextMatches.length) {
     if (args.run && args.runWhen === "onceOnNoMatches")
@@ -152,29 +152,29 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
 
     textEdits.push(new TextEdit(editor.selection, resolvedReplace));
   }
-  
+
   // if (textEdits.length) {
   //   await editor.edit(editBuilder => {
   //     editBuilder.replace(textEdits[0].range, textEdits[0].newText);
   //   });
   // }
-  
-  if (textEdits.length) {  
+
+  if (textEdits.length) {
     await editor.edit(editBuilder => {
       textEdits.forEach(async textEdit => {
         editBuilder.replace(textEdit.range, textEdit.newText);
       });
     });
   }
-  
-  const selection = editor.selection; 
+
+  const selection = editor.selection;
 
   // if previous, put cursor at beginning of word = reverse selection
   // if next, put cursor at end of word = forward selection
   if (args.restrictFind !== "nextDontMoveCursor" && args.restrictFind !== "previousDontMoveCursor") {
-    
+
     if (args.restrictFind === "nextMoveCursor") editor.selections = [new Selection(selection.active, selection.active)];
-    
+
     else if (args.restrictFind === "previousMoveCursor") editor.selections = [new Selection(selection.anchor, selection.anchor)];
 
     editor.revealRange(new Range(selection.anchor, selection.active), 2);     // InCenterIfOutsideViewport
@@ -185,15 +185,15 @@ exports.replacePreviousOrNextInWholeDocument = async function (editor, args) {
     // 2 = vscode.TextEditorRevealType.InCenterIfOutsideViewport
     editor.revealRange(new Range(selection.anchor, selection.active), 2); // why reveal if nextDontMoveCursor
   }
-  
+
   if (args.run && args.runWhen !== "onceOnNoMatches" && match.length)    // so args.run only runs if there is a match
     await resolve.resolveVariables(args, "run", match, editor.selection, null, null);
-  else if (args.run  && args.runWhen === "onceOnNoMatches" && !match.length)
+  else if (args.run && args.runWhen === "onceOnNoMatches" && !match.length)
     await resolve.resolveVariables(args, "run", null, editor.selection, null, null);
-  
-    // TODO: test below, so original find/replace is still selected (after run)
-    // if (foundSelections.length && args.run) Object.assign(foundSelections, editor.selections);
-  
+
+  // TODO: test below, so original find/replace is still selected (after run)
+  // if (foundSelections.length && args.run) Object.assign(foundSelections, editor.selections);
+
   // if ((nextMatches.length || args.run) && args.postCommands) await transforms.runPostCommands(args, nextMatches, editor.selections, editor.selection);
   // if (args.postCommands) await transforms.runPostCommands(args, [match], foundSelections, editor.selection);
   if (args.postCommands) await prePostCommands.runPost(args, [match], [editor.selection], editor.selection);

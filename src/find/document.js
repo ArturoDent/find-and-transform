@@ -1,4 +1,4 @@
-const { window, TextEdit, Range, Position, Selection } = require('vscode');
+const { TextEdit, Range, Position, Selection } = require('vscode');
 
 const resolve = require('../resolveVariables');
 const regexp = require('../regex');
@@ -13,7 +13,7 @@ const prePostCommands = require('../prePostCommands');
 /**
  * Replace all find matches in the entire document
  *
- * @param {window.activeTextEditor} editor
+ * @param {import("vscode").TextEditor} editor
  * @param {Object} args - keybinding/settings args
  */
 exports.replaceInWholeDocument = async function (editor, args) {

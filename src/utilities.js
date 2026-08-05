@@ -1,5 +1,4 @@
-const { window, workspace, Selection, Position, env, extensions, commands, Uri } = require('vscode');
-// const resolve = require('./resolveVariables');
+const { window, workspace, env, extensions, commands, Uri } = require('vscode');
 
 const languageConfigs = require('./getLanguageConfig');
 const path = require('path');
@@ -12,7 +11,7 @@ const findArgs = require('./args/findOptions');
 
 /**
  * Check if selection is at the start of an empty line
- * @param {Selection} curPos 
+ * @param {import("vscode").Selection} curPos
  * @returns {Promise<boolean>}
  */
 exports.isEmptySelectionOnOwnLine = async function (curPos) {
@@ -29,7 +28,7 @@ exports.isEmptySelectionOnOwnLine = async function (curPos) {
 
 /**
  * Get the number of empty lines in a selection
- * @param {Selection} sel 
+ * @param {import("vscode").Selection} sel
  * @returns {Promise<number>}
  */
 exports.getNumLinesOfSelection = async function (sel) {
@@ -48,7 +47,7 @@ exports.getNumLinesOfSelection = async function (sel) {
 
 /**
  * Get the text of a selection
- * @param {Selection} sel 
+ * @param {import("vscode").Selection} sel
  * @returns {Promise<number>}
  */
 exports.getTextOfSelection = async function (sel) {
@@ -77,7 +76,7 @@ exports.getInput = async function (type) {
   else if (type === "findSearch") type = "search query - for ${getInput}";
 
   const title = type[0].toLocaleUpperCase() + type.substring(1);
-  let prompt = "";
+  // let prompt = "";
   let placeHolder = "";
 
   // add preCommands if its variables are ever resolved
@@ -292,7 +291,7 @@ exports.toSnakeCase = function (value) {
 /**
  * Check args of commands: keys and values
  *  
- * @param {Array} args from keybindings or settings
+ * @param {Object} args from keybindings or settings
  * @param {string} fromWhere findBinding/findSetting/searchBinding/searchSetting
  * @returns {Promise<object>}  of badKeys or badValues 
  */
@@ -367,10 +366,10 @@ exports.checkArgs = async function (args, fromWhere) {
 
 /**
  * Get the first/next after cursor/last selection from all matches/foundSelections.  Will wrap.
- * @param {Array<Selection>} foundSelections 
- * @param {Position} cursorPosition 
- * @param {string} whichReveal - first/next/last
- * @returns {Promise<Selection>}
+ * @param {Array<import("vscode").Selection>} foundSelections
+ * @param {import("vscode").Position} cursorPosition
+ * @param {string} [whichReveal] - first/next/last
+ * @returns {Promise<import("vscode").Selection>}
  */
 exports.getSelectionToReveal = async function (foundSelections, cursorPosition, whichReveal) {
 

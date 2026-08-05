@@ -1,4 +1,4 @@
-const { WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
+const { TextEdit, Range, Selection } = require('vscode');
 
 const resolve = require('../resolveVariables');
 const regexp = require('../regex');
@@ -90,7 +90,7 @@ exports.replaceInSelections = async function (editor, args) {
     //   args.isRegex = true;
     // }
 
-    const lineIndexNumberRE = regexp.lineNumberIndexRE;
+    // const lineIndexNumberRE = regexp.lineNumberIndexRE;
 
     // if (args.find.search(lineIndexNumberRE) !== -1)
     //   resolvedFind = await resolve.resolveVariables(args, "find", null, selection, null, index);
@@ -161,7 +161,7 @@ exports.replaceInSelections = async function (editor, args) {
 
   if (foundSelections.length) editor.selections = foundSelections;
 
-  if (textEdits.length) {  
+  if (textEdits.length) {
     await editor.edit(editBuilder => {
       textEdits.forEach(async textEdit => {
         editBuilder.replace(textEdit.range, textEdit.newText);

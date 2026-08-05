@@ -1,6 +1,6 @@
-const { window, env, commands } = require('vscode');
+const { window, commands } = require('vscode');
 
-const variables = require('./variables');
+// const variables = require('./variables');
 const regexp = require('./regex');
 
 const utilities = require('./utilities');
@@ -15,15 +15,15 @@ const searchOptions = require('./args/searchOptions');
  * @returns {Promise<object>} - an array of objects {key: value}
  */
 exports.getObjectFromArgs = async function (argsArray) {
-  
+
   const args = {};
-  
-	// could be bad keys/values here
-	for (const [key, value] of Object.entries(argsArray)) {
+
+  // could be bad keys/values here
+  for (const [key, value] of Object.entries(argsArray)) {
     args[`${ key }`] = value;
-	}
-	return args;
-}
+  }
+  return args;
+};
 
 /**
  * From 'findInCurrentFile' settings or keybindings. If necessary, split and run each command in 
@@ -33,7 +33,7 @@ exports.getObjectFromArgs = async function (argsArray) {
  */
 exports.runAllSearches = async function (args) {
 
-	let numFindArgs = 0;
+  let numFindArgs = 0;
   let numReplaceArgs = 0;
 
   // delayed into resolveVariables
@@ -43,7 +43,7 @@ exports.runAllSearches = async function (args) {
 
   if (Array.isArray(args.find)) numFindArgs = args.find.length;
   else if (typeof args.find == "string") numFindArgs = 1;
-   // even if no 'find' one will be created from "wordAtCursor"
+  // even if no 'find' one will be created from "wordAtCursor"
 
   if (Array.isArray(args.replace)) numReplaceArgs = args.replace.length;
   else if (typeof args.replace == "string") numReplaceArgs = 1;
@@ -56,15 +56,15 @@ exports.runAllSearches = async function (args) {
   // replace: ["\\U$1", "second", "third"], isRegex: [true, false, true]
   const expandedArgs = await _expandArgs(args, numFindArgs, numReplaceArgs);
 
-  for (let index = 0; index < most; index++) { 
+  for (let index = 0; index < most; index++) {
 
     const splitArgs = await _buildSearchArgs(expandedArgs, index);
     await exports.useSearchPanel(splitArgs);
-    
+
     // need a delay to get results files, if necessary
     if (splitArgs.delay) await new Promise(r => setTimeout(r, splitArgs.delay));
   }
-}
+};
 
 /**
  * Get the args for each step in a possible find/replace array of commands.
@@ -73,16 +73,16 @@ exports.runAllSearches = async function (args) {
  * @param {number} index - for which step to retrieve its args
  * @returns {Promise<object>} - all args for this command
  */
-async function _buildSearchArgs(args, index)  {
+async function _buildSearchArgs(args, index) {
 
   const editor = window.activeTextEditor;
   if (!editor) return {};
   const { selections } = editor;
 
-	/** @type {Object} */
-	let  indexedArgs = { isRegex: false, matchWholeWord: false, matchCase: false, triggerReplaceAll: false, filesToInclude: undefined };
+  /** @type {Object} */
+  let indexedArgs = { isRegex: false, matchWholeWord: false, matchCase: false, triggerReplaceAll: false, filesToInclude: undefined };
   const splitArgs = await _returnArgsByIndex(args, index);
-	Object.assign(indexedArgs, splitArgs);
+  Object.assign(indexedArgs, splitArgs);
 
   // find = "" is allowable and does a makeFind
   // else if (!indexedArgs.find) {
@@ -107,39 +107,39 @@ async function _buildSearchArgs(args, index)  {
   // add args.filesToInclude === "${resultsFiles} if index > 0 (i.e., search > 1)
   // notify message?, can be overridden by specifying some filesToInclude
   if (index > 0 && !indexedArgs.filesToInclude) indexedArgs.filesToInclude = "${resultsFiles}";
-  
-    // at least one more find/replace than this index
+
+  // at least one more find/replace than this index
   const numSearches = args.find.length;
-  if (numSearches > index+1) indexedArgs.triggerSearch = true;
-  else if (numSearches === index+1 && args.filesToInclude === "${resultsFiles}") 
-  indexedArgs.triggerSearch = true;
- 
- const extensionNotGlobalRE = regexp.extensionNotGlobalRE;
+  if (numSearches > index + 1) indexedArgs.triggerSearch = true;
+  else if (numSearches === index + 1 && args.filesToInclude === "${resultsFiles}")
+    indexedArgs.triggerSearch = true;
+
+  const extensionNotGlobalRE = regexp.extensionNotGlobalRE;
 
   // check for '${...}' some variable
   let re = /\$\{.+\}/g;
- if (indexedArgs.find.search(re) !== -1) {
-   
-   indexedArgs.find = await resolve.resolveSearchPathVariables(indexedArgs.find, indexedArgs, "findSearch", selections[0]);
-   indexedArgs.find = await resolve.resolveSearchSnippetVariables(indexedArgs.find, indexedArgs, "findSearch", selections[0]);
-  
-   indexedArgs.find = await utilities.replaceAsync2(indexedArgs.find, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "findSearch"); 
+  if (indexedArgs.find.search(re) !== -1) {
+
+    indexedArgs.find = await resolve.resolveSearchPathVariables(indexedArgs.find, indexedArgs, "findSearch", selections[0]);
+    indexedArgs.find = await resolve.resolveSearchSnippetVariables(indexedArgs.find, indexedArgs, "findSearch", selections[0]);
+
+    indexedArgs.find = await utilities.replaceAsync2(indexedArgs.find, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "findSearch");
   }
-  
+
   if (indexedArgs.filesToInclude && indexedArgs.filesToInclude.search(re) !== -1) {
     indexedArgs.filesToInclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToInclude, indexedArgs, "filesToInclude", selections[0]);
-    indexedArgs.filesToInclude = await utilities.replaceAsync2(indexedArgs.filesToInclude, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "filesToInclude"); 
+    indexedArgs.filesToInclude = await utilities.replaceAsync2(indexedArgs.filesToInclude, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "filesToInclude");
   }
-  
+
   if (indexedArgs.filesToExclude && indexedArgs.filesToExclude.search(re) !== -1) {
     indexedArgs.filesToExclude = await resolve.resolveSearchPathVariables(indexedArgs.filesToExclude, indexedArgs, "filesToExclude", selections[0]);
-    indexedArgs.filesToExclude = await utilities.replaceAsync2(indexedArgs.filesToExclude, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "filesToExclude"); 
+    indexedArgs.filesToExclude = await utilities.replaceAsync2(indexedArgs.filesToExclude, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "filesToExclude");
   }
-  
+
   if (indexedArgs.replace && indexedArgs.replace.search(re) !== -1) {
     indexedArgs.replace = await resolve.resolveSearchPathVariables(indexedArgs.replace, indexedArgs, "replace", selections[0]);
     indexedArgs.replace = await resolve.resolveSearchSnippetVariables(indexedArgs.replace, indexedArgs, "replace", selections[0]);
-   indexedArgs.replace = await utilities.replaceAsync2(indexedArgs.replace, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "replace"); 
+    indexedArgs.replace = await utilities.replaceAsync2(indexedArgs.replace, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "replace");
   }
 
   // so triggerReplaceAll is true for the last search only no matter the setting
@@ -147,21 +147,21 @@ async function _buildSearchArgs(args, index)  {
 
   // find: "" is okay, can triggerReplaceAll; 
   // but if no find at all don't triggerReplaceAll (as that is a replace with nothing)
-  if (numSearches === index + 1 && (indexedArgs.replace !== ""  && !indexedArgs.replace)) indexedArgs.triggerReplaceAll = false;
+  if (numSearches === index + 1 && (indexedArgs.replace !== "" && !indexedArgs.replace)) indexedArgs.triggerReplaceAll = false;
 
   // add a delay if trigger a search now and there is another find later
-  if (!indexedArgs.delay && indexedArgs.triggerSearch && (numSearches > index+1) )
-      indexedArgs.delay = 2000;
+  if (!indexedArgs.delay && indexedArgs.triggerSearch && (numSearches > index + 1))
+    indexedArgs.delay = 2000;
   if (!indexedArgs.delay && indexedArgs.triggerReplaceAll) indexedArgs.delay = 2000;
 
   indexedArgs.query = indexedArgs.find;
-  
+
   if (args.ignoreWhiteSpace && indexedArgs.query) {
     indexedArgs.query = indexedArgs.query.trim();
     indexedArgs.query = `\\n{0}` + indexedArgs.query.replace(/\s+/g, '\\s*');
   }
-  
-	return indexedArgs;
+
+  return indexedArgs;
 }
 
 
@@ -187,7 +187,7 @@ async function _expandArgs(args, numFindArgs, numReplaceArgs) {
 
     if (args[key] || args[key] === "") expandedArgs[key] = new Array();
 
-    for (let index = 0; index < most; index++) { 
+    for (let index = 0; index < most; index++) {
 
       if (key === "find") {
 
@@ -195,13 +195,13 @@ async function _expandArgs(args, numFindArgs, numReplaceArgs) {
         // set find = "", if numReplaceArgs > numFindArgs
         if (Array.isArray(args[key]) && args[key].length <= index) expandedArgs[key].push("");
         else if (Array.isArray(args[key])) expandedArgs[key].push(args[key][index]);
-        else if (index >= numFindArgs)  expandedArgs[key].push("");
+        else if (index >= numFindArgs) expandedArgs[key].push("");
         else expandedArgs[key].push(args[key]);
       }
 
       else if (args[key] || args[key] === "") {  // (key !== "find")
         // uses the last one if less than array.length, not true for find though
-        if (Array.isArray(args[key]) && args[key].length <= index) expandedArgs[key].push(args[key][args[key].length-1]);
+        if (Array.isArray(args[key]) && args[key].length <= index) expandedArgs[key].push(args[key][args[key].length - 1]);
         else if (Array.isArray(args[key])) expandedArgs[key].push(args[key][index]);
         else expandedArgs[key].push(args[key]);
       }
@@ -220,7 +220,7 @@ async function _returnArgsByIndex(args, index) {
 
   const indexedArgs = {};
   let keys = searchOptions.getKeys();
-  
+
   keys = keys.filter(key => !(key.match(/title|preCommands|postCommands|clipText/)));
   if (args?.clipText) indexedArgs.clipText = args.clipText;
 
@@ -238,20 +238,20 @@ async function _returnArgsByIndex(args, index) {
 exports.useSearchPanel = async function (args) {
 
   if (args.triggerReplaceAll) args.triggerSearch = true;
-  
+
   if (args.matchCase) {
     args.isCaseSensitive = args.matchCase;  // because workbench.action.findInFiles does not use "matchCase"!!
     delete args.matchCase;
   }
 
   // do args.clipText and args.resultsFiles need to be removed?  Doesn't seem to affect anything.
-	await commands.executeCommand('workbench.action.findInFiles',
-		args).then(() => {
+  await commands.executeCommand('workbench.action.findInFiles',
+    args).then(() => {
       if (args.triggerReplaceAll)
         setTimeout(async () => {
           await commands.executeCommand('search.action.replaceAll');
-				}, args.delay);
-		});
+        }, args.delay);
+    });
 };
 
 

@@ -1,5 +1,5 @@
-const { window, WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
-const registerCommands = require('./registerCommands');
+const { window, Position, Selection } = require('vscode');
+// const registerCommands = require('./registerCommands');
 const resolve = require('./resolveVariables');
 const regexp = require('./regex');
 
@@ -29,7 +29,7 @@ exports.addEmptySelectionMatches = async function (editor) {
       editor.selections = editor.selections?.filter(oldSelection => oldSelection !== selection);
       editor.selections = emptySelections?.concat(editor.selections);
     }
-  // }));
+    // }));
   };
 };
 
@@ -52,38 +52,39 @@ exports.matchAroundCursor = function (args, resolvedFind, selection) {
   const document = window.activeTextEditor?.document;
   if (!document) return [foundSelection, foundMatch, lineIndex];
 
- if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1) {
+  if (resolvedFind.search(regexp.lineNumberIndexRE) !== -1) {
 
     let selectedLineRange = document.lineAt(selection.active.line).range;
     // matches = module.exports.buildLineNumberMatches(resolvedFind, selectedLineRange);
     matches = exports.buildLineNumberMatches(resolvedFind, selectedLineRange);
   }
   else if (resolvedFind?.length) {
-      
+
     // optimize by trying to match in the same line first
     const lineText = document.lineAt(selection.active.line).text;
     matches = [...lineText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
     if (matches.length) lineIndex = document.offsetAt(new Position(selection.active.line, 0));
-    
+
     if (!matches.length) {
       const fullText = document.getText();
       matches = [...fullText.matchAll(new RegExp(resolvedFind, args.regexOptions))];
     }
   }
 
-  const found = matches?.find(match => {
+  // const found = matches?.find(match => {
+  matches?.find(match => {
     const startPos = document?.positionAt(match.index + lineIndex);
     const endPos = document?.positionAt(match.index + match[0].length + lineIndex);
     const thisSelection = new Selection(startPos, endPos);
-  
+
     if (thisSelection.contains(selection)) {
       foundSelection = thisSelection;
       foundMatch = match;
       return true;
     }
   });
-  return [ foundSelection, foundMatch, lineIndex ];
-}
+  return [foundSelection, foundMatch, lineIndex];
+};
 
 
 /**
@@ -98,9 +99,9 @@ exports.matchAroundCursor = function (args, resolvedFind, selection) {
 exports.runWhen = async function (args, foundMatches, foundSelections, selection) {
 
   if (args.run && foundMatches.length) {
-    
+
     if (args.runWhen === "onEveryMatch") {
-      
+
       let selectionIndex = 0;
       for await (const foundSelection of foundSelections) {
         // TODO: test on ${matchIndex/Number}
@@ -108,21 +109,21 @@ exports.runWhen = async function (args, foundMatches, foundSelections, selection
         selectionIndex++;
       };
     }
-    
+
     else if (!args.runWhen || args.runWhen === "onceIfAMatch")  // uses first match and first selection = editor.selection
       await resolve.resolveVariables(args, "run", foundMatches[0], foundSelections[0], null, null);
   }
-  
+
   else if (args.run && args.runWhen === "onceOnNoMatches")
     await resolve.resolveVariables(args, "run", null, selection, null, null);  // no matches, run once
-}
+};
 
 
 /**
  * If find has ${lineNumber} or ${lineIndex} check match ** on each line **
  * 
  * @param {string} find - value to match
- * @param {Range} range - line or selection range within which to search
+ * @param {import("vscode").Range} range - line or selection range within which to search
  * @returns {Array} of matches
  */
 exports.buildLineNumberMatches = function (find, range) {
@@ -141,10 +142,10 @@ exports.buildLineNumberMatches = function (find, range) {
     let lineText = document.lineAt(line).text;
 
     // if no lineText continue
-   
+
     // for selections/once/onceIncludeCurrentWord/onceExcludeCurrentWord
     // change lineText to start of wordAtCursor?
-    
+
     if (range.start.line === line) lineText = lineText.substring(range.start.character);
     else if (range.end.line === line) lineText = lineText.substring(0, range.end.character);
 
@@ -152,15 +153,15 @@ exports.buildLineNumberMatches = function (find, range) {
     const lineMatches = [...lineText.matchAll(new RegExp(resolved, "g"))];
 
     for (const match of lineMatches) {
-     match["line"] = line;
-     // should lineIndex be included at all?
+      match["line"] = line;
+      // should lineIndex be included at all?
       if (range.start.line === line) match["index"] = lineIndex + match.index + range.start.character;
       else match["index"] = lineIndex + match.index;  // don't add range.start.character to non-first line of selections
       matches.push(match);
     }
   }
   return matches;
-}
+};
 
 
 /**
@@ -170,17 +171,17 @@ exports.buildLineNumberMatches = function (find, range) {
  * @returns {Promise<array>}
  */
 exports.combineMatches = async function (matches) {
-  
+
   // match A = ["howdy there", undefined, "howdy"]; match B = ["howdy there", "there", "undefined"]
   // combined = ["howdy there", "there", "howdy"]
   // undefineds are replaced from capture group values from other matches
 
   let firstMatch = matches.shift().flat();  // gets rid of match.index/input/groups
-  
+
   let index = 0;
 
   for await (const value of firstMatch) {
-    
+
     if (!value) {  // i.e., = undefined
       let foundMatch = matches.find(match => {
         if (match[index]) return match[index];
@@ -189,6 +190,6 @@ exports.combineMatches = async function (matches) {
     }
     index++;
   };
-  
+
   return firstMatch;
 };

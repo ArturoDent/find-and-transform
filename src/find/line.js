@@ -1,4 +1,4 @@
-const { WorkspaceEdit, TextEdit, Range, Position, Selection, workspace } = require('vscode');
+const { TextEdit, Range, Position, Selection } = require('vscode');
 
 const resolve = require('../resolveVariables');
 const utilities = require('../utilities');
@@ -221,7 +221,7 @@ exports.replaceInLine = async function (editor, args) {
 
       const iter = matchesPerSelection.values();
 
-      for await (const line of uniqueLines) {
+      for await (const _line of uniqueLines) {
 
         let originalLength = 0, selectionStartIndex = 0, selectionStartAdjust = 0, cumulativeChangesInSelectionLength = 0;
 
@@ -439,7 +439,7 @@ exports.replaceInLine = async function (editor, args) {
       let index = 0;
       const iter = matchesPerSelection.values();
 
-      for await (const line of lines) {
+      for await (const _line of lines) {
 
         const combinedMatches = await transforms.combineMatches(Array.from(lineMatches[index]));
 

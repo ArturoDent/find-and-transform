@@ -42,6 +42,9 @@ suite('outputChannel.js - exports.outputChannel binding fix', () => {
   test('dispose() called destructured does not throw once a channel exists', async () => {
     write('text before dispose');
     await assert.doesNotReject(() => dispose());
+    // clear the reference so teardown()'s own dispose() call is the no-op it already
+    // supports, instead of disposing this same channel a second time
+    outputChannelModule.outputChannel = undefined;
   });
 
   test('writeBadArgs() called destructured lazily creates the channel via exports.outputChannel', async () => {

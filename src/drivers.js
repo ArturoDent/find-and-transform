@@ -30,9 +30,9 @@ exports.startFindInCurrentFile = async function (args, enableWarningDialog) {
 
   if (args?.preCommands) await prePostCommands.run(args.preCommands, "preCommands");
 
-  let replacement = "";
-  if (Array.isArray(args?.replace)) replacement = args?.replace.join(' ');
-  else if (args?.replace) replacement = args?.replace;
+  // let replacement = "";
+  // if (Array.isArray(args?.replace)) replacement = args?.replace.join(' ');
+  // else if (args?.replace) replacement = args?.replace;
 
   // if (replacement?.search(/\$\{resultsFiles\}/) !== -1) args.resultsFiles = await utilities.getSearchResultsFiles(args.clipText);
 

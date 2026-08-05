@@ -80,17 +80,16 @@ suite('utilities.js - checkArgs()', () => {
   // regression: goodKeys/goodValues used to be `undefined` for any other fromWhere,
   // throwing inside Object.keys(args).filter(...) / for...of goodKeys
   test('REGRESSION: an unrecognized fromWhere no longer throws, and reports every key as bad', async () => {
+    // an unhandled rejection here would already fail this test, so no doesNotReject wrapper is needed
     const args = { title: 'x', find: 'y' };
-    let result;
-    await assert.doesNotReject(async () => { result = await utilities.checkArgs(args, 'someTypoedFromWhere'); });
+    const result = await utilities.checkArgs(args, 'someTypoedFromWhere');
     assert.strictEqual(result.fromWhere, 'someTypoedFromWhere');
     assert.deepStrictEqual(result.badKeys.sort(), ['find', 'title']);
     assert.deepStrictEqual(result.badValues, []);
   });
 
   test('REGRESSION: an unrecognized fromWhere with empty args no longer throws, and returns {}', async () => {
-    let result;
-    await assert.doesNotReject(async () => { result = await utilities.checkArgs({}, 'someTypoedFromWhere'); });
+    const result = await utilities.checkArgs({}, 'someTypoedFromWhere');
     assert.deepStrictEqual(result, {});
   });
 });

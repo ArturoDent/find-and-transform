@@ -219,9 +219,9 @@ function _commandArraysAreEquivalent(settings, packages) {
   if (settings.length !== (packages.length - 3)) return false;
 
   return settings.every(setting => packages.some(pcommand => {
-    if ((pcommand.command !== "find-and-transform.searchInFile")  &&  (pcommand.command !== "find-and-transform.searchInFolder")
+    if ((pcommand.command !== "find-and-transform.searchInFile") && (pcommand.command !== "find-and-transform.searchInFolder")
       && (pcommand.command !== "find-and-transform.searchInResults")) {
-      return (pcommand.command === setting.command)  &&  (pcommand.title === setting.title) &&
+      return (pcommand.command === setting.command) && (pcommand.title === setting.title) &&
         (pcommand.category === setting.category);
     }
   }));
@@ -256,11 +256,11 @@ function _commandArraysAreEquivalent(settings, packages) {
 exports.find = async function (argArray, context, disposables, enableWarningDialog) {
 
   let disposable;
-  let continueRun = true;
+  // let continueRun = true;
 
   for (const elem in argArray) {
 
-    disposable = commands.registerCommand(`findInCurrentFile.${ argArray[elem][0] }`, async arg => {
+    disposable = commands.registerCommand(`findInCurrentFile.${ argArray[elem][0] }`, async () => {
 
       await drivers.startFindInCurrentFile(argArray[elem][1], enableWarningDialog);
 
@@ -284,7 +284,7 @@ exports.find = async function (argArray, context, disposables, enableWarningDial
 exports.search = async function (argArray, context, disposables, enableWarningDialog) {
 
   let disposable;
-  let continueRun = true;
+  // let continueRun = true;
 
   for (const elem in argArray) {
 

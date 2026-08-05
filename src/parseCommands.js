@@ -1,4 +1,4 @@
-const { window, workspace, env, Uri } = require('vscode');
+const { window, workspace, Uri } = require('vscode');
 
 const document = require('./find/document');
 const findAndSelect = require('./find/findAndSelect');
