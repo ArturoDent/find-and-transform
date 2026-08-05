@@ -7,6 +7,18 @@ const path = require('path');
 const os = require('os');
 const utilities = require('./utilities');
 const outputChannel = require('./outputChannel');
+const scriptStorage = require('./scriptStorage');
+
+
+/**
+ * If a jsOp's inner content is a "script:name" reference, return the name.
+ * @param {string} operation - the content between $${ and }$$
+ * @returns {string | null}
+ */
+function _getScriptRefName(operation) {
+  const match = /^\s*script:(.+?)\s*$/.exec(operation ?? "");
+  return match ? match[1] : null;
+}
 
 
 /**
@@ -102,7 +114,13 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
     let i = 0;
 
     for await (const match of matches) {
-      const jsOp = match.groups.jsOp;
+      let jsOp = match.groups.jsOp;
+
+      // a "$${script:name}$$" reference doesn't literally contain "await" even if
+      // the saved script does, so check the saved script's code instead
+      const scriptRefName = _getScriptRefName(match[2]);
+      if (scriptRefName) jsOp = scriptStorage.get(scriptRefName) ?? "";
+
       if (jsOp && /\bawait\b/.test(jsOp)) jsOPerationHasAwait[i] = "true";
       else jsOPerationHasAwait[i] = "false";
       i++;
@@ -268,8 +286,22 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
 
     resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, operation) {
 
-      // fix for newlines in operations, like from selectedText, etc.
-      operation = operation.replaceAll(/\r\n/g, '\\r\\n').replaceAll(/(?<!\r)\n/g, '\\n');
+      const scriptRefName = _getScriptRefName(operation);
+
+      if (scriptRefName) {
+        const scriptCode = scriptStorage.get(scriptRefName);
+        if (scriptCode === undefined) {
+          const message = `No saved script named "${ scriptRefName }".  Run "Find-Transform: New Script" to create one.`;
+          outputChannel.write(`\n${ message }\n`);
+          window.showWarningMessage(message);
+          throw new Error(message);
+        }
+        operation = scriptCode;  // real multi-line source, no newline-escaping needed
+      }
+      else {
+        // fix for newlines in operations, like from selectedText, etc.
+        operation = operation.replaceAll(/\r\n/g, '\\r\\n').replaceAll(/(?<!\r)\n/g, '\\n');
+      }
 
       if (jsOPerationHasAwait.includes("true")) {
 

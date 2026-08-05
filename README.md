@@ -239,6 +239,29 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 ------------------  
 
+## Named Scripts (stored in Global Storage)
+
+Instead of writing a `$${ jsOperation }$$` inline in your settings.json, you can save it as a named script and reference it with `$${script:name}$$`.  Named scripts:  
+
+* are stored outside of settings.json, as real `.js` files you can open and edit with full syntax highlighting and IntelliSense
+* are available in every workspace (they use VS Code's global storage, not per-workspace storage)
+* sync to your other machines via Settings Sync (the script's code lives in `globalState`, which is synced; the on-disk `.js` file is just a local editable copy kept in sync with it)
+
+Commands, all under the `Find-Transform` category in the Command Palette:  
+
+* **New Script** - name a new script and open it for editing
+* **Edit Script** - pick an existing script to open and edit
+* **Delete Script** - pick an existing script to delete
+* **Save Selected Code as Named Script** - select the code inside an existing `$${ ... }$$` block in your settings.json, run this command, name it, and the selection is replaced with a `$${script:name}$$` reference
+
+```jsonc
+"replace": "$${script:myReplaceHelper}$$",
+```
+
+Inline `$${ ... }$$` operations keep working exactly as before - named scripts are an additional option, not a replacement.  
+
+------------------  
+
 ## Using newlines
 
 * Find: Use `\r?\n` with `isRegex` set to true is probably the safest across operating systems.  But in a regular expression character class `[...]` just use `[\n]`, not `[\r?\n]`.  

@@ -10,6 +10,8 @@ const codeActions = require('./codeActions');
 const utilities = require('./utilities');
 const outputChannel = require('./outputChannel');
 const searchArgs = require('./args/searchOptions');
+const scriptStorage = require('./scriptStorage');
+const scriptCommands = require('./scriptCommands');
 
 
 /** @type { Array<import("vscode").Disposable> } */
@@ -25,8 +27,10 @@ async function activate(context) {
 
   await outputChannel.dispose();
 
-  this.context = context;  // global  
+  this.context = context;  // global
   let firstRun = true;
+
+  await scriptStorage.init(context);
 
   await _loadSettingsAsCommands(context, _disposables, firstRun);
 
@@ -155,6 +159,17 @@ async function activate(context) {
   });
 
   context.subscriptions.push(openReadmeAnchor);
+
+  // ---------------------------------------------------------------------------------------------------------------------
+
+  // commands for managing named scripts stored in global storage, see scriptStorage.js/scriptCommands.js
+  context.subscriptions.push(
+    commands.registerCommand('find-and-transform.newScript', scriptCommands.newScript),
+    commands.registerCommand('find-and-transform.editScript', scriptCommands.editScript),
+    commands.registerCommand('find-and-transform.deleteScript', scriptCommands.deleteScript),
+    commands.registerCommand('find-and-transform.saveInlineScriptAsNamedScript', scriptCommands.saveInlineScriptAsNamedScript),
+    workspace.onDidSaveTextDocument(document => scriptStorage.syncFileToStorage(document))
+  );
 
   // ---------------------------------------------------------------------------------------------------------------------
 
