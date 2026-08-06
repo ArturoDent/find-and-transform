@@ -6,6 +6,7 @@ const jsonc = require("jsonc-parser");
 
 const searchArgs = require('./args/searchOptions');
 const findArgs = require('./args/findOptions');
+const scriptStorage = require('./scriptStorage');
 
 
 /**
@@ -419,7 +420,13 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
 
   // ---------------------  find  ------------------------
   else if (arg === 'find') {
-    if (linePrefix.endsWith('$'))
+    if (linePrefix.endsWith('$${'))
+      return _completeFindVariables(position, '$${');
+
+    else if (linePrefix.endsWith('$$'))
+      return _completeFindVariables(position, '$$');
+
+    else if (linePrefix.endsWith('$'))
       return _completeFindVariables(position, '$');
 
     else if (linePrefix.endsWith('${'))
@@ -481,7 +488,13 @@ function _completeArgs(linePrefix, position, find, search, curLocation) {
   else if (find && arg === 'run') {
     // return _completeReplaceJSOperation(position, '$');
 
-    if (linePrefix.endsWith('$'))
+    if (linePrefix.endsWith('$${'))
+      return _completeReplaceFindVariables(position, "$${");
+
+    else if (linePrefix.endsWith('$$'))
+      return _completeReplaceFindVariables(position, "$$");
+
+    else if (linePrefix.endsWith('$'))
       return _completeReplaceFindVariables(position, "$");
 
     else if (linePrefix.endsWith('${'))
@@ -783,12 +796,22 @@ function _completeReplaceJSOperation(position, trigger) {
   else replaceRange = new Range(position, position);
 
   const text = `
-		
+
 Replace ***operation*** with some code.`;
 
-  return [
+  const items = [
     _makeValueCompletionItem("$${return operation;}$$", replaceRange, "", "001", `Create a javascript operation.${ text }`),
   ];
+
+  scriptStorage.list().forEach((script, index) => {
+    const value = `$\${script:${ script.name }}$$`;
+    const firstLine = scriptStorage.get(script.name)?.split('\n')[0].trim();
+    const preview = new MarkdownString(`**${ script.name }**`);
+    if (firstLine) preview.appendMarkdown(`\n\n\`${ firstLine }\``);
+    items.push(_makeValueCompletionItem(value, replaceRange, "", `002${ String(index).padStart(3, "0") }`, preview));
+  });
+
+  return items;
 }
 
 
@@ -1157,7 +1180,7 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
  * @param   {Range} replaceRange
  * @param   {string|boolean} defaultValue - default value for this option
  * @param   {string} sortText - sort order of item in completions
- * @param   {string} documentation - markdown description of each item
+ * @param   {string|MarkdownString} documentation - markdown description of each item
  * @returns {CompletionItem} - CompletionItemKind.Text
  */
 function _makeValueCompletionItem(value, replaceRange, defaultValue, sortText, documentation) {
