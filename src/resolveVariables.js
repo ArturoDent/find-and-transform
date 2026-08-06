@@ -11,147 +11,37 @@ const scriptStorage = require('./scriptStorage');
 
 
 /**
- * If a jsOp's inner content is a "script:name" reference, return the name.
+ * If a jsOp's inner content is a "script:name" or "script:name(arg)" reference,
+ * return the script's name and, if present, the argument to expose as `arg`
+ * inside the script. `arg` is `undefined` when no parentheses are present.
  * @param {string} operation - the content between $${ and }$$
- * @returns {string | null}
+ * @returns {{name: string, arg: string | undefined} | null}
  */
 function _getScriptRefName(operation) {
-  const match = /^\s*script:(.+?)\s*$/.exec(operation ?? "");
-  return match ? match[1] : null;
+  const match = /^\s*script:(?<name>.+?)(?:\((?<arg>[\s\S]*)\))?\s*$/.exec(operation ?? "");
+  return match ? { name: match.groups?.name.trim() ?? "", arg: match.groups?.arg } : null;
 }
 
 
 /**
- * If '${getTextLines:${line(Index|Number)}}' resolve lineIndex/Number immediately.
- * Else, resolve later in transform.js for each line of document/selection/line.
- * Only works on 'find' value, not 'replace', etc.
- * 
- * @param {import("vscode").TextEditor} editor
+ * Run every variable-resolution pass EXCEPT jsOp execution against `text`:
+ * path variables, snippet variables, extension-defined variables, case
+ * modifier/capture group, case transform, conditional, and bare capture
+ * group. Used both for the main find/replace/run/etc. value and, recursively,
+ * for a named script's code - so `${snippetVar}`/`$1`/etc. inside a saved
+ * script resolve exactly like they would in an equivalent inline jsOp.
+ * @param {*} text
  * @param {Object} args - keybinding/settings args
- * @param {Number | null} matchIndex - which match is it: first, second, etc.
- * @param {import("vscode").Selection | null} selection
- * @returns {Promise<object>} findValue, isRegex
- */
-exports.resolveFind = async function (editor, args, matchIndex, selection) {
-
-  let resolvedFind = "";
-  let cursorIndex = editor?.document?.offsetAt(editor.selection?.active) ?? null;
-
-  const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
-
-  if (args.find && args?.find?.search(lineIndexNumberRE) !== -1)
-    resolvedFind = await exports.resolveVariables(args, "find", null, selection ?? editor?.selection, cursorIndex, matchIndex);
-  else
-    resolvedFind = await exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor?.selection, cursorIndex, matchIndex);
-
-  return await exports.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.ignoreWhiteSpace, args.madeFind);
-};
-
-
-/**
- * Build the replaceString by updating the setting 'replaceValue' to
- * account for case modifiers, capture groups and conditionals
- *
- * @param {Object} args - keybinding/settings args
- * @param {string} caller - find/replace/cursorMoveSelect
+ * @param {string} caller - find/replace/run/etc.
  * @param {Object} groups - may be a single match
  * @param {import("vscode").Selection | null} selection - the current selection
  * @param {number | null} selectionStartIndex
  * @param {number | null} matchIndex - which match is it
- * @returns {Promise<string>} - the resolved string
+ * @returns {Promise<*>}
  */
-exports.resolveVariables = async function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
+async function _resolveNonJsOpVariables(text, args, caller, groups, selection, selectionStartIndex, matchIndex) {
 
-  // if (!window.activeTextEditor) return;  // or return ""
-  const document = window.activeTextEditor?.document;
-  let replaceValue;
-  let jsOPerationHasAwait = [];
-
-  // {
-  //   "command": "workbench.action.terminal.sendSequence",
-  //   "args": {
-  //     // send the filename: to the terminal
-  //     // "text": "code -g '${relativeFileDirname}\\${selectedText}':"
-  //     // "text": "code -g '${relativeFileDirname}\\${selectedText}'\u000D"
-  //     // "text": "code -g '${selectedText}'\u000D" // works but no line number
-  //     // "text": "code -g '${selectedText}'\u000D" // works but no line number
-  //     "text": "code -g '$1'\u000D" // does not work, vars are resolved but not capture groups?
-  //   }
-  // }
-
-
-  if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
-  else if (caller === "replace") replaceValue = args?.replace;
-
-  // else if (caller === "run") replaceValue = args?.run;
-  else if (caller === "run")
-    replaceValue = Array.isArray(args?.run) ? args?.run[0] : args?.run;
-
-  // else if (caller === "cursorMoveSelect") replaceValue = args;
-  else if (caller === "cursorMoveSelect") replaceValue = args.cursorMoveSelect;
-  else if (caller === "snippet") replaceValue = args?.snippet;
-  // else if (caller === "postCommands") replaceValue = args?.postCommands[matchIndex]?.args?.text;
-  else if (caller === "postCommands") {
-    if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex ?? 0]?.args?.text;
-    else replaceValue = args?.postCommands?.args?.text;
-    // if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex]?.args?.lineNumber;
-    // else replaceValue = args?.postCommands?.args?.lineNumber;
-
-    // loop through args to find which one has a variable?
-  }
-
-  // need to set a flag for presence of 'await' in jsOp BEFORE any variable substitution,
-  // in case some variable has "await" in it like ${selectedText}, but not part of jsOp
-
-  //  const jsOpRE = regexp.jsOpRE;  // this does work
-  const jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
-
-  if (caller === "run" || caller === "replace") {
-    // const re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
-
-    // const matches = [...replaceValue.matchAll(re)];
-    const matches = [...replaceValue.matchAll(jsOpRE)];
-    let i = 0;
-
-    for await (const match of matches) {
-      let jsOp = match.groups.jsOp;
-
-      // a "$${script:name}$$" reference doesn't literally contain "await" even if
-      // the saved script does, so check the saved script's code instead
-      const scriptRefName = _getScriptRefName(match[2]);
-      if (scriptRefName) jsOp = scriptStorage.get(scriptRefName) ?? "";
-
-      if (jsOp && /\bawait\b/.test(jsOp)) jsOPerationHasAwait[i] = "true";
-      else jsOPerationHasAwait[i] = "false";
-      i++;
-    }
-  }
-
-  // if jsOp replace all \w => \\w
-  if (groups?.length && (caller === "replace" || caller === "run")) {
-
-    // let jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
-    //  const jsOpRE = regexp.jsOpRE;
-
-    if (jsOpRE.test(args.replace) || jsOpRE.test(args.run)) {
-
-      const tempIndex = groups.index;
-
-      // loop through groups[1,2, etc.]      
-      groups = groups.map((item, index) => {
-        if (index === 0) return item;
-        else return item?.replace(/(?<!\\)\\(?!\\)/g, "\\$&");  // only 1 \
-      });
-
-      groups.index = tempIndex;
-    }
-  }
-
-  if (!replaceValue) return replaceValue;
-  const specialVariable = new RegExp('\\$[\\{\\d]');
-  if (replaceValue.search(specialVariable) === -1) return replaceValue;  // doesn't contain '${' or '$\d'
-
-  let resolved = replaceValue;
+  let resolved = text;
   let re;
   let groupNames = {};
 
@@ -275,6 +165,142 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   });
   // --------------------  capGroupOnly ----------------------------------------------------------
 
+  return resolved;
+}
+
+
+/**
+ * If '${getTextLines:${line(Index|Number)}}' resolve lineIndex/Number immediately.
+ * Else, resolve later in transform.js for each line of document/selection/line.
+ * Only works on 'find' value, not 'replace', etc.
+ * 
+ * @param {import("vscode").TextEditor} editor
+ * @param {Object} args - keybinding/settings args
+ * @param {Number | null} matchIndex - which match is it: first, second, etc.
+ * @param {import("vscode").Selection | null} selection
+ * @returns {Promise<object>} findValue, isRegex
+ */
+exports.resolveFind = async function (editor, args, matchIndex, selection) {
+
+  let resolvedFind = "";
+  let cursorIndex = editor?.document?.offsetAt(editor.selection?.active) ?? null;
+
+  const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
+
+  if (args.find && args?.find?.search(lineIndexNumberRE) !== -1)
+    resolvedFind = await exports.resolveVariables(args, "find", null, selection ?? editor?.selection, cursorIndex, matchIndex);
+  else
+    resolvedFind = await exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor?.selection, cursorIndex, matchIndex);
+
+  return await exports.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.ignoreWhiteSpace, args.madeFind);
+};
+
+
+/**
+ * Build the replaceString by updating the setting 'replaceValue' to
+ * account for case modifiers, capture groups and conditionals
+ *
+ * @param {Object} args - keybinding/settings args
+ * @param {string} caller - find/replace/cursorMoveSelect
+ * @param {Object} groups - may be a single match
+ * @param {import("vscode").Selection | null} selection - the current selection
+ * @param {number | null} selectionStartIndex
+ * @param {number | null} matchIndex - which match is it
+ * @returns {Promise<string>} - the resolved string
+ */
+exports.resolveVariables = async function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
+
+  // if (!window.activeTextEditor) return;  // or return ""
+  const document = window.activeTextEditor?.document;
+  let replaceValue;
+  let jsOPerationHasAwait = [];
+
+  // {
+  //   "command": "workbench.action.terminal.sendSequence",
+  //   "args": {
+  //     // send the filename: to the terminal
+  //     // "text": "code -g '${relativeFileDirname}\\${selectedText}':"
+  //     // "text": "code -g '${relativeFileDirname}\\${selectedText}'\u000D"
+  //     // "text": "code -g '${selectedText}'\u000D" // works but no line number
+  //     // "text": "code -g '${selectedText}'\u000D" // works but no line number
+  //     "text": "code -g '$1'\u000D" // does not work, vars are resolved but not capture groups?
+  //   }
+  // }
+
+
+  if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
+  else if (caller === "replace") replaceValue = args?.replace;
+
+  // else if (caller === "run") replaceValue = args?.run;
+  else if (caller === "run")
+    replaceValue = Array.isArray(args?.run) ? args?.run[0] : args?.run;
+
+  // else if (caller === "cursorMoveSelect") replaceValue = args;
+  else if (caller === "cursorMoveSelect") replaceValue = args.cursorMoveSelect;
+  else if (caller === "snippet") replaceValue = args?.snippet;
+  // else if (caller === "postCommands") replaceValue = args?.postCommands[matchIndex]?.args?.text;
+  else if (caller === "postCommands") {
+    if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex ?? 0]?.args?.text;
+    else replaceValue = args?.postCommands?.args?.text;
+    // if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex]?.args?.lineNumber;
+    // else replaceValue = args?.postCommands?.args?.lineNumber;
+
+    // loop through args to find which one has a variable?
+  }
+
+  // need to set a flag for presence of 'await' in jsOp BEFORE any variable substitution,
+  // in case some variable has "await" in it like ${selectedText}, but not part of jsOp
+
+  //  const jsOpRE = regexp.jsOpRE;  // this does work
+  const jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
+
+  if (caller === "run" || caller === "replace") {
+    // const re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
+
+    // const matches = [...replaceValue.matchAll(re)];
+    const matches = [...replaceValue.matchAll(jsOpRE)];
+    let i = 0;
+
+    for await (const match of matches) {
+      let jsOp = match.groups.jsOp;
+
+      // a "$${script:name}$$" reference doesn't literally contain "await" even if
+      // the saved script does, so check the saved script's code instead
+      const scriptRef = _getScriptRefName(match[2]);
+      if (scriptRef) jsOp = scriptStorage.get(scriptRef.name) ?? "";
+
+      if (jsOp && /\bawait\b/.test(jsOp)) jsOPerationHasAwait[i] = "true";
+      else jsOPerationHasAwait[i] = "false";
+      i++;
+    }
+  }
+
+  // if jsOp replace all \w => \\w
+  if (groups?.length && (caller === "replace" || caller === "run")) {
+
+    // let jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+    //  const jsOpRE = regexp.jsOpRE;
+
+    if (jsOpRE.test(args.replace) || jsOpRE.test(args.run)) {
+
+      const tempIndex = groups.index;
+
+      // loop through groups[1,2, etc.]      
+      groups = groups.map((item, index) => {
+        if (index === 0) return item;
+        else return item?.replace(/(?<!\\)\\(?!\\)/g, "\\$&");  // only 1 \
+      });
+
+      groups.index = tempIndex;
+    }
+  }
+
+  if (!replaceValue) return replaceValue;
+  const specialVariable = new RegExp('\\$[\\{\\d]');
+  if (replaceValue.search(specialVariable) === -1) return replaceValue;  // doesn't contain '${' or '$\d'
+
+  let resolved = await _resolveNonJsOpVariables(replaceValue, args, caller, groups, selection, selectionStartIndex, matchIndex);
+  let re;
 
   // -------------------  jsOp ------------------------------------------------------------------
 
@@ -286,55 +312,46 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
 
     resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, operation) {
 
-      const scriptRefName = _getScriptRefName(operation);
+      const scriptRef = _getScriptRefName(operation);
 
-      if (scriptRefName) {
-        const scriptCode = scriptStorage.get(scriptRefName);
+      if (scriptRef) {
+        const scriptCode = scriptStorage.get(scriptRef.name);
         if (scriptCode === undefined) {
-          const message = `No saved script named "${ scriptRefName }".  Run "Find-Transform: New Script" to create one.`;
+          const message = `No saved script named "${ scriptRef.name }".  Run "Find-Transform: New Script" to create one.`;
           outputChannel.write(`\n${ message }\n`);
           window.showWarningMessage(message);
           throw new Error(message);
         }
-        operation = scriptCode;  // real multi-line source, no newline-escaping needed
+        // resolve ${snippetVar}/$1/etc. inside the script exactly like an inline jsOp would
+        operation = await _resolveNonJsOpVariables(scriptCode, args, caller, groups, selection, selectionStartIndex, matchIndex);
       }
       else {
         // fix for newlines in operations, like from selectedText, etc.
         operation = operation.replaceAll(/\r\n/g, '\\r\\n').replaceAll(/(?<!\r)\n/g, '\\n');
       }
 
-      if (jsOPerationHasAwait.includes("true")) {
+      // named scripts require() their own vscode/path/document, so only 'require' is
+      // injected here - injecting the others too would redeclare whatever the script
+      // itself declares under those names and throw a SyntaxError. 'arg' is always
+      // injected too, undefined unless the reference was "script:name(arg)".
+      if (scriptRef) {
 
-        if (/vscode\./.test(operation) && /path\./.test(operation))
-          return Function('vscode', 'path', 'require', 'document', `"use strict"; (async function run (){${ operation }})()`)
-            (vscode, path, require, document);
-        else if (/vscode\./.test(operation))
-          return Function('vscode', 'require', 'document', `"use strict"; (async function run (){${ operation }})()`)
-            (vscode, require, document);
-        else if (/path\./.test(operation))
-          return Function('path', 'require', 'document', `"use strict"; (async function run (){${ operation }})()`)
-            (path, require, document);
-        else {
-          return Function('require', 'document', `"use strict"; return (async function run (){${ operation }})()`)
-            (require, document);
-        }
+        if (jsOPerationHasAwait.includes("true"))
+          return Function('require', 'arg', `"use strict"; return (async function run (){${ operation }})()`)
+            (require, scriptRef.arg);
+        else
+          return Function('require', 'arg', `"use strict"; ${ operation }`)
+            (require, scriptRef.arg);
+      }
+
+      else if (jsOPerationHasAwait.includes("true")) {
+        return Function('vscode', 'path', 'require', 'document', `"use strict"; return (async function run (){${ operation }})()`)
+          (vscode, path, require, document);
       }
 
       else {  // no await in the jsOp
-
-        if (/vscode\./.test(operation) && /path\./.test(operation))
-          return Function('vscode', 'path', 'require', 'document', `"use strict"; ${ operation }`)
-            (vscode, path, require, document);
-        else if (/vscode\./.test(operation))
-          return Function('vscode', 'require', 'document', `"use strict"; ${ operation }`)
-            (vscode, require, document);
-        else if (/path\./.test(operation))
-          return Function('path', 'require', 'document', `"use strict"; ${ operation }`)
-            (path, require, document);
-        else {
-          return Function('require', 'document', `"use strict"; ${ operation }`)
-            (require, document);
-        }
+        return Function('vscode', 'path', 'require', 'document', `"use strict"; ${ operation }`)
+          (vscode, path, require, document);
       }
     });
   }
@@ -383,7 +400,14 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
 
   if (!isRegex && replaceValue) {
     const re = /\$(\d+)/g;
-    const capGroups = [...replaceValue?.matchAll(re)];
+
+    // a "$${script:name}$$" reference doesn't literally contain "$1" even if
+    // the saved script does, so check the saved script's code instead
+    const jsOpMatch = /\$\$\{([\s\S]*?)\}\$\$/.exec(replaceValue);
+    const scriptRef = jsOpMatch ? _getScriptRefName(jsOpMatch[1]) : null;
+    const textToCheck = scriptRef ? (scriptStorage.get(scriptRef.name) ?? replaceValue) : replaceValue;
+
+    const capGroups = [...textToCheck?.matchAll(re)];
 
     if (capGroups.length) {
 

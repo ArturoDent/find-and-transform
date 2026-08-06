@@ -122,6 +122,21 @@
     "command": "find-and-transform.saveInlineScriptAsNamedScript",
     "title": "Save Selected Code as Named Script",
     "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.ModifyAsterisks",
+    "title": "modify asterisks and run after above",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.updateLastModified",
+    "title": "Update LastModified Attribute",
+    "category": "Find-Transform"
+   },
+   {
+    "command": "findInCurrentFile.testFind=Replace",
+    "title": "Does the replace = the find",
+    "category": "Find-Transform"
    }
   ],
   "configuration": [

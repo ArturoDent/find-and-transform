@@ -1,4 +1,4 @@
-const { languages, extensions, Range, Position,
+const { languages, extensions, Range, Position, RelativePattern,
   CompletionItem, CompletionItemKind, CompletionTriggerKind,
   MarkdownString, SnippetString } = require('vscode');
 
@@ -168,6 +168,62 @@ exports.makeKeybindingsCompletionProvider = async function (context) {
   );
 
   context.subscriptions.push(configCompletionProvider);
+};
+
+
+/**
+ * Register a CompletionItemProvider for named script (.js) files stored in global storage.
+ * A named script's code goes through the same variable-resolution pipeline as an inline
+ * $${ ... }$$ jsOp before it runs (see resolveVariables.js's _resolveNonJsOpVariables), so
+ * offer the same variable/case-transform completions available in a keybindings.json or
+ * settings.json 'replace'/'run' value.
+ * @param {import("vscode").ExtensionContext} context
+ */
+exports.makeScriptCompletionProvider = async function (context) {
+
+  const scriptsPattern = new RelativePattern(context.globalStorageUri, 'scripts/*.js');
+
+  const scriptCompletionProvider = languages.registerCompletionItemProvider(
+    { language: 'javascript', pattern: scriptsPattern },
+    {
+      provideCompletionItems(document, position) {
+
+        const linePrefix = document.lineAt(position).text.substring(0, position.character);
+
+        if (linePrefix.endsWith('${') || linePrefix.endsWith('$')) {
+
+          const trigger = linePrefix.endsWith('${') ? '${' : '$';
+          const items = _completeScriptVariables(position, trigger);
+
+          // unlike JSON (which suppresses '{' auto-closing inside strings), the javascript
+          // language config auto-closes '${' unconditionally - it's real template-literal
+          // syntax - so consume the auto-inserted '}' instead of leaving '${file}}' behind
+          if (trigger === '${') {
+            const nextChar = document.getText(new Range(position, position.translate(0, 1)));
+            if (nextChar === '}') {
+              const extendedEnd = position.translate(0, 1);
+              items.forEach(item => {
+                if (item.range instanceof Range) item.range = item.range.with(undefined, extendedEnd);
+              });
+            }
+          }
+
+          return items;
+        }
+
+        else if (linePrefix.endsWith('\\\\'))
+          return _completeReplaceCaseTransforms(position, '\\\\');
+
+        else if (linePrefix.endsWith('\\'))
+          return _completeReplaceCaseTransforms(position, '\\');
+
+        return undefined;
+      }
+    },
+    '$', '{', '\\'   // trigger intellisense/completion
+  );
+
+  context.subscriptions.push(scriptCompletionProvider);
 };
 
 
@@ -776,8 +832,28 @@ function _completeReplaceFindVariables(position, trigger) {
 }
 
 /**
+ * Make completion items for variables inside a named script (.js) file - the same
+ * path/extension-defined/conditional/snippet variables available in a 'replace' value, minus
+ * the "$${return operation;}$$" suggestion, since a script file's contents are already the
+ * inside of a jsOp.
+ *
+ * @param   {import("vscode").Position} position
+ * @param   {string} trigger - triggered by '$' or '${' so include its range
+ * @returns {Array<CompletionItem>}
+ */
+function _completeScriptVariables(position, trigger) {
+
+  return [
+    ..._completePathVariables(position, trigger),
+    ..._completeExtensionDefinedVariables(position, trigger),
+    ..._completeFindConditionalTransforms(position, trigger),
+    ..._completeSnippetVariables(position, trigger)
+  ];
+}
+
+/**
  * Make completion items for 'replace' values starting with a '$' sign
- * 
+ *
  * @param   {import("vscode").Position} position
  * @param   {string} trigger - triggered by '$' or '${' so include its range
  * @returns {Array<CompletionItem>}

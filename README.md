@@ -71,16 +71,16 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 &emsp; &emsp; [7. Running Multiple finds or replaces](#running-multiple-finds-and-replaces-with-a-single-keybinding-or-setting)  
 
-&emsp; &emsp; [8. Running Javascript Code in a Replacement](#running-javascript-code-in-a-replacement)  
+&emsp; &emsp; [8. Running Javascript Code, and Named Scripts](#running-javascript-code-and-named-scripts) &emsp; see &nbsp; [Script Operations](scriptOperations.md) &nbsp; for the full details:  
 
-&emsp; &emsp; &emsp; [a. Math Operations in Replacements](#doing-math-on-replacements)  
-&emsp; &emsp; &emsp; [b. String Operations in Replacements](#doing-string-operations-on-replacements)  
-&emsp; &emsp; &emsp; [c. Using the vscode api or other packages, like path, in Replacements](#using-the-vscode-api-on-replacements)  
-&emsp; &emsp; &emsp; [d. More Operations in Replacements](#doing-other-javascript-operations-on-replacements)  
+&emsp; &emsp; &emsp; [a. Math Operations in Replacements](scriptOperations.md#doing-math-on-replacements)  
+&emsp; &emsp; &emsp; [b. String Operations in Replacements](scriptOperations.md#doing-string-operations-on-replacements)  
+&emsp; &emsp; &emsp; [c. Using the vscode api or other packages, like path, in Replacements](scriptOperations.md#using-the-vscode-api-on-replacements)  
+&emsp; &emsp; &emsp; [d. More Operations in Replacements](scriptOperations.md#doing-other-javascript-operations-on-replacements)  
+&emsp; &emsp; &emsp; [e. Running Javascript Code as a Side Effect](scriptOperations.md#running-javascript-code-as-a-side-effect)  
+&emsp; &emsp; &emsp; [f. Named Scripts (stored in Global Storage)](scriptOperations.md#named-scripts-stored-in-global-storage)  
 
-&emsp; &emsp; [9. Running Javascript Code as a Side Effect](#running-javascript-code-as-a-side-effect)  
-
-&emsp; &emsp; [10. Special Variables](#special-variables)  
+&emsp; &emsp; [9. Special Variables](#special-variables)  
 
 &emsp; &emsp; &emsp; [a. Path Variables: Launch or Task-like Variables](#launch-or-task-variables-path-variables)  
 &emsp; &emsp; &emsp; [b. Snippet Variables: Snippet-like Variables](#snippet-variables)  
@@ -89,15 +89,15 @@ Below you will find information on using the `findInCurrentFile` command - which
 &emsp; &emsp; &emsp; [e. Snippet Transforms: `${3:/capitalize}`](#snippet-like-transforms-replacements-in-findincurrentfile-commands-or-keybindings)  
 &emsp; &emsp; &emsp; [f. More Examples of Variable Transforms](#examples)  
 
-&emsp; &emsp; [11. Using `restrictFind` with the `matchAroundCursor` option](#using-restrictfind-with-the-matcharoundcursor-option)  
+&emsp; &emsp; [10. Using `restrictFind` with the `matchAroundCursor` option](#using-restrictfind-with-the-matcharoundcursor-option)  
 
-&emsp; &emsp; [12. Using `restrictFind` and `cursorMoveSelect`](#details-on-the-restrictfind-and-cursormoveselect-arguments)  
+&emsp; &emsp; [11. Using `restrictFind` and `cursorMoveSelect`](#details-on-the-restrictfind-and-cursormoveselect-arguments)  
 
 &emsp; &emsp; &emsp; [a. Some `"restrictFind": "next...` option examples](#some-restrictfind-next-option-examples)  
 
-&emsp; &emsp; [13. Settings Examples](#sample-settings)  
+&emsp; &emsp; [12. Settings Examples](#sample-settings)  
 
-&emsp; &emsp; [14. Keybinding Examples](#sample-keybindings)  
+&emsp; &emsp; [13. Keybinding Examples](#sample-keybindings)  
 
 &emsp; &emsp; &emsp; [a. `lineNumber` and `lineIndex`](#using-linenumber-or-lineindex-in-the-find)  
 &emsp; &emsp; &emsp; [b. Nearest Words at Cursors](#nearest-words-at-cursors)  
@@ -107,15 +107,15 @@ Below you will find information on using the `findInCurrentFile` command - which
 &emsp; &emsp; &emsp; &emsp; [i. find, no replace, restrictFind: selections](#find-and-no-replace-with-restrictfind-selections)  
 &emsp; &emsp; &emsp; [f. no find argument but with a replace](#with-a-replace-key-but-no-find-key)  
 
-&emsp; &emsp; [15. Demonstrating `cursorMoveSelect` after replacement](#demonstrating-cursormoveselect-after-replacement)  
+&emsp; &emsp; [14. Demonstrating `cursorMoveSelect` after replacement](#demonstrating-cursormoveselect-after-replacement)  
 
-&emsp; &emsp; [16. `matchNumber` and `matchIndex`](#matchnumber-and-matchindex)  
+&emsp; &emsp; [15. `matchNumber` and `matchIndex`](#matchnumber-and-matchindex)  
 
-&emsp; &emsp; [17. `reveal` Options](#reveal-options)  
+&emsp; &emsp; [16. `reveal` Options](#reveal-options)  
 
-&emsp; &emsp; [18. `ignoreWhiteSpace` Option](#using-the-ignorewhitespace-argument)  
+&emsp; &emsp; [17. `ignoreWhiteSpace` Option](#using-the-ignorewhitespace-argument)  
 
-&emsp; &emsp; [19. `preserveSelections` Option](#using-the-preserveselections-argument)  
+&emsp; &emsp; [18. `preserveSelections` Option](#using-the-preserveselections-argument)  
 
 <br/>
 
@@ -239,26 +239,16 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 ------------------  
 
-## Named Scripts (stored in Global Storage)
+## Running Javascript Code, and Named Scripts
 
-Instead of writing a `$${ jsOperation }$$` inline in your settings.json, you can save it as a named script and reference it with `$${script:name}$$`.  Named scripts:  
-
-* are stored outside of settings.json, as real `.js` files you can open and edit with full syntax highlighting and IntelliSense
-* are available in every workspace (they use VS Code's global storage, not per-workspace storage)
-* sync to your other machines via Settings Sync (the script's code lives in `globalState`, which is synced; the on-disk `.js` file is just a local editable copy kept in sync with it)
-
-Commands, all under the `Find-Transform` category in the Command Palette:  
-
-* **New Script** - name a new script and open it for editing
-* **Edit Script** - pick an existing script to open and edit
-* **Delete Script** - pick an existing script to delete
-* **Save Selected Code as Named Script** - select the code inside an existing `$${ ... }$$` block in your settings.json, run this command, name it, and the selection is replaced with a `$${script:name}$$` reference
+You can run JavaScript in a `find`/`replace`/`run` value with `$${ jsOperation }$$` - for math, string operations, side effects, or the full vscode api - and save any of those as a named, reusable `.js` file with `$${script:name}$$` and the `Find-Transform: New Script` / `Edit Script` / `Delete Script` / `Save Selected Code as Named Script` commands.
 
 ```jsonc
-"replace": "$${script:myReplaceHelper}$$",
+"replace": "$${ return $1 * 2 }$$",           // inline
+"replace": "$${script:myReplaceHelper}$$",    // a saved, named script
 ```
 
-Inline `$${ ... }$$` operations keep working exactly as before - named scripts are an additional option, not a replacement.  
+See **[Script Operations](scriptOperations.md)** for the full details: writing jsOps (math, strings, the vscode api, side effects with `run`), and everything about named scripts (storage, syncing, the four commands, what gets saved when, and IntelliSense).
 
 ------------------  
 
@@ -599,512 +589,6 @@ On the first pass above, the fileName will be uppercased.  On the second run, th
 On the first pass above, "someWord" will be replaced with "SOMEWORD".  On the second pass, find "WORD" and replace it with "-word".  So you will replace "someWord" with "SOME-word" after both runs.  Yes, you could make a single regex to do this in one run, but in more complicated cases using two or more runs can make it simpler.  
 
 -------------
-
-## Running Javascript Code in a Replacement  
-
-It is difficult to debug errors in javascript code you write in a replacement as below.  If your keybinding or setting generates an error, you will get a warning message notifying you of the failure.  And if you check your `Output` tab, and chose `find-and-transform` from the dropdown menu, you may get some helpful information on the nature of the error.  
-
-You can also put `console.log(...)` statements into the replacement code.  It wil lbe logged to your `Help/Toggle Developer Tools/Console`.  
-
-### Doing math on replacements
-
-Use the special syntax **` $${<some math op>}$$ `** as a replace or find value.  Everything between the brackets will be evaluated as a javascript function so you can do more than math operations, e.g., string operations (see below).  This does **not** use the `eval()` function.  Examples:  
-
-```jsonc
-{
-  "key": "alt+n",
-  "command": "findInCurrentFile",
-  "args": {
-    "find": "(?<=<some preceding text>)(\\d+)(?=<some following text>)",  // postive lookbehind/ahead
-    
-    "find": "$${return ${getInput} * 3;}$$",       // do math on the getInput and match it
-    
-    "find": "(howdy)-(${lineNumber})",
-    "replace": "${1:/capitalize}-$${return $2 * 10;}$$",  // howdy-3 => Howdy-30 (on line 3)
-    
-    
-    "replace": "$${return $1 + $1}$$",             // will double the digits found in capture group 1  
-    "replace": "$${return 2 * $1 }$$",             // will double the digits found in capture group 1  
-
-    "replace": "$${return $1 + $2}$$",             // add capture group 1 to capture group 2  
-
-    "replace": "$${return $1 * 2 + `,000` }$$",    // double group 1, append `,000` to it.  1 => 2,000  
-
-    "replace": "$${return $1 * Math.PI }$$",       // multiply group 1 by Math.PI 
-    
-    "replace": "$${const date = new Date(Date.UTC(2020, 11, 20, 3, 23, 16, 738)); return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(date)}",
-                                                   // insert: Saturday, 19 December 2020 at 20:23:16 GMT-7
-                                                   
-    "replace": [                                   // same output as above
-      "$${",                                       // put opening wrapper - '$${' on its own line!
-        "const date = new Date(Date.UTC(2020, 11, 20, 3, 23, 16, 738));",
-        "return new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'long' }).format(date)",
-      "}$$"                                        // put closing wrapper - '}$$' on its own line!
-    ],     
-
-    "isRegex": true  
-  }
-}
-```  
-
-> **IMPORTANT**: you must use semicolons at the end of statements - except for the final `return` statement (or if the only statement is a `return something`).  Anything with multiple statements must use semicolons.  The operations will be loaded into a `Function` which uses `"use strict"` which requires semicolons.  
-
-### A `jsOperation` written as an array of statements:  
-
- &nbsp; &nbsp; &nbsp; If you use the expanded form of replacement with a `jsOperation` written as an array (as in the last example immediately above), that entire array will be transformed into a single long array item like `$${ <multiple statements> }$$` and so it will then become a single replace array item.  So this replacement:
-
- ```jsonc
-"replace":  [
-  "$${",
-    "let a = 10;",
-    ...
-    "return 'howdy';",
-  "}$$",
-  
-  "$${",
-    "let v = 12;",
-    ...
-    "return 'pardner';",
-  "}$$"
-]
- ```
-
- will become  
-
- ```jsonc
-"replace":  [
-  "$${ let a = 10; ... return 'howdy'; }$$",
-  "$${ let v = 12; ... return 'pardner'; }$$"
-]
-```
-
-The above is 2 `replace`'s.  The first one will be applied to the first `find`.  And the second `replace` will be applied to the second `find`.  
-
--------------  
-
-### Doing string operations on replacements
-
-You can also do string operations inside the special syntax ` $${<operations>}$$ `.  But you will need to ***"cast"*** the string in backticks, single quotes or escaped double quotes like so:  
-
-```text
-
-$${ return `$1`.substring(3) }$$  use backticks (I recommend backticks) or  
-
-$${ return '$1'.substring(3) }$$  or  use single quotes
-
-$${ return \"$1\".includes('tro') }$$  escape the double quotes
-```
-
-> You **must** use one of the above if the value, like a capture group or some variable, could contain newlines.  
-
-> Any term that you wish to be interpreted **as a string** must be enclosed in ticks or quotes.  So in the first example below to replace the match with the string `howdy` I used backticks.  This is only necessary within the operations syntax `$${<operations>}$$`, otherwise it is interpreted as an unknown variable by javascript.  
-
-```jsonc
-{
-  "key": "alt+n",
-  "command": "findInCurrentFile",
-  "args": {
-
-    "find": "(trouble) (brewing)",
-
-    "replace": "$${ return `howdy` }$$",                 // replace trouble brewing => howdy  
-    "replace": "howdy",                                  // same result as above   
-
-    "replace": "$${ return `$1`.indexOf('b') * 3 }$$",   // trouble brewing => 12  
-
-    "replace": "$${ return `$1`.toLocaleUpperCase() + ' C' + `$2`.substring(1).toLocaleUpperCase() }$$",
-    // trouble brewing => TROUBLE CREWING  
-
-    "replace": "$${ return `$1`.replace('ou','e') }$$",  // trouble => treble 
-    
-    // using a capture group in replace/replaceAll, see note below 
-    "replace": "$${ return `$1`.replace('(ou)','-$1-') }$$",  
-
-    "replace": "$${ return '$1'.split('o')[1] }$$",      // trouble => uble  
-
-    "find": "(tr\\w+ble)",                               // .includes() returns either 'true' or 'false'  
-    "replace": "$${ return '$1'.includes('tro') }$$",    // trouble will be replaced with true, treble => false  
-
-    "find": "(tr\\w+ble)",                               // can have any number of $${...}$$'s in a replacment
-    "replace": "$${ return '$1'.includes('tro') }$$--$${ return '$1'.includes('tre') }$$",
-                                                         // trouble => true--false, treble => false--true
-
-    "isRegex": true  
-  }
-}
-```
-
-* Note: If, in a javascript operation you have a `<sring>.replace(/../, '$n')` (or `replaceAll`) with a capture group in the replacement like:
-
-```jsonc
-"replace": [
-  "$${",           // put opening jsOperation wrapper on its own line
-  
-  "if (`${fileBasenameNoExtension}`.includes('-')) {",
-    "let groovy = `${fileBasenameNoExtension}`.replace(/(-)/g, \"*$1*\");",  // $1 here
-    "console.log(groovy);",          // check the value in Toggle Developer Tools/Console
-    "return groovy[0].toLocaleUpperCase() + groovy.substring(1).toLocaleLowerCase();",
-  "}",
-  "else {",
-    "let groovy = `${fileBasename}`.split('.');",
-    "groovy = groovy.map(word => word[0].toLocaleUpperCase() + word.substring(1).toLocaleLowerCase());",
-    "return groovy.join(' ');",
-  "}",
-  
-  "}$$"           // put closing jsOperation wrapper on its own line
-],
-```
-
-that capture group will be from the `replace/replaceAll` as you would expect.  Other capture groups in a javascript operation will reflect the capture groups from the `find` argument.  
-
-> You can combine math or string operations within **` $${<operations>}$$ `**.  
-
--------------  
-
-### Using the vscode api on replacements
-
-If you wish to use [the vscode api](https://code.visualstudio.com/api/references/vscode-api) in a replacement you can do so easily. For instance, to insert the current filename capitalized you could use this keybinding:
-
-```jsonc
-{
-  "key": "alt+n",
-  "command": "findInCurrentFile",
-  "args": {
-
-    "replace": [
-      "$${",
-
-        "const str = path.basename(document.fileName);",
-        "return str.toLocaleUpperCase();",
-      
-      "}$$"
-    ]
-  }
-}
-```
-
-1. `document` = `vscode.window.activeTextEditor.document` and is provided as simply `document`.  
-2. Any other node api can be used as `vscode.<more here>`.  
-Do not do `const vscode = require('vscode');` it has already been declared and you will get this error:
-`SyntaxError: Identifier 'vscode' has already been declared`.  You can declare it as something simpler like `const vsc = require('vscode');` just not as `vscode` again.  
-3. `path` is also provided without needing to import it.  So don't `const path = require('path');` = error.  
-4. You should be able to `require` the `typescript` and `jsonc-parser` libraries without needing to install them on your machine.  
-5. If you get `[object Promise]` as the output of the replacement, you are trying to access an asynchronous method (or `thenable` return) - which will not work.  
-
-```jsonc
-"replace": [
-  "$${",
-    "let str = '';",
-        // print a list of open file names in the active tabGroup
-    "const tabs = vscode.window.tabGroups.activeTabGroup.tabs;",
-    "tabs.forEach(tab => str += tab.label + '\\n');",  // note double-escaped newline
-    "return str;",
-  "}$$"
-]
-```
-
-```jsonc
-{
-  "key": "alt+c",
-  "command": "findInCurrentFile",  
-  "args": {
-    "replace": [   // print a list of full paths for open text documents by editor group
-      "$${",
-
-        "let str = '';",
-        "const groups = vscode.window.tabGroups.all;",
-        "groups.map((group, index) => {",
-          "str += 'Group ' + (index+1) + '\\n';", 
-          "group.tabs.map(tab => {",
-            "if (tab.input instanceof vscode.TabInputText) str += '\\t' + tab.input.uri.fsPath + '\\n';",
-            // "str += tab.label + '\\n';",
-          "});",
-        "str += '\\n';",
-        "});",
-        "vscode.env.clipboard.writeText( str );",
-        "return '';",
-        
-      "}$$",
-    ],
-      
-    // create a new file and paste into it
-    "postCommands": ["workbench.action.files.newUntitledFile", "editor.action.clipboardPasteAction"]
-  }
-}
-```
-
-> For the above example which prints out the full path, there is no `find` so the replacement - just an empty string - will just be inserted at the cursor.  So make sure the cursor is not in or at a word boundary or that word will be treated as the `find` query and be replaced by an empty string.  There must be a `return` of some kind for a `replace` javascript operation.  
-
-> It probably makes more sense to put the above javascript operation into a `"run"` argument if you are only going to use it as a side effect, like here where you store it in the clipboard to paste into a different file.  Then you don't care where the cursor is or whether there is any selected text already.  
-
-Output of above replacement in a newly created file:
-
-```text
-Group 1
-  c:\Users\Fred\AppData\Roaming\Code\User\keybindings.json
-  c:\Users\Fred\AppData\Roaming\Code\User\settings.json
-  c:\Users\Fred\OneDrive\Test Bed\test5.js
-  c:\Users\Fred\OneDrive\Test Bed\zip\changed2.txt_bak
-  c:\Users\Fred\OneDrive\Test Bed\zip\config.json
-
-Group 2
-  c:\Users\Fred\OneDrive\Test Bed\zip\test3.txt
-
-```
-
-```jsonc
-"find": "${getTextLines:(${lineIndex}-1)}",  // get the line above the cursor
-
-"replace": [
-    "$${",                                     // get the line above the cursor
-    
-      "const sel = vscode.window.activeTextEditor.selection;",
-      "const previousLine = document.lineAt(new vscode.Position(sel.active.line - 1, 0)).text;",
-      
-      // the below also works
-      // "const previousLine = document.getText(new vscode.Range(sel.active.line-1, 0, sel.active.line-1, 100));",
-      
-      // below is the simplest
-      "const previousLine = document.lineAt(new vscode.Position(${lineIndex}-1, 0)).text;",
-
-      "return previousLine.toUpperCase();",
-    
-    "}$$"
-],
-```
-
-The below will get the line above the cursor, put it into a capture group because it is surrounded by `()`, and capitalize it throughout the document (since there is no `restrictFind` value, `document` is the default).
-
-```jsonc
-{
-  "key": "alt+n",
-  "command": "findInCurrentFile",
-  "args": {
-    "description": "capitalize the line above the cursor everywhere it occurs",
-    
-    "find": "(${getTextLines:(${lineIndex}-1)})",
-    "replace": "\\U$1",
-    "isRegex": true
-  }
-}
-```
-
-To capitalize only the preceding line:
-
-```jsonc
-{
-  "key": "alt+n",
-  "command": "findInCurrentFile",
-  "args": {
-    "description": "capitalize the preceding line only",
-    
-    "find": "(${getTextLines:(${lineIndex}-1)})",
-    "replace": "\\U$1",
-    "restrictFind": "previousSelect",  // this makes it work on the preceding line only, will wrap at top of file
-    // "restrictFind": "nextSelect",   // capitalize next instance of the find, will wrap at end of file
-    "isRegex": true                    // must be here to treat the find as a regex
-  }
-}
-```
-
-```jsonc
-"replace": [
-  "$${",
-    "const os = require('os');", 
-    "return os.arch();",
-  "}$$"
-]
-```
-
-```jsonc
-"replace": [
-  "$${",
-
-    "const { basename } = require('path');",  // you can re-import to rename or extract
-    // "const path = require('path');",       // error: path is already declared
-    "return basename(document.fileName);",
-  
-  "}$$"
-]
-```
-
-```jsonc
-"replace": [
-  "$${",
-
-    // change the current editor's fileName
-    "const fsp = require('node:fs/promises');",
-    "fsp.rename(document.fileName, path.join(path.dirname(document.fileName), 'changed2.txt'));",
-    
-    "return '';",   // return an empty string, else "undefined" is returned and inserted at the cursor(s)
-  "}$$"
-]
-```
-
-* While this last example does work, it seems odd to use a find and replace extension to change fileNames and run such commands that may have nothing to do with text replacements or insertions.  I can see a case where you want to change the fileName based on some text found in the current file though...
-
-Better is to use the built-in `vscode.workspace.fs` for file operations:
-
-```jsonc
-"replace": [
-  "$${",
-
-    "const thisUri = vscode.Uri.file(document.fileName);",
-    // the new filename could be derived from some text in the current file
-    "const newUri = vscode.Uri.file(document.fileName + '_bak');",
-    // this will rename the current file and it remains open
-    "vscode.workspace.fs.rename(thisUri, newUri);",
-  
-    "return '';",  // return empty string
-  
-  "}$$"
-]
-```  
-
-----------------
-
-### Doing other javascript operations on replacements
-
-> In a `replace` there **must be one or more `return` statements** inside the ` $${...}$$ ` for whatever you want returned.  
-
-> Remember if you want a variable or capture group treated as a string, surround it with ticks or single quotes.  
-
-> \`\\\U$1\` works in a javascript operation, \\\U\`$1\` does not work.  
-
-```jsonc
-{
-  "key": "alt+n",
-  "command": "findInCurrentFile",
-  "args": {
-
-    "find": "(trouble) (brewing)",
-    
-    // replace the find match with the clipboard text length
-    "replace": "$${ return '${CLIPBOARD}'.length }$$",
-
-    "find": "(trouble) (times) (\\d+)",
-    // replace the find match with capture group 1 uppercased + capture group 2 * 10 
-    // trouble times 10 => TROUBLE times 100  
-    "replace": "$${ return `\\U$1 $2 ` + ($3*10) }$$",
-    
-    "find": "(\\w+) (\\d+) (\\d+) (\\d+)",
-    // dogs 1 3 7 => Total dogs: 11
-    "replace": "$${ return `Total $1: ` + ($2 + $3 + $4) }$$",
-
-    // compare the clipboard text length to the selection text length
-    "replace": "$${ if (`${CLIPBOARD}`.length < `${selectedText}`.length) return true; else return false }$$",
-
-    // the find match will be replaced by:
-    // if the clipboard matches the string, return capture group 2 + the path variable
-    "replace": "$${ return `${CLIPBOARD}`.match(/(first) (pattern) (second)/)[2] +  ` ${fileBasenameNoExtension}` }$$",
-  
-    "isRegex": true  
-  }
-}
-```
-
-<br/>  
-
-```jsonc
-"replace": [
-  "$${",                                                  // opening jsOp wrapper on its own line
-  "if (`${fileBasenameNoExtension}`.includes('-')) {",
-                                                          // must use let or const for variables
-    "let groovy = `${fileBasenameNoExtension}`.replace(/-/g, \" \");",
-    "return groovy[0].toLocaleUpperCase() + groovy.substring(1).toLocaleLowerCase();",
-  "}",
-                                              // blank lines have no effect, indentation is irrelevant
-  "else {",
-    "let groovy = `${fileBasename}`.split('.');",
-    "groovy = groovy.map(word => word[0].toLocaleUpperCase() + word.substring(1).toLocaleLowerCase());",
-    "return groovy.join(' ');",
-  "}", 
-   
-  "}$$",                                                 // closing jsOp wrapper on its own line
-  
-  "$${return 'second replacement'}$$",                   // 2nd replacement
-  
-  "\\U$1"                                                // 3rd replacement
-  ```  
-  
-  All the code between each set of opening and closing wrappers will be treated as a single javascript replacement.  You can also put it all on one line if you want, like the `"$${return 'second replacement'}$$"` above.  The above `replace` will be treated as:
-  
-  ```jsonc
-  "replace": ["a long first replacement", "2nd replacement", "3rd replacement"]
-  ```
-
-As long as you properly wrap your blocks of code, you can intermix single replacements or other code blocks.  You can have as many as you need.  See the discussion above about running multiple finds and replaces in a series.
-
-A `settings.json` example:  
-
-```jsonc
-"findInCurrentFile": {                       // in settings.json
-  "addClassToElement": {
-    "title": "Add Class to Html Element",
-    "find": ">",
-    "replace": [
-      "$${",
-      "return ' class=\"\\U${fileBasenameNoExtension}\">'",
-      "}$$"
-    ],
-    "isRegex": true,                        // not actually necessary here
-    "restrictFind": "selections"            // replace only for those `>` in a selection
-  }
-}
-```
-
-Explanation for above: Find `>` and add `class="uppercased filename">` to it.  
-
-------------------  
-
-## Running Javascript Code as a side effect  
-
-You may want to run some javascript code, including the vscode api's, but **NOT** to replace anything.  You may want to construct a string to paste somewhere or gather filenames for example.  Consider this example (in your `settings.json`):
-
-```jsonc
-"findInCurrentFile": {
-  "buildMarkdownTOC": {             
-    "title": "Build Markdown Table of Contents",  // will be in the Command Palette
-    
-    "find": "(?<=^###? )(.*)$",     // these will be selected
-    
-    "run": [                        // this will be run after the find selections and before any replace
-      "$${",
-        "const headers = vscode.window.activeTextEditor.selections;",
-        "let str = '';",
-
-        "headers.forEach(header => {",
-          "const selectedHeader = document.getText(header);",
-          "str += `* [${selectedHeader}](#${selectedHeader.toLocaleLowerCase().split(' ').join('-')})\\n`;",
-        "});",
-
-        "str = str.slice(0, -1);",   // remove last \n from str
-        "vscode.env.clipboard.writeText(str);",  // note that a return statement isn't necessary for "run"
-      "}$$"
-    ],
-    
-    "isRegex": true,
-    "postCommands": [
-      "cursorTop", 
-      "editor.action.insertLineAfter",  
-      "editor.action.insertLineAfter", 
-      "editor.action.clipboardPasteAction"
-    ]
-  }
-}
-```
-
-This setting will select all the headers with 2 or more `##`'s, and then the `run` code will use those selections to construct a table of contents.  That will be saved to the clipboard.  
-
-And lastly, the `postCommands` will move the cursor to the top, insert 2 blank lines and then paste the table of contents.  
-
-This is demonstrated at [Stack Overflow: run custom code on selected text](https://stackoverflow.com/questions/64748430/is-there-a-way-to-run-custom-js-code-on-the-selected-text-in-vscode), with a keybinding shown as well.  
-
-This pattern of a `find` - which will select all the matches as limited by the `restrictFind` option - and then those selections (or the capture groups from the `find` regex, can be acted on in a `run` operation is a very powerful method.  
-
-> The `run` argument will be performed after any `find` and after any `replace`.  So you could, for example, use the `vscode.window.activeTextEditor.selections` that your `find` matches and selects and manipulate those new selections.  
-
-------------------------
 
 ## Special variables
 
@@ -2040,6 +1524,8 @@ Explanation for above: With no `find` key, find matches of selections or nearest
 > Important: If there is no `find` key and there are **mutiple selections** then this extension will create a `find` query using **all** those selections.  The generated `find` will be in the form of `"find": "(word1|word2|other selected text)`.  Note the use of the alternation pipe `|` so any of those selected words can be found.  Thus, the find in file or find across files must have the regex flag enabled.  Therefore, if you have multiple selections with no `find` key, `"isRegex": true` will be automatically set - possibly overriding what you had the settings or keybinding.  
 
 > That should only be a problem if you select text that gets generated into a `find` term that itself contains regexp special characters, like `.?*^$`, etc.  They will not be treated as literal characters but as their usual regexp functionality.  
+
+> **If your `replace`/`run` uses `$1`** - including inside a `$${ jsOperation }$$` or a `$${script:name}$$` reference (see [Script Operations](scriptOperations.md)) - **you don't need to set `isRegex` yourself at all**, for either a single selection or multiple.  The extension detects the `$1` (checking inside a named script's saved code too) and automatically escapes any regex-special characters in the generated find, wraps it in `(...)`, and turns `isRegex` on for you - so `$1` correctly resolves to your literal selected text, whether that's a single word or a whole line full of `().+*$` and other regex-special characters.  Don't set `"isRegex": true` yourself just to make `$1` work - doing so **skips** that automatic escaping, and a selection containing regex-special characters (like most real code) will then fail to match itself at all.  
 
 > If you are using no `find` but are selecting text that you want treated as a regular expression (like `\n text (\d)`) do not double-escape those special regex characters.  Just use the same regex you would use in the Find Widget.  Remember to have `isRegex` set to true in this case.  
 
