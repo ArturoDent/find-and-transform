@@ -168,6 +168,7 @@ async function activate(context) {
     commands.registerCommand('find-and-transform.newScript', scriptCommands.newScript),
     commands.registerCommand('find-and-transform.editScript', scriptCommands.editScript),
     commands.registerCommand('find-and-transform.deleteScript', scriptCommands.deleteScript),
+    commands.registerCommand('find-and-transform.revealScriptsFolder', scriptCommands.revealScriptsFolder),
     commands.registerCommand('find-and-transform.saveInlineScriptAsNamedScript', scriptCommands.saveInlineScriptAsNamedScript),
     workspace.onDidSaveTextDocument(document => scriptStorage.syncFileToStorage(document))
   );

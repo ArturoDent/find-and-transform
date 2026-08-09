@@ -1,0 +1,5 @@
+const a = 12;
+
+i am constantly being [CONST];
+
+const b = 13;

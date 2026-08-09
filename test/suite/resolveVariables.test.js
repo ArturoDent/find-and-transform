@@ -213,6 +213,58 @@ suite('resolveVariables.js - $${script:name}$$ named scripts', () => {
       await scriptStorage.delete('open snippets');
     }
   });
+
+  // A script file holds raw code, not JSON, so a case modifier takes ONE
+  // backslash there (\U$1) where a keybinding needs two ("\\U$1"). Arithmetic
+  // has to sit outside the quotes/backticks - a bare $n is substituted as raw
+  // source text, so it can be used as a number.
+  test('a case modifier and bare-$n arithmetic resolve inside a named script', async () => {
+    await scriptStorage.save('test-case-math-script', "return `\\U$1 ` + ($2 * 3);");
+
+    try {
+      const result = await resolveVariables.resolveVariables(
+        { replace: '$${script:test-case-math-script}$$' }, 'replace', ['other 123', 'other', '123'], null, null, null);
+
+      assert.strictEqual(result, 'OTHER 369');
+    } finally {
+      await scriptStorage.delete('test-case-math-script');
+    }
+  });
+
+  test('putting the arithmetic inside the backticks makes it literal text, not a calculation', async () => {
+    await scriptStorage.save('test-inside-ticks-script', "return `\\U$1 $2*3`;");
+
+    try {
+      const result = await resolveVariables.resolveVariables(
+        { replace: '$${script:test-inside-ticks-script}$$' }, 'replace', ['other 123', 'other', '123'], null, null, null);
+
+      assert.strictEqual(result, 'OTHER 123*3');
+    } finally {
+      await scriptStorage.delete('test-inside-ticks-script');
+    }
+  });
+
+  test('a script that fails to compile reports the resolved code, and names the script', async () => {
+    // missing the '+' operator, so the resolved source is a syntax error
+    await scriptStorage.save('test-bad-syntax-script', "return '$1' $2 * 3;");
+
+    try {
+      await assert.rejects(
+        resolveVariables.resolveVariables(
+          { replace: '$${script:test-bad-syntax-script}$$' }, 'replace', ['other 123', 'other', '123'], null, null, null),
+        (/** @type {Error} */ error) => {
+          assert.match(error.message, /SyntaxError/);
+          // the point of the fix: the post-substitution source is shown, so the
+          // missing operator is visible rather than just "Unexpected number"
+          assert.match(error.message, /return 'other' 123 \* 3;/);
+          assert.match(error.message, /named script "test-bad-syntax-script"/);
+          return true;
+        }
+      );
+    } finally {
+      await scriptStorage.delete('test-bad-syntax-script');
+    }
+  });
 });
 
 
@@ -240,5 +292,18 @@ suite('resolveVariables.js - inline $${ ... }$$ jsOps', () => {
       'replace', [], null, null, null);
 
     assert.strictEqual(result, '42');
+  });
+
+  test('an inline jsOp that fails to compile reports the resolved code, without claiming to be a script', async () => {
+    await assert.rejects(
+      resolveVariables.resolveVariables(
+        { replace: "$${ return '$1' $2 * 3; }$$" }, 'replace', ['other 123', 'other', '123'], null, null, null),
+      (/** @type {Error} */ error) => {
+        assert.match(error.message, /SyntaxError/);
+        assert.match(error.message, /return 'other' 123 \* 3;/);
+        assert.match(error.message, /resolved jsOperation code that failed/);
+        return true;
+      }
+    );
   });
 });

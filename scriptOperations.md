@@ -1,12 +1,15 @@
 # Script Operations
 
-This page covers using JavaScript (`$${ ... }$$` "jsOp") in a `find`, `replace`, or `run` value, and about saving those scripts as named, reusable files. See [README.md](README.md) for the rest of the extension's features.
+This page covers using JavaScript (`$${ ... }$$` "jsOp") in a `replace` or `run` value, and about saving those scripts as named, reusable files. See [README.md](README.md) for the rest of the extension's features.
 
 ## Table of Contents
 
 &emsp; &emsp; [1. Named Scripts (stored in Global Storage)](#named-scripts-stored-in-global-storage)
 
-&emsp; &emsp; &emsp; [a. Passing an argument to a named script](#passing-an-argument-to-a-named-script)  
+&emsp; &emsp; &emsp; [a. Escaping in a script file: use ONE backslash](#escaping-in-a-script-file-use-one-backslash-not-two)  
+&emsp; &emsp; &emsp; [b. Capture groups in a script: quote for text, leave bare for math](#capture-groups-in-a-script-quote-for-text-leave-bare-for-math)  
+&emsp; &emsp; &emsp; [c. Passing an argument to a named script](#passing-an-argument-to-a-named-script)  
+&emsp; &emsp; &emsp; [d. Not supported in `find`](#not-supported-in-find)  
 
 &emsp; &emsp; [2. Running Javascript Code in a Replacement](#running-javascript-code-in-a-replacement)
 
@@ -33,6 +36,7 @@ Commands, all under the `Find-Transform` category in the Command Palette:
 * **New Script** - name a new script and open it for editing
 * **Edit Script** - pick an existing script to open and edit
 * **Delete Script** - pick an existing script to delete
+* **Reveal Scripts Folder in File Explorer** - open the on-disk scripts folder directly in your OS file explorer/finder, no need to hunt down its (long, OS-specific) global storage path yourself
 * **Save Selected Code as Named Script** - select an existing jsOp (from a setting or keybinding) and run this command to save it as a named script and replace the selection with a reference to it.  
 
 ```jsonc
@@ -76,9 +80,11 @@ Commands, all under the `Find-Transform` category in the Command Palette:
 
 That is not valid JS as-is, since `${BLOCK_COMMENT_START}` and the nested `$${ ... }$$` are extension syntax, not JavaScript. You'd need to hand-edit the file into real code.  For the best results, select just the jsOp instead.
 
-A named script is *not* handed `vscode`/`path`/`document` automatically the way an inline `$${ ... }$$` jsOp is - only `require` is. That's deliberate: it means the script file can `require()` these itself as real code, which is what actually gives the editor intelliSense for js code and the vscode extension api. So every script file - whether created via **New Script** or **Save Selected Code as Named Script** - starts with a header that does exactly that. If the selection's enclosing `args` object has a `"description"`, that text is added as a leading comment above the header:
+A named script is *not* handed `vscode`/`path`/`document` automatically the way an inline `$${ ... }$$` jsOp is - only `require` is. That's deliberate: it means the script file can `require()` these itself as real code, which is what actually gives the editor intelliSense for js code and the vscode extension api. So every script file - whether created via **New Script** or **Save Selected Code as Named Script** - starts with a header that does exactly that. If the selection's enclosing `args` object has a `"description"`, that text is added as a leading comment above the header.
 
-```jsonc
+**Save Selected Code as Named Script** also records the keybinding or setting the code came from, verbatim, in a block comment between the header and the code - so months later the script itself still tells you what `find` it was written for, which key ran it, and what the rest of its args were:
+
+```js
 // Open html snippets path
 
 const vscode = require('vscode');
@@ -87,9 +93,45 @@ const document = vscode.window.activeTextEditor?.document;
 // const glob = require('glob');  // uncomment if you use glob
 // remove or comment out any of the above you don't use
 
+/*
+saved from this keybinding:
+
+{
+  "key": "alt+n",
+  "command": "findInCurrentFile",
+  "args": {
+    "description": "Open html snippets path",
+    "find": "(\\w+)",
+    "replace": [
+      "$${",
+      "const langID = document.languageId;",
+      "vscode.commands.executeCommand('vscode.open', uri);",
+      "}$$"
+    ]
+  },
+  "when": "editorTextFocus"
+}
+*/
+
 const langID = document.languageId;
 vscode.commands.executeCommand('vscode.open', uri);
 ```
+
+For a setting the whole named entry is recorded instead, with the command it lives under named above it (a keybinding already carries its own `"command"`):
+
+```js
+/*
+saved from this setting, under "findInCurrentFile":
+
+"upcaseSwap": {
+  "title": "Upcase Swap",
+  "find": "(\\w+)",
+  "replace": "$${ return '$1'.toUpperCase(); }$$"
+}
+*/
+```
+
+It is only a comment - delete it if you don't want it, and it is never added by **New Script** (which has no source config) or when the selection isn't in a `settings.json`, `keybindings.json` or `.code-workspace` file.
 
 (Inline `$${ ... }$$` jsOps are unaffected by any of this - `vscode`/`path`/`document` keep working there with no `require()` needed, exactly as before.)
 
@@ -109,6 +151,52 @@ vscode.commands.executeCommand('vscode.open', uri);
 > function myFunc() { return 12; }
 > return myFunc();
 > ```
+
+### Escaping in a script file: use ONE backslash, not two
+
+A script file holds **raw** javascript, not a JSON string, so it does not need the
+double-escaping that keybindings.json and settings.json do.  Write case modifiers with a
+single backslash:
+
+```js
+// in a saved script file
+return `\U$1`;      // right
+return `\\U$1`;     // works, but only by accident - avoid
+```
+
+```jsonc
+// the same thing in a keybinding, where JSON needs the doubled backslash
+"replace": "$${ return `\\U$1`; }$$",
+```
+
+**Save Selected Code as Named Script** does this conversion for you, so code moved out of a
+keybinding arrives in the script file already correctly single-escaped.
+
+> The same applies to any other backslash escape - `\n`, `\d`, `\w` and so on - which is why
+the `\n` rules described under [string operations](#doing-string-operations-on-replacements)
+below are written for the doubled, keybinding form.  
+
+### Capture groups in a script: quote for text, leave bare for math
+
+A `$n` is substituted into the source **as raw text**, before the javascript is parsed (see
+[why this matters](#doing-string-operations-on-replacements) below).  So a bare `$2` becomes a
+number literal you can do arithmetic on, while `'$2'` or `` `$2` `` becomes a string.
+
+The one thing to watch: arithmetic has to sit **outside** the quotes or backticks.  Anything
+inside them is just text.
+
+```js
+// find: "(\$1) (\d+)", document text: other 123
+
+return `\U$1 ` + ($2 * 3);   // OTHER 369    <-- text inside the ticks, math outside
+return `\U$1 $2*3`;          // OTHER 123*3  <-- "$2*3" is inside the string, so no math
+return `\U$1 ` $2 * 3;       // SyntaxError: Unexpected number - missing the "+"
+```
+
+> If a jsOp or script does throw, the `find-and-transform` Output channel shows the **resolved**
+code - the source after every `$1`/`${variable}` was substituted - underneath the error.  That is
+usually the quickest way to spot a mistake like the missing `+` above, since the error itself
+refers to generated code you never wrote by hand.  
 
 ### Passing an argument to a named script
 
@@ -171,6 +259,18 @@ script works the same way. There's no dedicated multi-argument syntax (like
 are parsed, everything inside is already-resolved plain text - a comma that's part of a
 resolved value would be indistinguishable from a comma meant to separate arguments. Choosing
 your own delimiter and packing/unpacking `arg` yourself avoids that ambiguity entirely.
+
+### Not supported in `find`
+
+`$${ jsOperation }$$` and `$${script:name}$$` are only resolved in a `replace` or `run`
+value. Referencing either from `"find"` will not work correctly - capture groups are
+unavailable inside the script, `await` throws a `SyntaxError`, and a failing script can abort
+the command without a clean error. Completions currently still suggest `$${script:...}$$`
+inside `find`; that's a known gap, not an endorsement.
+
+If you need the find pattern itself generated dynamically, build it in a `preCommands` step
+instead (e.g. write the pattern into a variable/clipboard via a `run` jsOp beforehand), or
+keep the jsOp on the `replace` side and adjust the logic there.
 
 ------------------  
 

@@ -1,0 +1,9 @@
+another line -> selected
+
+const a = 12;
+
+i am const;
+
+const b = 13;
+
+another line -> selected

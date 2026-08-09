@@ -12,6 +12,7 @@ const { runTests } = require('@vscode/test-electron');
 const NOISE_PATTERNS = [
   /^\[main /,                                   // VS Code's own internal process logger (update/storage/agent-host services); Mocha's reporter never uses this prefix
   /^Warning: 'cached-data' is not in the list of known options/,
+  /^\(node:\d+\) \[DEP0169\] DeprecationWarning:/,
   /^\(Use `Code --trace-deprecation/,
   /^Started local extension host with pid/,
   /^Loading development extension at/,

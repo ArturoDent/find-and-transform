@@ -1,4 +1,4 @@
-const { window, workspace } = require('vscode');
+const { commands, window, workspace } = require('vscode');
 const jsonc = require('jsonc-parser');
 
 const scriptStorage = require('./scriptStorage');
@@ -42,6 +42,98 @@ function _findSiblingDescription(documentText, offset) {
     return undefined;
   }
 }
+
+// a settings.json/keybindings.json (user or workspace), or a multi-root workspace file
+const CONFIG_FILE_RE = /(?:^|[\\/])(?:settings|keybindings)\.json$|\.code-workspace$/;
+
+/**
+ * Strip the smallest leading indentation shared by every non-blank line, so a
+ * config lifted out of a deeply nested document reads flush-left in the script
+ * file. Also normalizes CRLF to LF, matching the rest of the generated content.
+ * @param {string} text
+ * @returns {string}
+ */
+function _dedent(text) {
+
+  const lines = text.split(/\r?\n/);
+  let minIndent;
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const indent = line.length - line.trimStart().length;
+    if (minIndent === undefined || indent < minIndent) minIndent = indent;
+  }
+
+  if (!minIndent) return lines.join('\n');
+  return lines.map(line => line.slice(minIndent)).join('\n');
+}
+
+/**
+ * Find the whole config the selection came from: in keybindings.json the entire
+ * keybinding object, in settings.json (or a .code-workspace) the entire named
+ * setting entry, e.g. `"upcaseSwap": { ... }`. Taken verbatim out of the
+ * document rather than re-stringified, so the user's own formatting and any
+ * jsonc comments inside the config survive.
+ * @param {string} documentText
+ * @param {number} offset
+ * @param {boolean} [isWorkspaceFile] - a .code-workspace, where everything sits under "settings"
+ * @returns {{text: string, command: string | undefined} | undefined}
+ */
+exports.findSourceConfigText = function (documentText, offset, isWorkspaceFile) {
+
+  try {
+    const root = jsonc.parseTree(documentText);
+    if (!root) return undefined;
+
+    const locationPath = jsonc.getLocation(documentText, offset).path;
+    if (!locationPath?.length) return undefined;
+
+    // keybindings.json is an array of keybindings, settings.json an object of settings
+    const isKeybinding = root.type === 'array';
+    const base = (isWorkspaceFile && locationPath[0] === 'settings') ? 1 : 0;
+    // one segment reaches the keybinding itself; a setting needs two - the
+    // command ("findInCurrentFile") and the setting's own name ("upcaseSwap")
+    const keepDepth = isKeybinding ? 1 : base + 2;
+    if (locationPath.length < keepDepth) return undefined;
+
+    const valueNode = jsonc.findNodeAtLocation(root, locationPath.slice(0, keepDepth));
+    if (!valueNode) return undefined;
+
+    // for a setting take the property node, so the `"upcaseSwap":` key comes along too
+    const node = isKeybinding ? valueNode : (valueNode.parent ?? valueNode);
+
+    // back up over the node's own indentation, so _dedent sees the first line's too
+    let start = node.offset;
+    const lineStart = documentText.lastIndexOf('\n', start - 1) + 1;
+    if (!documentText.slice(lineStart, start).trim()) start = lineStart;
+
+    return {
+      text: _dedent(documentText.slice(start, node.offset + node.length)),
+      // a keybinding already carries its own "command" property
+      command: isKeybinding ? undefined : String(locationPath[base])
+    };
+  }
+  catch {
+    return undefined;
+  }
+};
+
+/**
+ * Wrap the source config in a block comment for the generated script file, so
+ * the script keeps a record of the keybinding/setting it was lifted out of.
+ * @param {string} configText
+ * @param {string | undefined} command - the setting's command, or undefined for a keybinding
+ * @returns {string}
+ */
+exports.makeSourceComment = function (configText, command) {
+
+  // a literal */ inside the config (a `"replace": "*/"` value, say) would end the
+  // comment early and leave the rest of the file as broken code
+  const safeText = configText.replace(/\*\//g, '*\\/');
+  const header = command ? `saved from this setting, under "${ command }":` : 'saved from this keybinding:';
+
+  return `/*\n${ header }\n\n${ safeText }\n*/\n\n`;
+};
 
 /**
  * @param {string} value
@@ -111,6 +203,14 @@ exports.deleteScript = async function () {
   if (confirmed !== 'Delete') return;
 
   await scriptStorage.delete(picked);
+};
+
+/**
+ * Open the on-disk scripts folder in the OS file explorer/finder, so the
+ * user never has to locate or type its (long, OS-specific) global storage path.
+ */
+exports.revealScriptsFolder = async function () {
+  await commands.executeCommand('revealFileInOS', scriptStorage.getScriptsDirUri());
 };
 
 // a JSON array element on its own line: "some \"escaped\" text",  // optional trailing comment
@@ -219,7 +319,8 @@ exports.extractCodeFromSelection = function (selectedText) {
  * surrounding `$${ ... }$$`, JSON quoting, an array's brackets, a
  * `"replace":`/`"run":`/`"find":` key) the selection had consumed. The saved
  * file is prefixed with REQUIRE_HEADER and, if the enclosing args object has
- * a "description", a leading comment with that text.
+ * a "description", a leading comment with that text; the keybinding/setting the
+ * code came from is recorded in a block comment between the two.
  */
 exports.saveInlineScriptAsNamedScript = async function () {
 
@@ -238,10 +339,19 @@ exports.saveInlineScriptAsNamedScript = async function () {
   });
   if (!name) return;
 
-  const description = _findSiblingDescription(editor.document.getText(), editor.document.offsetAt(editor.selection.start));
+  // read before the replacement edit below, so this is the config as it was
+  const documentText = editor.document.getText();
+  const startOffset = editor.document.offsetAt(editor.selection.start);
+
+  const description = _findSiblingDescription(documentText, startOffset);
   const descriptionComment = description ? `// ${ description.replace(/\r?\n/g, ' ') }\n\n` : '';
 
-  await scriptStorage.save(name, descriptionComment + REQUIRE_HEADER + code);
+  const source = CONFIG_FILE_RE.test(editor.document.fileName)
+    ? exports.findSourceConfigText(documentText, startOffset, editor.document.fileName.endsWith('.code-workspace'))
+    : undefined;
+  const sourceComment = source ? exports.makeSourceComment(source.text, source.command) : '';
+
+  await scriptStorage.save(name, descriptionComment + REQUIRE_HEADER + sourceComment + code);
 
   let reference = 'script:' + name;
   if (needsDelimiters) reference = '$${' + reference + '}$$';

@@ -308,6 +308,12 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
   //  re = regexp.jsOpRE;  // doesn't work although it is the same?
 
+  // kept outside the try so the catch can report the *resolved* source that
+  // actually failed to compile/run - the error itself only points at the
+  // Function() call here, never at the code $1/$2/etc. were substituted into
+  let failedOperation = '';
+  let failedScriptName = '';
+
   try {
 
     resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, operation) {
@@ -329,6 +335,10 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
         // fix for newlines in operations, like from selectedText, etc.
         operation = operation.replaceAll(/\r\n/g, '\\r\\n').replaceAll(/(?<!\r)\n/g, '\\n');
       }
+
+      // record the post-substitution source, so a throw below can show it
+      failedOperation = operation;
+      failedScriptName = scriptRef ? scriptRef.name : '';
 
       // named scripts require() their own vscode/path/document, so only 'require' is
       // injected here - injecting the others too would redeclare whatever the script
@@ -359,12 +369,22 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   catch (jsOPError) {  // this doesn't run async
     const jsOPErrorStack = jsOPError instanceof Error ? jsOPError.stack : String(jsOPError);
     resolved = 'Error: jsOPError';
-    outputChannel.write(`\n${ jsOPErrorStack }\n`);
+
+    // the error is thrown against generated code, so show what $1/$2/${var}/etc.
+    // actually resolved to - otherwise a plain "SyntaxError: Unexpected number"
+    // gives no way to see the mistake
+    const errorSource = failedScriptName ? `named script "${ failedScriptName }"` : 'jsOperation';
+    const detail = failedOperation
+      ? `\nThe resolved ${ errorSource } code that failed:\n\n${ failedOperation }\n`
+      : '';
+
+    // one write() only - it clears the output channel on every call
+    outputChannel.write(`\n${ jsOPErrorStack }\n${ detail }`);
 
     // below: could be in 'run' value, not 'replace'
     window.showWarningMessage("There was an error in the `$${<operations>}$$`.  See the Output channel: `find-and-transform` for more.");
 
-    throw new Error(jsOPErrorStack);
+    throw new Error(`${ jsOPErrorStack }${ detail }`);
   }
   // -------------------  jsOp ------------------------------------------------------------------
 
@@ -395,26 +415,16 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
   if (findValue === "") return { findValue, isRegex };
   if (matchWholeWord) findValue = findValue?.replace(/\\b/g, "@%@");
 
+  const replaceUsesCapGroup = _replaceUsesCaptureGroup(replaceValue);
+
   // when there is a capture group in a replace && isRegex = false
   // then do want to treat as text (so escape regex characters) and set regex to true
 
-  if (!isRegex && replaceValue) {
-    const re = /\$(\d+)/g;
+  if (!isRegex && replaceUsesCapGroup) {
 
-    // a "$${script:name}$$" reference doesn't literally contain "$1" even if
-    // the saved script does, so check the saved script's code instead
-    const jsOpMatch = /\$\$\{([\s\S]*?)\}\$\$/.exec(replaceValue);
-    const scriptRef = jsOpMatch ? _getScriptRefName(jsOpMatch[1]) : null;
-    const textToCheck = scriptRef ? (scriptStorage.get(scriptRef.name) ?? replaceValue) : replaceValue;
-
-    const capGroups = [...textToCheck?.matchAll(re)];
-
-    if (capGroups.length) {
-
-      if (!ignoreWhiteSpace) findValue = findValue?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
-      findValue = `(${ findValue })`;
-      isRegex = true;
-    }
+    if (!ignoreWhiteSpace) findValue = findValue?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
+    findValue = `(${ findValue })`;
+    isRegex = true;
   }
 
   if (!isRegex && madeFind) findValue = findValue?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
@@ -453,6 +463,12 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
   // works in a more complex regex, like 'howdy\\n^$\\nthere' => with a blank line between
   if (window.activeTextEditor?.document.eol === vscode.EndOfLine.CRLF)
     if (isRegex) findValue = findValue?.replaceAll(/\^\$/g, "^(?!\n)$(?!\n)");  // is this necessary? Yes
+
+  // isRegex was set in the keybinding/setting, so the auto-wrap above was skipped.
+  // Without a group here a replace's $1 would silently resolve to the empty string.
+  // Done last so the findValue === "^"/"$" checks above still see an unwrapped value.
+  if (isRegex && replaceUsesCapGroup && _countCaptureGroups(findValue) === 0)
+    findValue = `(${ findValue })`;
 
   return {
     findValue,
@@ -517,8 +533,56 @@ exports.adjustCMSValueForRegex = async function (cursorMoveSelect, isRegex, matc
 };
 
 /**
- * 
- * @param {string} findValue 
+ * Does a replace/run value refer to a capture group, like `$1`?
+ * A "$${script:name}$$" reference doesn't literally contain "$1" even when the
+ * saved script does, so check the script's saved code instead.
+ * @param {string} replaceValue
+ * @returns {boolean}
+ */
+function _replaceUsesCaptureGroup(replaceValue) {
+
+  if (!replaceValue) return false;
+
+  const jsOpMatch = /\$\$\{([\s\S]*?)\}\$\$/.exec(replaceValue);
+  const scriptRef = jsOpMatch ? _getScriptRefName(jsOpMatch[1]) : null;
+  const textToCheck = scriptRef ? (scriptStorage.get(scriptRef.name) ?? replaceValue) : replaceValue;
+
+  return /\$(\d+)/.test(textToCheck);
+}
+
+
+/**
+ * How many real capturing groups does this find have?
+ * Skips escaped parens, parens within a character class, non-capturing groups
+ * and lookarounds - but named groups, `(?<name>...)`, do count.
+ * @param {string} findValue
+ * @returns {number}
+ */
+function _countCaptureGroups(findValue) {
+
+  let count = 0;
+  let inClass = false;
+
+  for (let index = 0; index < findValue.length; index++) {
+
+    const char = findValue[index];
+
+    if (char === '\\') { index++; continue; }
+    if (inClass) { if (char === ']') inClass = false; continue; }
+    if (char === '[') { inClass = true; continue; }
+    if (char !== '(') continue;
+
+    if (findValue[index + 1] !== '?') count++;
+    else if (findValue[index + 2] === '<' && findValue[index + 3] !== '=' && findValue[index + 3] !== '!') count++;
+  }
+
+  return count;
+}
+
+
+/**
+ *
+ * @param {string} findValue
  * @returns {Promise<string>}
  */
 exports.replaceFindCaptureGroups = async function (findValue) {
@@ -740,7 +804,9 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
 
   selectionStartIndex = selectionStartIndex ?? 0;
   if (!selection) selection = editor.selection;
-  const filePath = document.uri.path;
+  // forward slashes so a resolved path is safe to splice into a $${ ... }$$ jsOp's JS
+  // source without its separators being misread as JS string-escape sequences
+  const filePath = document.uri.fsPath.replace(/\\/g, '/');
 
   let relativePath;
   if ((caller === "filesToInclude" || caller === "filesToExclude") && (workspace.workspaceFolders?.length ?? 0) > 1) {
@@ -758,8 +824,7 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
   switch (namedGroups?.vars) {
 
     case "${file}": case "${ file }":
-      if (os.type() === "Windows_NT") resolved = filePath?.substring(4);
-      else resolved = filePath;
+      resolved = filePath;
       break;
 
     case "${relativeFile}": case "${ relativeFile }":
@@ -783,11 +848,11 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
       break;
 
     case "${fileWorkspaceFolder}": case "${ fileWorkspaceFolder }":
-      resolved = workspace?.getWorkspaceFolder(document.uri)?.uri.path;
+      resolved = workspace?.getWorkspaceFolder(document.uri)?.uri.fsPath.replace(/\\/g, '/');
       break;
 
     case "${workspaceFolder}": case "${ workspaceFolder }":
-      resolved = workspace?.getWorkspaceFolder(document.uri)?.uri.path;
+      resolved = workspace?.getWorkspaceFolder(document.uri)?.uri.fsPath.replace(/\\/g, '/');
       break;
 
     case "${relativeFileDirname}": case "${ relativeFileDirname }":
@@ -799,7 +864,11 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
       break;
 
     case "${workspaceFolderBasename}": case "${ workspaceFolderBasename }":
-      resolved = path.basename(workspace?.getWorkspaceFolder(document.uri)?.uri.path ?? '');
+      resolved = path.basename(workspace?.getWorkspaceFolder(document.uri)?.uri.fsPath ?? '');
+      break;
+
+    case "${userHome}": case "${ userHome }":
+      resolved = os.homedir().replace(/\\/g, '/');
       break;
 
     case "${selectedText}": case "${ selectedText }":
@@ -907,7 +976,9 @@ async function _resolveSnippetVariables(variableToResolve, args, caller, selecti
   const editor = window.activeTextEditor;
   if (!editor) return variableToResolve;
   const document = editor.document;
-  const filePath = document.uri.path;
+  // forward slashes so a resolved path is safe to splice into a $${ ... }$$ jsOp's JS
+  // source without its separators being misread as JS string-escape sequences
+  const filePath = document.uri.fsPath.replace(/\\/g, '/');
   if (!selection) selection = editor.selection;
 
   let comments;

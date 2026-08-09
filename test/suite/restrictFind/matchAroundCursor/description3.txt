@@ -1,0 +1,1 @@
+don't match if cursor after puctuation "match;|" - outisde word

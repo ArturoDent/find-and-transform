@@ -18,6 +18,13 @@ function _scriptsDirUri() {
 }
 
 /**
+ * @returns {import("vscode").Uri}
+ */
+exports.getScriptsDirUri = function () {
+  return _scriptsDirUri();
+};
+
+/**
  * Turn a script name into a filesystem-safe filename.
  * @param {string} name
  * @returns {string}

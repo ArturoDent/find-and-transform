@@ -1,0 +1,1 @@
+works on multiple selections, multiple matches on a line

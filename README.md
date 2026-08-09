@@ -1,4 +1,4 @@
-# find-and-transform  
+﻿# find-and-transform  
 
 ## Highlights  
 
@@ -152,7 +152,7 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 Above is an example of the `preCommands` and `postCommands` arguments.  
 
-`preCommands` are run before any `find` or `replace` occurs.  It can be a single string or an object or an array of strings/objects.  The arguments `preCommands` and `postCommands` can appear anywhere in the arguments.  All the arguments can be in any order.  
+`preCommands` are run before any `find` or `replace` occurs.  It can be a single string or an object or an array of strings/objects.  The arguments `preCommands` and `postCommands` can appear anywhere in the `args` object.  All the arguments can be in any order.  
 
 `postCommands` are run after the find and any replace has occurred.  The `runPostCommands` argument controls how the `postCommands` are run: one time no matter how many find matches there may be (this is the default), one time only if there were no find matches, or run the `postCommands` once for each find match - this last option is currently **EXPERIMENTAL** and will not work in all possible situations.  
 
@@ -172,9 +172,9 @@ Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command
   "command": "findInCurrentFile",
   "args": {
         
-    "preCommands": [                                 // select entire line where there is a cursor
+    "preCommands": [               // select entire line where there is a cursor
       "cursorHome", 
-      "cursorEndSelect"    
+      "cursorEndSelect"  
     ],
     
     "postCommands": "editor.action.insertCursorAtEndOfEachLineSelected",
@@ -183,7 +183,7 @@ Use the commands from vscode's Keyboard Shortcuts context menu and `Copy Command
       "$${",                      // run these math and string operations to create the replacement
       
         "const ch = '/';",
-        "const spacer = 3;",                                  // spaces around the text at the center
+        "const spacer = 3;",             // spaces around the text at the center
         "const textLength = '${TM_CURRENT_LINE}'.length;",
         "const isOdd = textLength % 2;",
         "const surround = Math.floor((80 - (2 * spacer) - textLength) / 2);",
@@ -214,7 +214,7 @@ This extension contributes one setting relevant to the `findInCurrentFile` setti
 
 * `"find-and-transform.enableWarningDialog"` **default = true**
 
-This setting controls whether the extension will attempt to find errors in your keybinding or settings argument keys or values.  
+This setting controls whether the extension will attempt to find errors in your keybinding or settings argument keys and values.  
 
 ```jsonc
 {
@@ -241,12 +241,14 @@ The dialogs are modal for the keybindings, and non-modal for the settings.  The 
 
 ## Running Javascript Code, and Named Scripts
 
-You can run JavaScript in a `find`/`replace`/`run` value with `$${ jsOperation }$$` - for math, string operations, side effects, or the full vscode api - and save any of those as a named, reusable `.js` file with `$${script:name}$$` and the `Find-Transform: New Script` / `Edit Script` / `Delete Script` / `Save Selected Code as Named Script` commands.
+You can run JavaScript in a `replace`/`run` value with `$${ jsOperation }$$` syntax - for math, string operations, side effects, or the full vscode api - and save any of those as a named, reusable `.js` file with `$${script:name}$$` and the `Find-Transform: New Script` / `Edit Script` / `Delete Script` / `Save Selected Code as Named Script` commands.
 
 ```jsonc
 "replace": "$${ return $1 * 2 }$$",           // inline
-"replace": "$${script:myReplaceHelper}$$",    // a saved, named script
+"replace": "$${script:myReplaceScript}$$",    // a saved, named script
 ```
+
+**Not supported in `find`.** `$${ jsOperation }$$` and `$${script:name}$$` only work in `replace` and `run` - referencing one from `find` will not run it correctly.
 
 See **[Script Operations](scriptOperations.md)** for the full details: writing jsOps (math, strings, the vscode api, side effects with `run`), and everything about named scripts (storage, syncing, the four commands, what gets saved when, and IntelliSense).
 
@@ -393,7 +395,7 @@ Newline examples that work and don't work:
 
 ## Using numbered capture groups in a `find`
 
-### &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp; &emsp;  &emsp; &emsp; Example : `"find": "\\$1(\\d+)"`
+### &emsp; &emsp; &emsp; &emsp; &emsp; Example : `"find": "\\$1 (\\d+)"` with text: "const 123"
 
 > Any numbered capture group, like the double-escaped `\\$1` above, will be **replaced in the find query by the first selection** in the current file (`\\$2` will be replaced by the second selection and so on).  You can easily make generic find regex's this way, that are determined by your selections not by hard-coding them first.  After these replacements, the `find` is run.  
 
@@ -402,17 +404,31 @@ b. The first selection, which can be just a cursor in a word, is really the firs
 c. The selections can be words or longer parts of text.  
 d. If you use a numbered capture group higher than the number of selections, those are replaced with `""`, the empty string.  
 
+> **`\\$n` in a `find` substitutes text, it does not create a capture group.**  The `\\$n` numbering counts your *selections*; the `$n` numbering in a `replace` counts the *parentheses* in the find that actually ran.  They are separate things that happen to share the same digits.  So `"find": "\\$1 (\\d+)"` becomes `const (\d+)` - its only group is `(\d+)`, which makes `$1` the digits.  If you want the selection itself back in the `replace`, put your own parentheses around it:  
+
+```jsonc
+// cursor in "const", document text: const 111
+
+"find": "\\$1 (\\d+)",     // becomes const (\d+)   -> $1 = "111"
+"replace": "\\U$1-$2",    // gives "111-"     ($2 has no group to resolve against)
+
+"find": "(\\$1) (\\d+)",   // becomes (const) (\d+) -> capture group $1 = "const", capture group $2 = "111"
+"replace": "\\U$1-$2",    // gives "CONST-111"
+```
+
+> If the find ends up with **no** capture groups at all and your `replace` uses `$1`, the extension wraps the whole find in one group for you, so `$1` is the entire match.  That happens whether or not you set `isRegex` yourself.  
+
 ```jsonc
 {
   "key": "alt+r",                    // as a keybinding in keybindings.json  
   "command": "findInCurrentFile",    // or "runInSearchPanel" to search across files
   "args": {
     
-    "find": "\\$1(\\d+)",            // double-escaping necessary
+    "find": "\\$1 (\\d+)",            // double-escaping necessary
     
-    // "find": "(\\$1|\\$2)-${lineNumber}"  // group 1 or group 2 followed by its line number
+    // "find": "(\\$1|\\$2)-${lineNumber}"  // selection 1 or selection 2 followed by its line number
     
-    // "find": "\\$1(\\d+)\\$2",     // up to 9 capture groups
+    // "find": "\\$1(\\d+)\\$2",     // up to 9 selections, \\$1 through \\$9
     // "replace": "",                // if no replace, matches will be highlighted
     
     // "isRegex": true necessary if other parts of the find use regexp's, like \\d, etc.
@@ -426,6 +442,8 @@ d. If you use a numbered capture group higher than the number of selections, tho
   "args": {
 
     "find": "\\$1\\.decode\\([^)]+\\)",
+
+    "isRegex" : true,
        
     "triggerSearch": true
     // "replace": "?????",           // not necessary
@@ -444,7 +462,7 @@ Make it into a setting:
   "findRequireDecodeReferences": {
     "title": "Find in file: package function references",
     "find": "\\$1\\.decode\\([^)]+\\)",
-    "isRegex": true,
+    "isRegex": true
   }
 },
 
@@ -545,7 +563,6 @@ The `find` and `replace` fields can either be one string or an array of strings.
 
     "replace": "\\U$1",                       // \\U$1 will be used for both replaces so
                         // replace "trouble" with "TROUBLE" and "more trouble" with "MORE TROUBLE"
-
     "isRegex": true
   }
 }
@@ -563,7 +580,6 @@ The `find` and `replace` fields can either be one string or an array of strings.
     "replace": ["\\U$1", "\\u$1"],             // more replaces than finds
                         // replace "trouble" with "TROUBLE" on first run and
                         //  on second run replace any selected words with their capitalized version
-
     "isRegex": true
   }
 }
@@ -608,8 +624,8 @@ ${getTextLines:n}          get the text of a line, 'n' is 0-based, so ${getLineT
 
 ${getTextLines:n-p}        get the text of lines n through p inclusive, example  ${getTextLines:2-4}  
 
-${getTextLines:(n-n)}      get the text of a line n-n, example  ${getTextLines:(${lineIndex}-1)} : get previous line
-                           use the parentheses, if you want to do math to resolve to a line.  Can use `+-/*%`.  
+${getTextLines:(n-p)}      get the text of a line n-n, example  ${getTextLines:(${lineIndex}-1)} : get previous line
+                           use the parentheses, if you want to do math to resolve to a line.  Can use `+-/*%`.  ${getTextLines:(${lineIndex}+p)}, etc.
                            
 ${getTextLines:n,p,q,r}    get the text from line `n`, column `p` through line `q`, column `r` inclusive, 
                            example  ${getTextLines:2,0,4,15}      
@@ -722,7 +738,7 @@ The `${getDocumentText}` variable allows you to look anywhere in a document for 
   }
 ```
 
-When using a regex in a `${getInput}` do not double-escape any characters like `\n` or `\s`.  Just use the same regex you would use in the Find Widget.  
+When using a regex in a `${getInput}` do not double-escape any characters like `\n` or `\s`.  Just use the same regex you would use in the Find Widget in vscode.  
 
 ------------  
 
@@ -743,6 +759,7 @@ ${relativeFileDirname}     the current file's parent directory only
 ${fileWorkspaceFolder}
 ${workspaceFolder}
 ${workspaceFolderBasename}
+${userHome}                the current user's home folder, full path
 ${pathSeparator}
 ${/}                       same as ${pathSeparator}
 
@@ -760,6 +777,8 @@ ${matchNumber}             1-based, replace with the find match number
 ```
 
 These variables should have the same resolved values as found at &nbsp; [vscode's pre-defined variables documentation](https://code.visualstudio.com/docs/editor/variables-reference#_predefined-variables).  
+
+> On Windows, these path variables always return forward slashes (`C:/Users/yourName/myProject/folder/file.ext`) rather than vscode's usual backslashes. This keeps a resolved path safe to drop into a `$${ ... }$$` script, where a backslash would otherwise be misread as a JavaScript string-escape character (e.g. `\t` becoming a tab). Forward slashes work fine in Windows paths for `fs`/`path` calls and everywhere else these variables are used.  
 
 > These path variables can also be used in a conditional like `${1:+${relativeFile}}`.  If capture group 1, insert the relativeFileName.  
 
@@ -841,7 +860,7 @@ The above will, after a reload, appear in the Command Palette as 'Find-Transform
 
 -----------
 
-* Note that vscode can do fancy things with snippet comment variables like `${LINE_COMMENT}` by examining the language of individual tokens so that, for example, css in js would get its correct comment characters if within the css part of the code.  This extension cannot do that and will get the proper comment characters for the file type only.  
+* Note that vscode can do fancy things with snippet comment variables like `${LINE_COMMENT}` by examining the language of individual tokens so that, for example, css in js would get its correct comment characters if within the css part of the code.  This extension cannot do that and will get the proper comment characters for the overall file type only.  
 
 -----------
 
@@ -934,7 +953,7 @@ Examples:
 }
 ```
 
-1. Groups within conditionals (which is not possible even in a vscode snippet), must be surrounded by backticks.  
+1. Groups within conditional text to be added (which is not possible even in a vscode snippet), must be surrounded by backticks.  
 2. If you want to use the character `}` in a replacement within a conditional, it must be double-escaped `\\}`.  
 
 ### Snippet-like transforms: replacements in `findInCurrentFile` commands or keybindings
@@ -968,7 +987,7 @@ If you wanted to find multiple items and then transform each in its own way **on
     "find": "(first)|(Second)|(Third)",
     "replace": "${1:+ Found first!!}${2:/upcase}${3:/downcase}",
     "isRegex": true,
-    "restrictFind": "nextSelect"  // one match at a time
+    "restrictFind": "nextSelect"      // one match at a time !!
     // 'nextMoveCursor' would do the same, moving the cursor but not selecting
   }
 }
@@ -992,7 +1011,7 @@ Explanation for above:
   "args": {
     "description": "transform existing fileBaseName in the text to SCREAMING_SNAKE_CASE",
     
-    "find": "(${fileBasenameNoExtension})",
+    "find": "(${fileBasenameNoExtension})",   // make a capture group 1
     "replace": "\\U${1:/snakecase}",
 
     "isRegex": true  // necessary because the {1:/snakecase} needs to refer to some capture group
@@ -1016,7 +1035,7 @@ Here is a neat trick to insert a SCREAMING_SNAKE_CASE version of the `${fileBase
 }
 ```
 
-The above works by performing 2 replacements (with no find).  First, insert at the cursor(s) the `${fileBasenameNoExtension}` and second, replace that (since it is pre-selected) with the capitalized, snake-case version.  
+The above works by performing 2 replacements (with no find).  First, insert at the cursor(s) the `${fileBasenameNoExtension}` and second, replace that (since it will be selected by this extension) with the capitalized, snake-case version.  
 
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; <img src="https://github.com/ArturoDent/find-and-transform/blob/main/images/screamingFileName.gif?raw=true" width="500" height="200" alt="insert screaming snake case filename"/>
 
@@ -1525,7 +1544,7 @@ Explanation for above: With no `find` key, find matches of selections or nearest
 
 > That should only be a problem if you select text that gets generated into a `find` term that itself contains regexp special characters, like `.?*^$`, etc.  They will not be treated as literal characters but as their usual regexp functionality.  
 
-> **If your `replace`/`run` uses `$1`** - including inside a `$${ jsOperation }$$` or a `$${script:name}$$` reference (see [Script Operations](scriptOperations.md)) - **you don't need to set `isRegex` yourself at all**, for either a single selection or multiple.  The extension detects the `$1` (checking inside a named script's saved code too) and automatically escapes any regex-special characters in the generated find, wraps it in `(...)`, and turns `isRegex` on for you - so `$1` correctly resolves to your literal selected text, whether that's a single word or a whole line full of `().+*$` and other regex-special characters.  Don't set `"isRegex": true` yourself just to make `$1` work - doing so **skips** that automatic escaping, and a selection containing regex-special characters (like most real code) will then fail to match itself at all.  
+> **If your `replace`/`run` uses `$1`** - including inside a `$${ jsOperation }$$` or a `$${script:name}$$` reference (see [Script Operations](scriptOperations.md)) - **you don't need to set `isRegex` yourself at all**, for either a single selection or multiple.  The extension detects the `$1` (checking inside a named script's saved code too) and automatically escapes any regex-special characters in the generated find, wraps it in `(...)`, and turns `isRegex` on for you - so `$1` correctly resolves to your literal selected text, whether that's a single word or a whole line full of `().+*$` and other regex-special characters.  Don't set `"isRegex": true` yourself just to make `$1` work - the `$1` will resolve either way, but setting it **skips** that automatic escaping, and a selection containing regex-special characters (like most real code) will then fail to match itself at all.  
 
 > If you are using no `find` but are selecting text that you want treated as a regular expression (like `\n text (\d)`) do not double-escape those special regex characters.  Just use the same regex you would use in the Find Widget.  Remember to have `isRegex` set to true in this case.  
 

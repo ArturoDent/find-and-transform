@@ -710,18 +710,19 @@ function _completePathVariables(position, trigger) {
   else replaceRange = new Range(position, position);
 
   const completionItems = [
-    _makeValueCompletionItem("${file}", replaceRange, "", "01", "The full path (`/home/UserName/myProject/folder/test.txt`) of the current editor."),
+    _makeValueCompletionItem("${file}", replaceRange, "", "01", "The full path of the current editor, e.g. `/home/yourName/myProject/folder/test.txt` (`C:/Users/yourName/myProject/folder/test.txt` on Windows). Always uses forward slashes, even on Windows, so it's safe to use inside a $${ ... }$$ script."),
     _makeValueCompletionItem("${relativeFile}", replaceRange, "", "011", "The path of the current editor relative to the workspaceFolder (`folder/file.ext`)."),
     _makeValueCompletionItem("${fileBasename}", replaceRange, "", "012", "The basename (`file.ext`) of the current editor."),
     _makeValueCompletionItem("${fileBasenameNoExtension}", replaceRange, "", "013", "The basename  (`file`) of the current editor without its extension."),
     _makeValueCompletionItem("${fileExtname}", replaceRange, "", "014", "The extension (`.ext`) of the current editor."),
 
-    _makeValueCompletionItem("${fileDirname}", replaceRange, "", "02", "The full path of the current editor's parent directory."),
+    _makeValueCompletionItem("${fileDirname}", replaceRange, "", "02", "The full path of the current editor's parent directory, e.g. `/home/yourName/myProject/folder` (`C:/Users/yourName/myProject/folder` on Windows). Always uses forward slashes, even on Windows."),
     _makeValueCompletionItem("${relativeFileDirname}", replaceRange, "", "021", "The path of the current editor's parent directory relative to the workspaceFolder."),
 
-    _makeValueCompletionItem("${fileWorkspaceFolder}", replaceRange, "", "03", "The full path of the current editor's workspaceFolder."),
-    _makeValueCompletionItem("${workspaceFolder}", replaceRange, "", "031", "The full path (`/home/UserName/myProject`) to the currently opened workspaceFolder."),
+    _makeValueCompletionItem("${fileWorkspaceFolder}", replaceRange, "", "03", "The full path of the current editor's workspaceFolder, e.g. `/home/yourName/myProject` (`C:/Users/yourName/myProject` on Windows). Always uses forward slashes, even on Windows."),
+    _makeValueCompletionItem("${workspaceFolder}", replaceRange, "", "031", "The full path to the currently opened workspaceFolder, e.g. `/home/yourName/myProject` (`C:/Users/yourName/myProject` on Windows). Always uses forward slashes, even on Windows."),
     _makeValueCompletionItem("${workspaceFolderBasename}", replaceRange, "", "032", "The name (`myProject`) of the workspaceFolder."),
+    _makeValueCompletionItem("${userHome}", replaceRange, "", "033", "The full path of the current user's home folder, e.g. `/home/yourName` on linux, `/Users/yourName` on macOS, or `C:/Users/yourName` on Windows. Always uses forward slashes, even on Windows."),
 
     _makeValueCompletionItem("${selectedText}", replaceRange, "", "04", "The **first** selection in the current editor."),
     _makeValueCompletionItem("${CLIPBOARD}", replaceRange, "", "041", "The clipboard contents."),
