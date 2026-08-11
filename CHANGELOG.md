@@ -7,7 +7,9 @@
 &emsp;&emsp; 5.3.8 - Fix a `replace` `$1` resolving to the empty string when `"isRegex": true` was set and the `find` had no capture groups of its own (as with a `find` made only of `\\$n` selection substitutions).  The whole find is now wrapped in a group in that case, matching what already happened when `isRegex` was omitted.  
 &emsp;&emsp; - An error in a `$${ jsOperation }$$` or a `$${script:name}$$` now shows the **resolved** code - the source after `$1`/`${variable}`/etc. were substituted - in the `find-and-transform` Output channel beneath the error, instead of only a stack pointing into the extension.  
 &emsp;&emsp; - Document that a saved script file takes a single backslash (`` `\U$1` ``) where a keybinding needs two, and that arithmetic on a capture group belongs outside the quotes/backticks.  
-&emsp;&emsp; - **Save Selected Code as Named Script** now records the keybinding or setting the code came from - the whole keybinding object, or the whole named setting - in a block comment after the script file's `require` header.  
+&emsp;&emsp; - **Save Selected Code as Named Script** now records the keybinding or setting the code came from - the whole keybinding object, or the whole named setting - in a block comment after the script file's `require` header, and leads the file with that config's `title`/`description` as a comment.  
+&emsp;&emsp; - The `require` header of a new script file now stubs out `os`/`fs`/`glob` too, and reminds you not to double-escape and not to put comments after the `return`.  
+&emsp;&emsp; - Fix a `// comment` array element in an array-form `jsOperation` silently swallowing every element joined after it (including the `return`), since a line comment has no newline left to stop it once the array is flattened onto one line.  `// ...` line comments are now stripped before joining; `/* ... */` block comments still work as before.  
 
 * 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
 &emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  

@@ -1,6 +1,8 @@
 const assert = require('assert');
+const vscode = require('vscode');
 const resolveVariables = require('../../src/resolveVariables');
 const scriptStorage = require('../../src/scriptStorage');
+const testHelpers = require('./testHelpers');
 
 suite('resolveVariables.js - resolveExtensionDefinedVariables()', () => {
 
@@ -47,6 +49,22 @@ suite('resolveVariables.js - $${script:name}$$ named scripts', () => {
 
       assert.strictEqual(named, 'hello world');
       assert.strictEqual(named, inline);
+    } finally {
+      await scriptStorage.delete('test-plain-script');
+    }
+  });
+
+  test('resolveJSOperations() (used directly by runInSearchPanel) resolves a $${script:name}$$ reference the same as resolveVariables()', async () => {
+    await scriptStorage.save('test-plain-script', "return 'hello ' + 'world';");
+
+    try {
+      const viaResolveVariables = await resolveVariables.resolveVariables(
+        { replace: '$${script:test-plain-script}$$' }, 'replace', [], null, null, null);
+      const viaResolveJSOperations = await resolveVariables.resolveJSOperations(
+        '$${script:test-plain-script}$$', {}, 'replace', [], null, null, null);
+
+      assert.strictEqual(viaResolveJSOperations, 'hello world');
+      assert.strictEqual(viaResolveJSOperations, viaResolveVariables);
     } finally {
       await scriptStorage.delete('test-plain-script');
     }
@@ -185,6 +203,44 @@ suite('resolveVariables.js - $${script:name}$$ named scripts', () => {
     }
   });
 
+  // A .js script file is read as raw text (not JSON-parsed like a keybinding value), so a
+  // double-escaped '\\U' really does arrive with both backslashes. Matching only one used
+  // to strand the other in the generated source, where JS read it as an escape: dropped
+  // before an uppercase letter, but a newline before 'n' and a SyntaxError before 'u'.
+  test('a double-escaped \\\\U case modifier in a script resolves the same as the single-backslash form', async () => {
+    await scriptStorage.save('test-single-backslash', "return '\\U$1';");
+    await scriptStorage.save('test-double-backslash', "return '\\\\U$1';");
+
+    try {
+      const groups = ['trouble', 'trouble'];
+      const single = await resolveVariables.resolveVariables(
+        { replace: '$${script:test-single-backslash}$$' }, 'replace', groups, null, null, null);
+      const double = await resolveVariables.resolveVariables(
+        { replace: '$${script:test-double-backslash}$$' }, 'replace', groups, null, null, null);
+
+      assert.strictEqual(single, 'TROUBLE');
+      assert.strictEqual(double, single);
+    } finally {
+      await scriptStorage.delete('test-single-backslash');
+      await scriptStorage.delete('test-double-backslash');
+    }
+  });
+
+  // '\l' lowercases the first letter, so the stranded backslash used to land in front of a
+  // lowercase 'u' -> 'SyntaxError: Invalid Unicode escape sequence', not a silent mangle
+  test('REGRESSION: a double-escaped \\\\l case modifier no longer throws an Invalid Unicode escape', async () => {
+    await scriptStorage.save('test-double-backslash-lower', "return '\\\\l$1';");
+
+    try {
+      const result = await resolveVariables.resolveVariables(
+        { replace: '$${script:test-double-backslash-lower}$$' }, 'replace', ['Under', 'Under'], null, null, null);
+
+      assert.strictEqual(result, 'under');
+    } finally {
+      await scriptStorage.delete('test-double-backslash-lower');
+    }
+  });
+
   test('one shared script returns different values for two find/replace pairs via arg', async () => {
     await scriptStorage.save('test-shared-script', "if (arg === 'function') return 'first thing'; else if (arg === 'alpha') return 'second thing'; else return 'unknown';");
 
@@ -265,6 +321,49 @@ suite('resolveVariables.js - $${script:name}$$ named scripts', () => {
       await scriptStorage.delete('test-bad-syntax-script');
     }
   });
+
+  // A script file is raw text: without comment-masking, a '\U$1'/'${...}' mentioned in a
+  // '// ...' line gets silently resolved like live code would - and a variable that shows
+  // a real UI prompt (${getInput}) would pop it for a comment that never executes. Proven
+  // here via the syntax-error reporting path (deterministic, no real UI involved) rather
+  // than by actually invoking ${getInput}, since a masking regression would otherwise hang
+  // the test run waiting on a real input box instead of failing cleanly.
+  test('a capture-group reference mentioned in a script comment is left unresolved, not silently rewritten', async () => {
+    // the comment mentions \U$1 (which real code below it does NOT use); the actual code
+    // is deliberately invalid so the post-substitution source shows up in the error
+    await scriptStorage.save('test-comment-not-resolved',
+      '// could write \\U$1 here, should stay exactly as written\nsyntax( error here;');
+
+    try {
+      await assert.rejects(
+        resolveVariables.resolveVariables(
+          { replace: '$${script:test-comment-not-resolved}$$' }, 'replace', ['World', 'World'], null, null, null),
+        (/** @type {Error} */ error) => {
+          // the comment survives verbatim - proves it was masked out of the variable pass
+          assert.match(error.message, /could write \\U\$1 here, should stay exactly as written/);
+          // and definitely wasn't resolved to the uppercased capture group
+          assert.doesNotMatch(error.message, /could write WORLD here/);
+          return true;
+        }
+      );
+    } finally {
+      await scriptStorage.delete('test-comment-not-resolved');
+    }
+  });
+
+  test('a comment mentioning capture-group syntax does not interfere with real code using the same capture group', async () => {
+    await scriptStorage.save('test-comment-alongside-real-capture-group',
+      "// example: could write \\U$1 here, but this uses $1 directly instead\nreturn '$1'.toUpperCase();");
+
+    try {
+      const result = await resolveVariables.resolveVariables(
+        { replace: '$${script:test-comment-alongside-real-capture-group}$$' }, 'replace', ['hello', 'hello'], null, null, null);
+
+      assert.strictEqual(result, 'HELLO');
+    } finally {
+      await scriptStorage.delete('test-comment-alongside-real-capture-group');
+    }
+  });
 });
 
 
@@ -305,5 +404,103 @@ suite('resolveVariables.js - inline $${ ... }$$ jsOps', () => {
         return true;
       }
     );
+  });
+});
+
+
+// When a findInCurrentFile command has no 'find', makeFind() derives one from
+// the cursor: on a word it uses the word, on an empty line it falls back to
+// '^$', and - the previously-untested case - anywhere else on a non-empty
+// line (whitespace/punctuation, touching no word) it leaves find as "" and
+// records the cursor in emptyPointSelections instead, so callers can treat it
+// as a zero-width point rather than a real match.
+suite('resolveVariables.js - makeFind() cursor-not-on-a-word fallback', () => {
+
+  let document;
+  let editor;
+
+  suiteSetup(async function () {
+    this.timeout(10000);
+
+    const extension = vscode.extensions.getExtension('ArturoDent.find-and-transform');
+    if (extension && !extension.isActive) await extension.activate();
+
+    // A genuinely separate untitled scratch document - see the identical note
+    // in findInCurrentFile.test.js for why this can't be a real fixture file.
+    document = await vscode.workspace.openTextDocument({ content: '' });
+    editor = await vscode.window.showTextDocument(document, { preview: false });
+  });
+
+  suiteTeardown(async () => {
+    // Deliberately not reverting/closing here: `document` is an untitled scratch
+    // doc with unsaved content by now - closing it would prompt "Save changes?".
+    // The whole VS Code test instance is torn down non-interactively once Mocha
+    // finishes.
+  });
+
+  /**
+   * Load marked text (see testHelpers.parseSelectionMarkers) into the shared
+   * document and set editor.selections to the selection(s) its markers described.
+   * @param {string} markedText
+   * @returns {Promise<{ text: string, selections: import("vscode").Selection[] }>}
+   */
+  async function loadMarkedContent(markedText) {
+    const { text, selections } = testHelpers.parseSelectionMarkers(markedText);
+    const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(document.getText().length));
+    await editor.edit(editBuilder => editBuilder.replace(fullRange, text));
+    editor.selections = selections;
+    return { text, selections };
+  }
+
+  /**
+   * Poll the shared document's text until it matches expectedText or timeoutMs
+   * elapses, then assert. Guards against the same command-completion timing
+   * issue noted in findInCurrentFile.test.js/restrictFind.test.js.
+   * @param {string} expectedText
+   * @param {number} [timeoutMs]
+   */
+  async function assertEventualText(expectedText, timeoutMs = 3000) {
+    let actualText = document.getText();
+    const deadline = Date.now() + timeoutMs;
+
+    while (actualText !== expectedText && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      actualText = document.getText();
+    }
+
+    assert.strictEqual(actualText, expectedText);
+  }
+
+  // "aaa" and "bbb" each stay 2+ characters away from the marked cursor, so
+  // it touches no word on either side - only whitespace - while sitting on a
+  // non-empty line (unlike the existing '^$'-on-an-empty-line coverage).
+  const markedLine = 'aaa  |  bbb';
+
+  test('find stays empty and the cursor is recorded in emptyPointSelections, not "^$"', async () => {
+    await loadMarkedContent(markedLine);
+
+    const result = await resolveVariables.makeFind(editor.selections, {});
+
+    assert.strictEqual(result.find, '');
+    assert.strictEqual(result.mustBeRegex, false);
+    assert.deepStrictEqual([...result.emptyPointSelections], [editor.selections[0]]);
+  });
+
+  test('no find, no replace: findInCurrentFile is a silent no-op', async () => {
+    const { text, selections } = await loadMarkedContent(markedLine);
+
+    await vscode.commands.executeCommand('findInCurrentFile', {});
+
+    await assertEventualText(text);
+    assert.deepStrictEqual([...editor.selections], selections);
+  });
+
+  test('no find, with replace: the replace text is inserted at the cursor as a zero-width point match', async () => {
+    const { text, selections } = await loadMarkedContent(markedLine);
+    const offset = selections[0].start.character;
+
+    await vscode.commands.executeCommand('findInCurrentFile', { replace: 'XYZ' });
+
+    await assertEventualText(text.slice(0, offset) + 'XYZ' + text.slice(offset));
   });
 });

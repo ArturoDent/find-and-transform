@@ -73,10 +73,28 @@ suite('scriptCommands.js - extractCodeFromSelection()', () => {
     });
   });
 
+  test('a whole quoted value with double-escaped \\U/\\E case-modifier tokens is unescaped to single backslashes', () => {
+    const result = scriptCommands.extractCodeFromSelection('"$${\\\\U$1\\\\E}$$"');
+    assert.deepStrictEqual(result, {
+      code: '\\U$1\\E',
+      needsQuotes: true,
+      needsDelimiters: true,
+      keyPrefix: '',
+      trailingComma: ''
+    });
+  });
+
   test('array-style lines with JSON-escaped quotes and a trailing comment are unescaped correctly', () => {
     const selection = '"const s = \\"hi\\";",  // a comment\n"return s;"';
     const result = scriptCommands.extractCodeFromSelection(selection);
     assert.strictEqual(result.code, 'const s = "hi";\nreturn s;');
+    assert.strictEqual(result.needsQuotes, true);
+  });
+
+  test('array-style lines with double-escaped \\L/\\l case-modifier tokens are unescaped to single backslashes', () => {
+    const selection = '"return \\\\L$1\\\\E + \\\\l$2;",\n"return true;"';
+    const result = scriptCommands.extractCodeFromSelection(selection);
+    assert.strictEqual(result.code, 'return \\L$1\\E + \\l$2;\nreturn true;');
     assert.strictEqual(result.needsQuotes, true);
   });
 
@@ -217,5 +235,81 @@ suite('scriptCommands.js - makeSourceComment()', () => {
     assert.ok(result.includes('"replace": "*\\/",'));
     // the only */ left is the one closing the comment
     assert.strictEqual(result.split('*/').length - 1, 1);
+  });
+
+});
+
+
+suite('scriptCommands.js - makeHeaderComment()', () => {
+
+  test('a setting: title first, description under it, then a blank line', () => {
+    const result = scriptCommands.makeHeaderComment('Transform to PascalCase', 'bumps the version on save');
+    assert.strictEqual(result, '// Transform to PascalCase\n// bumps the version on save\n\n');
+  });
+
+  test('a keybinding (no title): the description alone', () => {
+    const result = scriptCommands.makeHeaderComment(undefined, 'Open html snippets path');
+    assert.strictEqual(result, '// Open html snippets path\n\n');
+  });
+
+  test('a title with no description', () => {
+    const result = scriptCommands.makeHeaderComment('Upcase Swap', undefined);
+    assert.strictEqual(result, '// Upcase Swap\n\n');
+  });
+
+  test('neither: no comment at all, so the file starts at the require header', () => {
+    assert.strictEqual(scriptCommands.makeHeaderComment(undefined, undefined), '');
+  });
+
+  test('a multi-line label is flattened, so it cannot break out of the // comment', () => {
+    const result = scriptCommands.makeHeaderComment('line one\nline two', undefined);
+    assert.strictEqual(result, '// line one line two\n\n');
+  });
+});
+
+
+suite('scriptCommands.js - findSiblingLabels()', () => {
+
+  const settings = [
+    '{',
+    '  "findInCurrentFile": {',
+    '    "bumpSaveVersion": {',
+    '      "title": "Transform to PascalCase",',
+    '      "description": "bumps the version on save",',
+    '      "replace": "$${ return \'$1\'; }$$"',
+    '    }',
+    '  }',
+    '}'
+  ].join('\n');
+
+  const keybindings = [
+    '[',
+    '  {',
+    '    "key": "alt+n",',
+    '    "command": "findInCurrentFile",',
+    '    "args": {',
+    '      "description": "Open html snippets path",',
+    '      "replace": [',
+    '        "$${",',
+    '        "const langID = document.languageId;",',
+    '        "}$$"',
+    '      ]',
+    '    }',
+    '  }',
+    ']'
+  ].join('\n');
+
+  test('a setting yields both its title and its description', () => {
+    const result = scriptCommands.findSiblingLabels(settings, settings.indexOf("return '$1'"));
+    assert.deepStrictEqual(result, { title: 'Transform to PascalCase', description: 'bumps the version on save' });
+  });
+
+  test('a keybinding has no title, and the description is found from inside a nested array', () => {
+    const result = scriptCommands.findSiblingLabels(keybindings, keybindings.indexOf('const langID'));
+    assert.deepStrictEqual(result, { title: undefined, description: 'Open html snippets path' });
+  });
+
+  test('unparseable text yields both undefined', () => {
+    assert.deepStrictEqual(scriptCommands.findSiblingLabels('not json at all', 3), { title: undefined, description: undefined });
   });
 });

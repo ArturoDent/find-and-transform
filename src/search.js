@@ -1,6 +1,5 @@
-const { window, commands } = require('vscode');
+const {window, commands} = require('vscode');
 
-// const variables = require('./variables');
 const regexp = require('./regex');
 
 const utilities = require('./utilities');
@@ -20,7 +19,7 @@ exports.getObjectFromArgs = async function (argsArray) {
 
   // could be bad keys/values here
   for (const [key, value] of Object.entries(argsArray)) {
-    args[`${ key }`] = value;
+    args[`${key}`] = value;
   }
   return args;
 };
@@ -58,7 +57,7 @@ exports.runAllSearches = async function (args) {
 
   for (let index = 0; index < most; index++) {
 
-    const splitArgs = await _buildSearchArgs(expandedArgs, index);
+    const splitArgs = await exports.buildSearchArgs(expandedArgs, index);
     await exports.useSearchPanel(splitArgs);
 
     // need a delay to get results files, if necessary
@@ -73,14 +72,14 @@ exports.runAllSearches = async function (args) {
  * @param {number} index - for which step to retrieve its args
  * @returns {Promise<object>} - all args for this command
  */
-async function _buildSearchArgs(args, index) {
+exports.buildSearchArgs = async function (args, index) {
 
   const editor = window.activeTextEditor;
   if (!editor) return {};
-  const { selections } = editor;
+  const {selections} = editor;
 
   /** @type {Object} */
-  let indexedArgs = { isRegex: false, matchWholeWord: false, matchCase: false, triggerReplaceAll: false, filesToInclude: undefined };
+  let indexedArgs = {isRegex: false, matchWholeWord: false, matchCase: false, triggerReplaceAll: false, filesToInclude: undefined};
   const splitArgs = await _returnArgsByIndex(args, index);
   Object.assign(indexedArgs, splitArgs);
 
@@ -140,6 +139,8 @@ async function _buildSearchArgs(args, index) {
     indexedArgs.replace = await resolve.resolveSearchPathVariables(indexedArgs.replace, indexedArgs, "replace", selections[0]);
     indexedArgs.replace = await resolve.resolveSearchSnippetVariables(indexedArgs.replace, indexedArgs, "replace", selections[0]);
     indexedArgs.replace = await utilities.replaceAsync2(indexedArgs.replace, extensionNotGlobalRE, resolve.resolveExtensionDefinedVariables, indexedArgs, "replace");
+    // $${ jsOperation }$$ / $${script:name}$$ - not handled by the resolves above
+    indexedArgs.replace = await resolve.resolveJSOperations(indexedArgs.replace, indexedArgs, "replace", [], selections[0] ?? null, null, null);
   }
 
   // so triggerReplaceAll is true for the last search only no matter the setting
@@ -162,7 +163,7 @@ async function _buildSearchArgs(args, index) {
   }
 
   return indexedArgs;
-}
+};
 
 
 /**

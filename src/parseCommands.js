@@ -9,6 +9,7 @@ const selections = require('./find/selections');
 const resolve = require('./resolveVariables');
 const utilities = require('./utilities');
 const transforms = require('./transform');
+const jsComments = require('./jsComments');
 
 
 /**
@@ -41,6 +42,12 @@ exports.buildJSOperationsFromArgs = async function (arg) {
     let end = arg.indexOf('}$$', index);
 
     if (start !== -1 && end !== -1) {
+      // strip '//' comments per element before they're merged onto one line - a '//'
+      // has no newline left to stop it there, so it would otherwise swallow every
+      // element joined after it, including a later 'return'
+      for (let j = start; j <= end; j++) {
+        arg[j] = jsComments.stripLineComments(arg[j]);
+      }
       // remove consecutive semicolons at the end of each array element
       for (let j = start; j < end; j++) {
         arg[j] = arg[j].replace(/;{2,}$/m, ';');

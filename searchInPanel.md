@@ -177,11 +177,22 @@ If you include no `delay` field and you are using multiple successive searches, 
 
 ### Other defaults
 
-1. If you use `"triggerReplaceAll": true` or `"triggerReplaceAll": [true, true]` for example, `triggerReplace` will only run on the **last search** when doing multiple searches.  
+1. If you use `"triggerReplaceAll": true` or `"triggerReplaceAll": [true, true]` for example, `triggerReplaceAll` will only ever actually run on the **last search** when doing multiple searches - it is force-disabled for every earlier search no matter what value you give it there. Earlier searches only populate `${resultsFiles}` to narrow the scope of later searches (see the worked example below); they can never themselves delete or change any matches, so whatever you put in their `replace` slot (including `""`) is never applied.  
 
 2. If `triggerReplaceAll` is about to run, `"triggerSearch": true,` will be set so that the search is run first, then the `delay`, then the `triggerReplaceAll` is run.  
 
-3. If you have no `replace` field, `triggerReplaceAll` will be set to `false`.  VSCode treats the lack of of a `replace` field the same as replacing with the empty string, that is, replacing with nothing.  If that is what you want to do, replace all your find matches with nothing (which is the same as removing the find matches) either explicitly set `"replace": ""` (the empty string) or trigger replace all yourself.  
+3. On that final (or only) search, an *explicit* `"replace": ""` and an *omitted* `replace` field are **not** the same: if you have no `replace` field at all, `triggerReplaceAll` is forced to `false` even if you set it to `true` - omitting `replace` is treated as "don't do a real replace."  Explicitly setting `"replace": ""` is different: it is allowed through, so a real "Replace All" can run and replace all your find matches with nothing (i.e., delete them). So, to actually delete matches on that final/only search, either explicitly set `"replace": ""` and `"triggerReplaceAll": true`, or trigger replace all yourself in the panel.  
+
+    Worked example - a two-step chain like the one above (search `A`, narrow to those files, then search/replace `B`):
+
+    ```jsonc
+    "find":    ["\"field2\"\\s*:\\s*\"cdf\"", "(\"field1\"\\s*:\\s*)\"abc\""],
+    "replace": ["", "$1\"qrs\""],
+    "triggerReplaceAll": [false, true],
+    "isRegex": true
+    ```
+
+    Step 1 searches the whole workspace for `"field2":"cdf"` and populates `${resultsFiles}`. Its `"replace": ""` is never applied - `triggerReplaceAll` is `false` there (and would be force-disabled even if set `true`, per rule 1 above), so nothing is deleted; it exists purely to narrow which files step 2 runs against. Step 2 then searches only those narrowed files for `"field1":"abc"` and, because it is the last step and `triggerReplaceAll` is `true`, actually replaces matches with `$1"qrs"`. If you also wanted to delete the `field2` matches, that needs a **separate** `runInSearchPanel` invocation with `"replace": ""` and `"triggerReplaceAll": true` as its only search - a single chained array can only perform one real replace, on its last step.  
 
 4. If you are running multiple searches and haven't specifically set `filesToInclude`, then `"filesToInclude": "${resultsFiles}"` will be set.  There is no point in running multiple searches if you aren't using the results of earlier searches in later searches.  You can override this by setting a `filesToInclude` value yourself.
 

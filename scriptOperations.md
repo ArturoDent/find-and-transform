@@ -2,14 +2,18 @@
 
 This page covers using JavaScript (`$${ ... }$$` "jsOp") in a `replace` or `run` value, and about saving those scripts as named, reusable files. See [README.md](README.md) for the rest of the extension's features.
 
+`$${ ... }$$` and `$${script:name}$$` work in `findInCurrentFile`'s `replace` and `run` values, and in `runInSearchPanel`'s `replace` value (`runInSearchPanel` has no `run` value).
+
 ## Table of Contents
 
 &emsp; &emsp; [1. Named Scripts (stored in Global Storage)](#named-scripts-stored-in-global-storage)
 
 &emsp; &emsp; &emsp; [a. Escaping in a script file: use ONE backslash](#escaping-in-a-script-file-use-one-backslash-not-two)  
-&emsp; &emsp; &emsp; [b. Capture groups in a script: quote for text, leave bare for math](#capture-groups-in-a-script-quote-for-text-leave-bare-for-math)  
-&emsp; &emsp; &emsp; [c. Passing an argument to a named script](#passing-an-argument-to-a-named-script)  
-&emsp; &emsp; &emsp; [d. Not supported in `find`](#not-supported-in-find)  
+&emsp; &emsp; &emsp; [b. Variables inside a comment are not resolved](#variables-inside-a-comment-are-not-resolved)  
+&emsp; &emsp; &emsp; [c. Capture groups in a script: quote for text, leave bare for math](#capture-groups-in-a-script-quote-for-text-leave-bare-for-math)  
+&emsp; &emsp; &emsp; [d. Passing an argument to a named script](#passing-an-argument-to-a-named-script)  
+&emsp; &emsp; &emsp; [e. Not supported in `find`](#not-supported-in-find)  
+&emsp; &emsp; &emsp; [f. Capture groups in a `runInSearchPanel` script](#capture-groups-in-a-runinsearchpanel-script)  
 
 &emsp; &emsp; [2. Running Javascript Code in a Replacement](#running-javascript-code-in-a-replacement)
 
@@ -80,18 +84,53 @@ Commands, all under the `Find-Transform` category in the Command Palette:
 
 That is not valid JS as-is, since `${BLOCK_COMMENT_START}` and the nested `$${ ... }$$` are extension syntax, not JavaScript. You'd need to hand-edit the file into real code.  For the best results, select just the jsOp instead.
 
-A named script is *not* handed `vscode`/`path`/`document` automatically the way an inline `$${ ... }$$` jsOp is - only `require` is. That's deliberate: it means the script file can `require()` these itself as real code, which is what actually gives the editor intelliSense for js code and the vscode extension api. So every script file - whether created via **New Script** or **Save Selected Code as Named Script** - starts with a header that does exactly that. If the selection's enclosing `args` object has a `"description"`, that text is added as a leading comment above the header.
+A named script is *not* handed `vscode`/`path`/`document` automatically the way an inline `$${ ... }$$` jsOp is - only `require` is. That's deliberate: it means the script file can `require()` these itself as real code, which is what actually gives the editor intelliSense for js code and the vscode extension api. So every script file - whether created via **New Script** or **Save Selected Code as Named Script** - starts with a header that does exactly that.
 
-**Save Selected Code as Named Script** also records the keybinding or setting the code came from, verbatim, in a block comment between the header and the code - so months later the script itself still tells you what `find` it was written for, which key ran it, and what the rest of its args were:
+**Save Selected Code as Named Script** adds two things around that header.  Above it, the source config's `"title"` (the text a setting shows in the Command Palette) and its `"description"`, one `//` line each, so the top of the file says what the script is for.  Below it, the keybinding or setting the code came from, verbatim, in a block comment - so months later the script itself still tells you what `find` it was written for, which key ran it, and what the rest of its args were:
+
+```js
+// Transform to PascalCase
+// bumps the version on save
+
+const vscode = require('vscode');
+const path = require('path');
+const document = vscode.window.activeTextEditor?.document;
+
+// const os = require('os');
+// const fs = require('fs');
+// const glob = require('glob');
+// remove or comment any of the above you don't use
+
+// a script file isn't JSON, so don't double-escape here:  '\U$1' is the normal
+//   form ('\\U$1' is accepted too, but only for case modifiers, not '\n', '\d', etc.)
+// don't use case transforms like '\U$1' if intended for a 'runInSearchPanel' call
+//  '\U$1' will be replaced by simply '$1'
+// don't use conditional transforms like '${1:add text}', they will not work
+
+/*
+saved from this setting, under "findInCurrentFile":
+
+"bumpSaveVersion": {
+  "title": "Transform to PascalCase",  // appears in the Command Palette
+  "description": "bumps the version on save",
+  "replace": "${1:/pascalcase}",
+  "restrictFind": "previousDontMoveCursor",
+  "find": "(\\w+)",
+  "runWhen": "onceIfAMatch",
+  "isRegex": true
+}
+*/
+
+return ...;
+```
+
+A keybinding has no `"title"`, so its leading comment is just the `args` object's `"description"`, and the whole keybinding object is recorded instead - `"command"` included, which is why the setting form names the command above the entry and this one doesn't:
 
 ```js
 // Open html snippets path
 
 const vscode = require('vscode');
-const path = require('path');
-const document = vscode.window.activeTextEditor?.document;
-// const glob = require('glob');  // uncomment if you use glob
-// remove or comment out any of the above you don't use
+...
 
 /*
 saved from this keybinding:
@@ -117,21 +156,7 @@ const langID = document.languageId;
 vscode.commands.executeCommand('vscode.open', uri);
 ```
 
-For a setting the whole named entry is recorded instead, with the command it lives under named above it (a keybinding already carries its own `"command"`):
-
-```js
-/*
-saved from this setting, under "findInCurrentFile":
-
-"upcaseSwap": {
-  "title": "Upcase Swap",
-  "find": "(\\w+)",
-  "replace": "$${ return '$1'.toUpperCase(); }$$"
-}
-*/
-```
-
-It is only a comment - delete it if you don't want it, and it is never added by **New Script** (which has no source config) or when the selection isn't in a `settings.json`, `keybindings.json` or `.code-workspace` file.
+Both are only comments - delete them if you don't want them.  The block comment is never added by **New Script** (which has no source config) or when the selection isn't in a `settings.json`, `keybindings.json` or `.code-workspace` file.
 
 (Inline `$${ ... }$$` jsOps are unaffected by any of this - `vscode`/`path`/`document` keep working there with no `require()` needed, exactly as before.)
 
@@ -161,8 +186,13 @@ single backslash:
 ```js
 // in a saved script file
 return `\U$1`;      // right
-return `\\U$1`;     // works, but only by accident - avoid
+return `\\U$1`;     // also accepted, but the single backslash is the normal form here
 ```
+
+Case modifiers (`\U`, `\u`, `\L`, `\l`) are the one exception: both spellings are accepted,
+so a keybinding's doubled backslash pasted straight into a script file still works. Every
+other escape below is not - a doubled `\\n`/`\\d`/`\\w` in a script file really is two
+characters, and means something different than you intended.
 
 ```jsonc
 // the same thing in a keybinding, where JSON needs the doubled backslash
@@ -171,6 +201,26 @@ return `\\U$1`;     // works, but only by accident - avoid
 
 **Save Selected Code as Named Script** does this conversion for you, so code moved out of a
 keybinding arrives in the script file already correctly single-escaped.
+
+### Variables inside a comment are not resolved
+
+A script file is raw text, resolved before it's ever compiled - so without special
+handling, a variable written inside a `//` or `/* */` comment would be substituted exactly
+as if it were live code. For a variable like `${getInput}`, which shows a real input box as
+a side effect of resolving, that meant a line you'd commented out to disable it still
+popped the prompt. Comments are now skipped entirely by the variable pass, so it's safe to
+mention `${getInput}`, `\U$1`, `${1:text}`, etc. in an explanatory comment without triggering
+or rewriting them:
+
+```js
+// don't use \U$1 here - vscode resolves $1 itself, after this runs in runInSearchPanel
+return $1 + "qrs";
+```
+
+This only applies to comments in a script *file* - variables inside a string or template
+literal still resolve normally (`return "Hello ${getInput}";` still prompts, same as
+always), and a keybinding/setting value has no comments to begin with (JSON strips them
+before this extension ever sees the text).
 
 > The same applies to any other backslash escape - `\n`, `\d`, `\w` and so on - which is why
 the `\n` rules described under [string operations](#doing-string-operations-on-replacements)
@@ -263,14 +313,48 @@ your own delimiter and packing/unpacking `arg` yourself avoids that ambiguity en
 ### Not supported in `find`
 
 `$${ jsOperation }$$` and `$${script:name}$$` are only resolved in a `replace` or `run`
-value. Referencing either from `"find"` will not work correctly - capture groups are
-unavailable inside the script, `await` throws a `SyntaxError`, and a failing script can abort
-the command without a clean error. Completions currently still suggest `$${script:...}$$`
-inside `find`; that's a known gap, not an endorsement.
+value - and this applies the same way to a `find` value in either `findInCurrentFile` or
+`runInSearchPanel`. Referencing either from `"find"` will not work correctly - capture
+groups are unavailable inside the script, `await` throws a `SyntaxError`, and a failing
+script can abort the command without a clean error. Completions currently still suggest
+`$${script:...}$$` inside `find`; that's a known gap, not an endorsement.
 
 If you need the find pattern itself generated dynamically, build it in a `preCommands` step
 instead (e.g. write the pattern into a variable/clipboard via a `run` jsOp beforehand), or
 keep the jsOp on the `replace` side and adjust the logic there.
+
+### Capture groups in a `runInSearchPanel` script
+
+`findInCurrentFile` does its own matching, so a script referenced from its `replace` gets the
+real matched text substituted for `$1`/`$2`/etc. before the script runs - you can compute
+with it, measure its length, upper/lowercase it, anything.
+
+`runInSearchPanel` does not match anything itself. It fills in VS Code's built-in Search
+panel and lets VS Code's own Search & Replace do the matching, later and separately, across
+however many files and matches. So at the moment your script runs there is no matched text
+yet, and `$1` cannot have a value.
+
+Instead of blanking it out, a `$1`/`${1}` in a `runInSearchPanel` script is passed through
+to the Replace field as a literal `$1`, which VS Code then substitutes per real match at
+replace time - exactly like writing `$1` directly in `replace` with no script at all. So
+this works:
+
+```js
+// search_group_replace.js
+return $1 + "qrs";        // Replace field gets: $1qrs
+```
+
+Two consequences follow from `$1` being a placeholder rather than a value here:
+
+* **Case modifiers are dropped.** `\U$1` resolves to plain `$1` - there is no text yet to
+  uppercase, and VS Code's Replace field has no case-modifier syntax to defer it to.
+* **You cannot compute with it.** `$1.length`, `Number($1) * 2`, `$1.split(",")` and the
+  like operate on the literal string `"$1"`, not on matched text. Conditionals
+  (`${1:+yes}`, `${1:-no}`, `${1:?yes:no}`) likewise cannot work - VS Code's Replace field
+  has no conditional syntax to defer to.
+
+If you need real per-match computation, use `findInCurrentFile` instead - it matches in the
+current editor itself, so the script receives actual matched text.
 
 ------------------  
 
@@ -357,6 +441,8 @@ Use the special syntax **` $${<some math op>}$$ `** as a replace or find value. 
 ```
 
 The above is 2 `replace`'s.  The first one will be applied to the first `find`.  And the second `replace` will be applied to the second `find`.  
+
+> **Comments in an array-form `jsOperation`**: since each element gets joined onto one line, a `// line comment` element would otherwise swallow every element after it on that line - including a later `return`.  To prevent that, any `// ...` line comment in an array element is automatically stripped before joining.  Use a `/* ... */` block comment instead if you want the comment to remain in the joined code, e.g. `"/* explain this step */"` as its own array element.  
 
 -------------  
 

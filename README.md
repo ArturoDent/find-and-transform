@@ -2,9 +2,27 @@
 
 ## Highlights  
 
-* New for v5.1.0: can now use `${getInput}` multiple times in the same argument.  Example:s  
+* New for v6.0.0: `"replace/run"` arguments can be moved to a `.js` file stored globally - helpful for long `$${ ... }}$`.  Example:
 
-```json
+```jsonc
+{
+  "key": "alt+s",
+  "command": "findInCurrentFile",
+  "args": {
+    "description": "your description here",   // will appear in the script file
+    "preCommands": "cursorHomeSelect",
+    "find": "(\\$1) (\\d+)",
+    "isRegex": true,
+    "replace": [
+      "$${script:math_with_numbers}$$"    // run matth_with_numbers.js
+    ]
+  }
+}
+```
+
+* New for v5.1.0: can now use `${getInput}` multiple times in the same argument.  Examples:  
+
+```jsonc
 "find": "const ${getInput} = \\U${getInput}",       // two input prompts, capitalize the second
 "find": "$${ return ${getInput} * 3; }$$ $${ return ${getInput} * 4;} $$",
 
@@ -893,12 +911,12 @@ Example:
   "key": "alt+r",
   "command": "findInCurrentFile",
   "args": {
-                                          // find the lowercased version of the relativeFileName
-    "find": "(\\L${relativeFile})",       // note the outer capture group
+                                      // find the lowercased version of the relativeFileName
+    "find": "(\\L${relativeFile})",   // note the outer capture group
 
-    "replace": "\\U$1",                   // replace with the uppercased version of capture group 1
+    "replace": "\\U$1",               // replace with the uppercased version of capture group 1
 
-    "matchCase": true,                    // this must be set or the find case will be ignored!
+    "matchCase": true,                // this must be set or the find case will be ignored!
     "isRegex": true
   }
 }
@@ -955,6 +973,7 @@ Examples:
 
 1. Groups within conditional text to be added (which is not possible even in a vscode snippet), must be surrounded by backticks.  
 2. If you want to use the character `}` in a replacement within a conditional, it must be double-escaped `\\}`.  
+3. The `"replace": ""` above deletes matches immediately, as part of the same edit as the find - that's specific to `findInCurrentFile`'s direct document edits. `runInSearchPanel` behaves differently: `replace` only fills in the Search panel's Replace field and has no effect until a real "Replace All" is triggered. See [Search using the Panel](searchInPanel.md) for those rules.  
 
 ### Snippet-like transforms: replacements in `findInCurrentFile` commands or keybindings
 
@@ -1359,6 +1378,8 @@ In your `settings.json`:
   }
 }
 ```  
+
+> Note that `removeDigits` above sets `"replace": ""` but only `triggerSearch` - no `triggerReplaceAll`. Unlike `findInCurrentFile`, which edits the document directly, `runInSearchPanel` only fills in the Search panel's Find/Replace fields; `replace` has no effect on the file(s) until a real "Replace All" actually fires (either you click it yourself, or `triggerReplaceAll` is set for that search). See the "Other defaults" section of [Search using the Panel](searchInPanel.md) for the rules on `replace`/`triggerReplaceAll`, especially with multiple, chained searches.  
 
 > If you do not include a `title` value, one will be created using the name (like `removeDigits` in the last example immediately above. Then you can look for `Find-Transform:removeDigits` in the Command Palette.  Since in the last example a `title` was supplied, you would see `Find-Transform: Remove digits from Art....` in the Command Palette.  All the commands are grouped under the `Find-Transform:` category.  
 
@@ -1928,13 +1949,17 @@ If you want to find two consecutive empty lines use `(^$)\n(^$)`.  For three emp
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
 * Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.  
 * Deal with redundant "Extensions have been modified on disk.  Please reload..." notification.  
-* Implement successive `${getFindInput}` input boxes.  
+* Move `preCommands` to a script file?  
 
 ## Release Notes
 
 See [CHANGELOG](CHANGELOG.md) for notes on prior releases.  
 
-* 5.3.0 Make codeActions work better (including multiple actions).
+* 6.0.0 Added script files for `replace` and `run`:  "replace": `"$${script:math_with_numbers}$$"`  
+&emsp;&emsp; - extensive test coverage  
+&emsp;&emsp; - clarified using `$1`, etc. in `find`.  
+
+* 5.3.0 Make codeActions work better (including multiple actions).  
 &emsp;&emsp; - editBuilder awaits added.  
 &emsp;&emsp; 5.3.1 - Add `reveal` option  to findAndSelect.  
 &emsp;&emsp; 5.3.3 - Fix empty line finds.  

@@ -11,37 +11,52 @@ const REQUIRE_HEADER =
   "const vscode = require('vscode');\n" +
   "const path = require('path');\n" +
   "const document = vscode.window.activeTextEditor?.document;\n" +
-  "// const glob = require('glob');  // uncomment if you use glob\n" +
-  '// remove or comment out any of the above you don\'t use\n\n';
+  '\n' +
+  "// const os = require('os');\n" +
+  "// const fs = require('fs');\n" +
+  "// const glob = require('glob');\n" +
+  '// remove or comment any of the above you don\'t use\n' +
+  '\n' +
+  "// a script file isn't JSON, so don't double-escape here:  '\\U$1' is the normal\n" +
+  "//   form ('\\\\U$1' is accepted too, but only for case modifiers, not '\\\\n', '\\\\d', etc.)\n" +
+  "// don't use case transforms like '\\U$1' if intended for a 'runInSearchPanel' call\n" +
+  "//  '\\U$1' will be replaced by simply '$1'\n" +
+  "// don't use conditional transforms like '${1:add text}', they will not work\n\n";
 
 /**
- * Look up a sibling "description" string in the same object as the given
- * document offset (e.g. the "args" object a "replace"/"run"/"find" selection
- * came from), if one exists.
+ * Look up the sibling "title"/"description" strings in the same object as the
+ * given document offset - the "args" object a "replace"/"run"/"find" selection
+ * came from in a keybinding, or the named setting's own body in settings.json
+ * (only a setting has a "title", which is what shows in the Command Palette).
  * @param {string} documentText
  * @param {number} offset
- * @returns {string | undefined}
+ * @returns {{title: string | undefined, description: string | undefined}}
  */
-function _findSiblingDescription(documentText, offset) {
+exports.findSiblingLabels = function (documentText, offset) {
+
+  /** @type {{title: string | undefined, description: string | undefined}} */
+  const labels = { title: undefined, description: undefined };
 
   try {
     const root = jsonc.parseTree(documentText);
-    if (!root) return undefined;
+    if (!root) return labels;
 
     let node = jsonc.findNodeAtOffset(root, offset);
     while (node && node.type !== 'object') node = node.parent;
-    if (!node) return undefined;
+    if (!node) return labels;
 
     for (const propertyNode of node.children ?? []) {
       const [keyNode, valueNode] = propertyNode.children ?? [];
-      if (keyNode?.value === 'description' && typeof valueNode?.value === 'string') return valueNode.value;
+      if (typeof valueNode?.value !== 'string') continue;
+      if (keyNode?.value === 'title') labels.title = valueNode.value;
+      else if (keyNode?.value === 'description') labels.description = valueNode.value;
     }
-    return undefined;
+    return labels;
   }
   catch {
-    return undefined;
+    return labels;
   }
-}
+};
 
 // a settings.json/keybindings.json (user or workspace), or a multi-root workspace file
 const CONFIG_FILE_RE = /(?:^|[\\/])(?:settings|keybindings)\.json$|\.code-workspace$/;
@@ -116,6 +131,25 @@ exports.findSourceConfigText = function (documentText, offset, isWorkspaceFile) 
   catch {
     return undefined;
   }
+};
+
+/**
+ * The script file's leading comment: the source config's own "title" (what a
+ * setting shows in the Command Palette) and "description", one `//` line each,
+ * so the very top of the file says what the script is for. Empty when the
+ * config had neither.
+ * @param {string | undefined} title
+ * @param {string | undefined} description
+ * @returns {string}
+ */
+exports.makeHeaderComment = function (title, description) {
+
+  const lines = [ title, description ]
+    .map(label => label && `// ${ label.replace(/\r?\n/g, ' ') }`)
+    .filter(Boolean)
+    .join('\n');
+
+  return lines ? `${ lines }\n\n` : '';
 };
 
 /**
@@ -318,9 +352,9 @@ exports.extractCodeFromSelection = function (selectedText) {
  * with a `script:name` reference, reconstructing whatever envelope (a
  * surrounding `$${ ... }$$`, JSON quoting, an array's brackets, a
  * `"replace":`/`"run":`/`"find":` key) the selection had consumed. The saved
- * file is prefixed with REQUIRE_HEADER and, if the enclosing args object has
- * a "description", a leading comment with that text; the keybinding/setting the
- * code came from is recorded in a block comment between the two.
+ * file leads with the source config's "title"/"description" as a comment, then
+ * REQUIRE_HEADER, then the keybinding/setting the code came from recorded
+ * verbatim in a block comment.
  */
 exports.saveInlineScriptAsNamedScript = async function () {
 
@@ -343,15 +377,15 @@ exports.saveInlineScriptAsNamedScript = async function () {
   const documentText = editor.document.getText();
   const startOffset = editor.document.offsetAt(editor.selection.start);
 
-  const description = _findSiblingDescription(documentText, startOffset);
-  const descriptionComment = description ? `// ${ description.replace(/\r?\n/g, ' ') }\n\n` : '';
-
   const source = CONFIG_FILE_RE.test(editor.document.fileName)
     ? exports.findSourceConfigText(documentText, startOffset, editor.document.fileName.endsWith('.code-workspace'))
     : undefined;
+
+  const { title, description } = exports.findSiblingLabels(documentText, startOffset);
+  const headerComment = exports.makeHeaderComment(title, description);
   const sourceComment = source ? exports.makeSourceComment(source.text, source.command) : '';
 
-  await scriptStorage.save(name, descriptionComment + REQUIRE_HEADER + sourceComment + code);
+  await scriptStorage.save(name, headerComment + REQUIRE_HEADER + sourceComment + code);
 
   let reference = 'script:' + name;
   if (needsDelimiters) reference = '$${' + reference + '}$$';
