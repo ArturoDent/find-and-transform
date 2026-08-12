@@ -56,7 +56,12 @@ exports.runPost = async function (args, foundMatches, foundSelections, selection
   // handles array or a single object
   // if ((Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text) {
 
-  if (foundMatches.length) {
+  if (args.runPostCommands === "onceIgnoreMatches") {
+    if (resolvePostCommands) postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
+    await this.run(postCommands, "postCommands");  // ignore matches, run once
+  }
+
+  else if (foundMatches.length) {
     if (args.runPostCommands === "onEveryMatch") {
       let index = 0;
       for await (const foundSelection of foundSelections) {
