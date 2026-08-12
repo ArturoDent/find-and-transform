@@ -38,7 +38,10 @@ function _sanitizeFileName(name) {
  * @returns {import("vscode").Uri}
  */
 exports.getFileUri = function (name) {
-  return Uri.joinPath(_scriptsDirUri(), `${ _sanitizeFileName(name) }.js`);
+  const safeName = _sanitizeFileName(name);
+  // the user may already type a '.js' suffix in the name - don't double it up into 'name.js.js'
+  const fileName = /\.js$/i.test(safeName) ? safeName : `${ safeName }.js`;
+  return Uri.joinPath(_scriptsDirUri(), fileName);
 };
 
 /**

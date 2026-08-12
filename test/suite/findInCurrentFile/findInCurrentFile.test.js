@@ -248,4 +248,37 @@ suite('findInCurrentFile - run/replace', () => {
       await assertEventualText(expectedDocument.getText());
     });
   });
+
+  // Both cases share the same input.txt, where "someWord-A" and "someWord-B" are
+  // separated by a newline plus indentation rather than a single literal space.
+  // ignoreWhiteSpace: true turns that whitespace run into `\s*` (which matches
+  // across the newline), so the pair is found and replaced; ignoreWhiteSpace:
+  // false/omitted leaves the literal single space in the find pattern, which
+  // cannot match a newline, so the document comes out unchanged.
+  const ignoreWhiteSpaceCases = [
+    {
+      name: 'true - matches across the newline/indentation between the words',
+      args: { find: "someWord-A someWord-B", replace: "MATCHED", isRegex: true, ignoreWhiteSpace: true },
+      expectedFixture: 'ignoreWhiteSpace/expected.txt',
+    },
+    {
+      name: 'false - literal space in the find does not match a newline, nothing changes',
+      args: { find: "someWord-A someWord-B", replace: "MATCHED", isRegex: true, ignoreWhiteSpace: false },
+      expectedFixture: 'ignoreWhiteSpace/input.txt',
+    },
+  ];
+
+  ignoreWhiteSpaceCases.forEach(({ name, args, expectedFixture }) => {
+    test(`ignoreWhiteSpace: ${name}`, async function () {
+      this.timeout(10000);
+
+      await loadFixture('ignoreWhiteSpace/input.txt');
+
+      const expectedUri = vscode.Uri.file(path.resolve(__dirname, expectedFixture));
+      const expectedDocument = await vscode.workspace.openTextDocument(expectedUri);
+
+      await vscode.commands.executeCommand('findInCurrentFile', args);
+      await assertEventualText(expectedDocument.getText());
+    });
+  });
 });

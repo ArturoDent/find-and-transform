@@ -1,14 +1,14 @@
 const assert = require('assert');
 const vscode = require('vscode');
-const search = require('../../src/search');
-const scriptStorage = require('../../src/scriptStorage');
+const search = require('../../../../src/search');
+const scriptStorage = require('../../../../src/scriptStorage');
 
 // Exercises search.js's buildSearchArgs() directly - the per-step arg builder
 // runInSearchPanel uses for its (possibly array-valued) find/replace - rather
 // than driving the real Search panel UI. args here are passed already shaped
 // the way _expandArgs() feeds them internally: find/replace/etc. as arrays,
 // one entry per step.
-suite('search.js - buildSearchArgs() replace resolution', () => {
+suite('runInSearchPanel - scripts', () => {
 
   let document;
 

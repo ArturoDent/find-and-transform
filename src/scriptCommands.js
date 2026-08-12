@@ -1,4 +1,4 @@
-const { commands, window, workspace } = require('vscode');
+const {commands, window, workspace} = require('vscode');
 const jsonc = require('jsonc-parser');
 
 const scriptStorage = require('./scriptStorage');
@@ -13,15 +13,16 @@ const REQUIRE_HEADER =
   "const document = vscode.window.activeTextEditor?.document;\n" +
   '\n' +
   "// const os = require('os');\n" +
-  "// const fs = require('fs');\n" +
+  "// const fs = require('node:fs');\n" +
   "// const glob = require('glob');\n" +
   '// remove or comment any of the above you don\'t use\n' +
   '\n' +
   "// a script file isn't JSON, so don't double-escape here:  '\\U$1' is the normal\n" +
-  "//   form ('\\\\U$1' is accepted too, but only for case modifiers, not '\\\\n', '\\\\d', etc.)\n" +
+  "// form ('\\\\U$1' is accepted too, but only for case modifiers, not '\\\\n', '\\\\d', etc.)\n\n" +
+
   "// don't use case transforms like '\\U$1' if intended for a 'runInSearchPanel' call\n" +
   "//  '\\U$1' will be replaced by simply '$1'\n" +
-  "// don't use conditional transforms like '${1:add text}', they will not work\n\n";
+  "// don't use conditional transforms like '${1:add text}' in a 'runInSearchPanel' call, they will not work\n\n";
 
 /**
  * Look up the sibling "title"/"description" strings in the same object as the
@@ -35,7 +36,7 @@ const REQUIRE_HEADER =
 exports.findSiblingLabels = function (documentText, offset) {
 
   /** @type {{title: string | undefined, description: string | undefined}} */
-  const labels = { title: undefined, description: undefined };
+  const labels = {title: undefined, description: undefined};
 
   try {
     const root = jsonc.parseTree(documentText);
@@ -144,12 +145,12 @@ exports.findSourceConfigText = function (documentText, offset, isWorkspaceFile) 
  */
 exports.makeHeaderComment = function (title, description) {
 
-  const lines = [ title, description ]
-    .map(label => label && `// ${ label.replace(/\r?\n/g, ' ') }`)
+  const lines = [title, description]
+    .map(label => label && `// ${label.replace(/\r?\n/g, ' ')}`)
     .filter(Boolean)
     .join('\n');
 
-  return lines ? `${ lines }\n\n` : '';
+  return lines ? `${lines}\n\n` : '';
 };
 
 /**
@@ -164,9 +165,9 @@ exports.makeSourceComment = function (configText, command) {
   // a literal */ inside the config (a `"replace": "*/"` value, say) would end the
   // comment early and leave the rest of the file as broken code
   const safeText = configText.replace(/\*\//g, '*\\/');
-  const header = command ? `saved from this setting, under "${ command }":` : 'saved from this keybinding:';
+  const header = command ? `saved from this setting, under "${command}":` : 'saved from this keybinding:';
 
-  return `/*\n${ header }\n\n${ safeText }\n*/\n\n`;
+  return `/*\n${header}\n\n${safeText}\n*/\n\n`;
 };
 
 /**
@@ -175,7 +176,7 @@ exports.makeSourceComment = function (configText, command) {
  */
 function _validateNewName(value) {
   if (!value?.trim()) return 'A script name is required.';
-  if (scriptStorage.get(value)) return `A script named "${ value }" already exists.`;
+  if (scriptStorage.get(value)) return `A script named "${value}" already exists.`;
   return null;
 }
 
@@ -184,7 +185,7 @@ function _validateNewName(value) {
  */
 async function _openScript(name) {
   const doc = await workspace.openTextDocument(scriptStorage.getFileUri(name));
-  await window.showTextDocument(doc, { preview: false });
+  await window.showTextDocument(doc, {preview: false});
 }
 
 /**
@@ -213,7 +214,7 @@ exports.editScript = async function () {
     return;
   }
 
-  const picked = await window.showQuickPick(scripts.map(script => script.name), { placeHolder: 'Select a script to edit' });
+  const picked = await window.showQuickPick(scripts.map(script => script.name), {placeHolder: 'Select a script to edit'});
   if (!picked) return;
 
   await _openScript(picked);
@@ -230,10 +231,10 @@ exports.deleteScript = async function () {
     return;
   }
 
-  const picked = await window.showQuickPick(scripts.map(script => script.name), { placeHolder: 'Select a script to delete' });
+  const picked = await window.showQuickPick(scripts.map(script => script.name), {placeHolder: 'Select a script to delete'});
   if (!picked) return;
 
-  const confirmed = await window.showWarningMessage(`Delete script "${ picked }"? This cannot be undone.`, { modal: true }, 'Delete');
+  const confirmed = await window.showWarningMessage(`Delete script "${picked}"? This cannot be undone.`, {modal: true}, 'Delete');
   if (confirmed !== 'Delete') return;
 
   await scriptStorage.delete(picked);
@@ -313,7 +314,7 @@ exports.extractCodeFromSelection = function (selectedText) {
     // whether the decoded content purely reduces to $${ ... }$$
     const wholeValueMatch = WHOLE_QUOTED_VALUE_RE.exec(text);
     if (wholeValueMatch) {
-      text = JSON.parse(`"${ wholeValueMatch[1] }"`);
+      text = JSON.parse(`"${wholeValueMatch[1]}"`);
       trailingComma = wholeValueMatch[2];
       hadWholeQuotedValue = true;
     }
@@ -327,7 +328,7 @@ exports.extractCodeFromSelection = function (selectedText) {
       const trimmed = line.trim();
       if (!trimmed) return '';
       const match = QUOTED_LINE_RE.exec(trimmed);
-      return match ? JSON.parse(`"${ match[1] }"`) : trimmed;
+      return match ? JSON.parse(`"${match[1]}"`) : trimmed;
     }).join('\n').trim()
     : text.trim();
 
@@ -364,7 +365,7 @@ exports.saveInlineScriptAsNamedScript = async function () {
     return;
   }
 
-  const { code, needsQuotes, needsDelimiters, keyPrefix, trailingComma } =
+  const {code, needsQuotes, needsDelimiters, keyPrefix, trailingComma} =
     exports.extractCodeFromSelection(editor.document.getText(editor.selection));
 
   const name = await window.showInputBox({
@@ -381,7 +382,7 @@ exports.saveInlineScriptAsNamedScript = async function () {
     ? exports.findSourceConfigText(documentText, startOffset, editor.document.fileName.endsWith('.code-workspace'))
     : undefined;
 
-  const { title, description } = exports.findSiblingLabels(documentText, startOffset);
+  const {title, description} = exports.findSiblingLabels(documentText, startOffset);
   const headerComment = exports.makeHeaderComment(title, description);
   const sourceComment = source ? exports.makeSourceComment(source.text, source.command) : '';
 

@@ -1110,7 +1110,7 @@ The above keybinding would select the entire Element and capitalize groups 1 and
 
 * You can also use the `cursorMoveSelect` argument with the `matchAroundCursor` result.  
 
-For example this `run` argument will take the selected text - like from the `find` match - and create a new file with that text pasted in:
+Example: this `run` argument will take the selected text - like from the `find` match - and create a new file with that text pasted in:
 
 ```jsonc
     "run": [
@@ -1187,7 +1187,7 @@ The `once` argument to `restrictFind` is being **deprecated** in favor of two re
 
 -------------
 
-The `cursorMoveSelect` option takes any text as its value, including anything that resolves to text, like `$` or any variable.  That text, which can be a result of a prior replacement, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp.  `matchCase` and `matchWholeWord` settings will be honored for both the `cursorMoveSelect` and `find` text.  
+The `cursorMoveSelect` option takes any text as its value, including anything that resolves to text, like `$` or any variable.  That text, which can be a result of a prior replacement, will be searched for after the replacement and the cursor will move there and that text will be selected.  If you have `"isRegex": true` in your command/keybinding then the `cursorMoveSelect` will be interpreted as a regexp (as well as the `find`).  `matchCase` and `matchWholeWord` settings will be honored for both the `cursorMoveSelect` and `find` text.  
 
 ```jsonc
 {

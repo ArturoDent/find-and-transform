@@ -227,6 +227,26 @@ exports.makeScriptCompletionProvider = async function (context) {
   context.subscriptions.push(scriptCompletionProvider);
 };
 
+/**
+ * Make completion items for variables inside a named script (.js) file - the same
+ * path/extension-defined/conditional/snippet variables available in a 'replace' value, minus
+ * the "$${return operation;}$$" suggestion, since a script file's contents are already the
+ * inside of a jsOp.
+ *
+ * @param   {import("vscode").Position} position
+ * @param   {string} trigger - triggered by '$' or '${' so include its range
+ * @returns {Array<CompletionItem>}
+ */
+function _completeScriptVariables(position, trigger) {
+
+  return [
+    ..._completePathVariables(position, trigger),
+    ..._completeExtensionDefinedVariables(position, trigger),
+    ..._completeFindConditionalTransforms(position, trigger),
+    ..._completeSnippetVariables(position, trigger)
+  ];
+}
+
 
 /**
  * Register a CompletionItemProvider for settings.json
@@ -857,26 +877,6 @@ function _completeReplaceFindVariables(position, trigger) {
     ..._completeExtensionDefinedVariables(position, trigger),
     ..._completeFindConditionalTransforms(position, trigger),
     ..._completeReplaceJSOperation(position, trigger),
-    ..._completeSnippetVariables(position, trigger)
-  ];
-}
-
-/**
- * Make completion items for variables inside a named script (.js) file - the same
- * path/extension-defined/conditional/snippet variables available in a 'replace' value, minus
- * the "$${return operation;}$$" suggestion, since a script file's contents are already the
- * inside of a jsOp.
- *
- * @param   {import("vscode").Position} position
- * @param   {string} trigger - triggered by '$' or '${' so include its range
- * @returns {Array<CompletionItem>}
- */
-function _completeScriptVariables(position, trigger) {
-
-  return [
-    ..._completePathVariables(position, trigger),
-    ..._completeExtensionDefinedVariables(position, trigger),
-    ..._completeFindConditionalTransforms(position, trigger),
     ..._completeSnippetVariables(position, trigger)
   ];
 }
