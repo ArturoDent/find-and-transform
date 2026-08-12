@@ -1,520 +1,520 @@
 {
- "id": "ArturoDent.find-and-transform",
- "name": "find-and-transform",
- "displayName": "Find and Transform",
- "description": "Find or search with many options and variables.",
- "version": "5.3.7",
- "engines": {
-  "vscode": "^1.69.0"
- },
- "publisher": "ArturoDent",
- "license": "MIT",
- "repository": {
-  "type": "git",
-  "url": "https://github.com/ArturoDent/find-and-transform"
- },
- "funding": {
-  "url": "https://www.buymeacoffee.com/ArturoDent"
- },
- "main": "./src/extension.js",
- "browser": "./src/extension.js",
- "categories": [
-  "Snippets",
-  "Other"
- ],
- "keywords": [
-  "find",
-  "replace",
-  "search",
-  "conditional",
-  "transform",
-  "case",
-  "regular expression",
-  "regex",
-  "path variable"
- ],
- "activationEvents": [
-  "onStartupFinished"
- ],
- "contributes": {
-  "menus": {
-   "commandPalette": [
-    {
-     "command": "find-and-transform.searchInResults",
-     "when": "hasSearchResult && config.find-and-transform.enableContextMenus"
-    }
-   ],
-   "editor/context": [
-    {
-     "command": "find-and-transform.searchInFile",
-     "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
-     "group": "4_search"
-    },
-    {
-     "command": "find-and-transform.searchInFolder",
-     "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
-     "group": "4_search"
-    },
-    {
-     "command": "find-and-transform.searchInResults",
-     "when": "hasSearchResult && config.find-and-transform.enableContextMenus",
-     "group": "4_search"
-    }
-   ],
-   "editor/title/context": [
-    {
-     "command": "find-and-transform.searchInFile",
-     "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
-     "group": "4_search"
-    },
-    {
-     "command": "find-and-transform.searchInFolder",
-     "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
-     "group": "4_search"
-    }
-   ],
-   "explorer/context": [
-    {
-     "command": "find-and-transform.searchInFile",
-     "title": "search in the file",
-     "when": "config.find-and-transform.enableContextMenus && !explorerResourceIsFolder",
-     "group": "4_search"
-    },
-    {
-     "command": "find-and-transform.searchInFolder",
-     "when": "config.find-and-transform.enableContextMenus  && explorerResourceIsFolder",
-     "group": "4_search"
-    }
-   ]
+  "id": "ArturoDent.find-and-transform",
+  "name": "find-and-transform",
+  "displayName": "Find and Transform",
+  "description": "Find or search with many options and variables.",
+  "version": "6.0.0",
+  "engines": {
+    "vscode": "^1.69.0"
   },
-  "commands": [
-   {
-    "command": "find-and-transform.searchInFile",
-    "title": "Search in this File",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "find-and-transform.searchInFolder",
-    "title": "Search in this Folder",
-    "category": "Find-Transform"
-   },
-   {
-    "command": "find-and-transform.searchInResults",
-    "title": "Search in the Results Files",
-    "category": "Find-Transform"
-   }
+  "publisher": "ArturoDent",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArturoDent/find-and-transform"
+  },
+  "funding": {
+    "url": "https://www.buymeacoffee.com/ArturoDent"
+  },
+  "main": "./src/extension.js",
+  "browser": "./src/extension.js",
+  "categories": [
+    "Snippets",
+    "Other"
   ],
-  "configuration": [
-   {
-    "title": "Find and Transform",
-    "properties": {
-     "findInCurrentFile": {
-      "type": "object",
-      "scope": "resource",
-      "description": "Find in the current file.",
-      "patternProperties": {
-       "^.*$": {
-        "properties": {
-         "title": {
-          "type": "string",
-          "description": "This will appear in the Command Palette as 'Find-Transform: your title'"
-         },
-         "description": {
-          "type": "string",
-          "description": "This is only for your own use"
-         },
-         "preCommands": {
-          "oneOf": [
-           {
-            "type": "string"
-           },
-           {
-            "type": "array"
-           },
-           {
-            "type": "object"
-           }
-          ],
-          "description": "These run before any find or replace"
-         },
-         "find": {
-          "oneOf": [
-           {
-            "type": "string"
-           },
-           {
-            "type": "array",
-            "items": {
-             "type": "string"
-            }
-           }
-          ]
-         },
-         "isRegex": {
-          "type": "boolean",
-          "description": "Is the 'find' to be considered a regular expression"
-         },
-         "ignoreWhiteSpace": {
-          "type": "boolean",
-          "description": "Collapse any whitespace in the searched text"
-         },
-         "replace": {
-          "oneOf": [
-           {
-            "type": "string"
-           },
-           {
-            "type": "array",
-            "items": {
-             "type": "string"
-            }
-           }
-          ]
-         },
-         "run": {
-          "oneOf": [
-           {
-            "type": "string"
-           },
-           {
-            "type": "array",
-            "items": {
-             "type": "string"
-            }
-           }
-          ]
-         },
-         "runWhen": {
-          "type": "string",
-          "enum": [
-           "onceIfAMatch",
-           "onEveryMatch",
-           "onceOnNoMatches"
-          ]
-         },
-         "postCommands": {
-          "oneOf": [
-           {
-            "type": "string"
-           },
-           {
-            "type": "array"
-           },
-           {
-            "type": "object"
-           }
-          ]
-         },
-         "runPostCommands": {
-          "type": "string",
-          "enum": [
-           "onceIfAMatch",
-           "onEveryMatch",
-           "onceOnNoMatches"
-          ],
-          "description": "When should the 'postCommands' run"
-         },
-         "preserveSelections": {
-          "type": "boolean",
-          "description": "Re-enable any selections that were present before running this find/replace"
-         },
-         "matchCase": {
-          "type": "boolean"
-         },
-         "matchWholeWord": {
-          "type": "boolean"
-         },
-         "reveal": {
-          "type": "boolean",
-          "description": "Scroll the window to show any match"
-         },
-         "cursorMoveSelect": {
-          "type": "string",
-          "description": "Text or regex to match and select after any find/replace"
-         },
-         "restrictFind": {
-          "type": "string",
-          "enum": [
-           "document",
-           "line",
-           "selections",
-           "matchAroundCursor",
-           "onceIncludeCurrentWord",
-           "onceExcludeCurrentWord",
-           "nextSelect",
-           "nextMoveCursor",
-           "nextDontMoveCursor",
-           "previousSelect",
-           "previousMoveCursor",
-           "previousDontMoveCursor"
-          ]
-         }
+  "keywords": [
+    "find",
+    "replace",
+    "search",
+    "conditional",
+    "transform",
+    "case",
+    "regular expression",
+    "regex",
+    "path variable"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "find-and-transform.searchInResults",
+          "when": "hasSearchResult && config.find-and-transform.enableContextMenus"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "find-and-transform.searchInFile",
+          "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
+          "group": "4_search"
         },
-        "required": [
-         "title"
-        ],
-        "dependentRequired": {
-         "runWhen": [
-          "run"
-         ],
-         "runPostCommands": [
-          "postCommands"
-         ]
+        {
+          "command": "find-and-transform.searchInFolder",
+          "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
+          "group": "4_search"
         },
-        "additionalProperties": false
-       }
+        {
+          "command": "find-and-transform.searchInResults",
+          "when": "hasSearchResult && config.find-and-transform.enableContextMenus",
+          "group": "4_search"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "find-and-transform.searchInFile",
+          "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
+          "group": "4_search"
+        },
+        {
+          "command": "find-and-transform.searchInFolder",
+          "when": "editorIsOpen && config.find-and-transform.enableContextMenus",
+          "group": "4_search"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "find-and-transform.searchInFile",
+          "title": "search in the file",
+          "when": "config.find-and-transform.enableContextMenus && !explorerResourceIsFolder",
+          "group": "4_search"
+        },
+        {
+          "command": "find-and-transform.searchInFolder",
+          "when": "config.find-and-transform.enableContextMenus  && explorerResourceIsFolder",
+          "group": "4_search"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "find-and-transform.searchInFile",
+        "title": "Search in this File",
+        "category": "Find-Transform"
+      },
+      {
+        "command": "find-and-transform.searchInFolder",
+        "title": "Search in this Folder",
+        "category": "Find-Transform"
+      },
+      {
+        "command": "find-and-transform.searchInResults",
+        "title": "Search in the Results Files",
+        "category": "Find-Transform"
       }
-     },
-     "runInSearchPanel": {
-      "type": "object",
-      "scope": "resource",
-      "description": "Search using the Search Panel.",
-      "patternProperties": {
-       "^.*$": {
+    ],
+    "configuration": [
+      {
+        "title": "Find and Transform",
         "properties": {
-         "title": {
-          "type": "string",
-          "description": "This will appear in the Command Palette as 'Find-Transform: your title'"
-         },
-         "description": {
-          "type": "string"
-         },
-         "preCommands": {
-          "oneOf": [
-           {
-            "type": "string"
-           },
-           {
-            "type": "array"
-           },
-           {
-            "type": "object"
-           }
-          ]
-         },
-         "find": {
-          "oneOf": [
-           {
-            "type": "string"
-           },
-           {
-            "type": "array",
-            "items": {
-             "type": "string"
-            }
-           }
-          ]
-         },
-         "isRegex": {
-          "type": "boolean",
-          "items": {
-           "type": "boolean"
-          }
-         },
-         "ignoreWhiteSpace": {
-          "type": "boolean"
-         },
-         "replace": {
-          "type": "string"
-         },
-         "delay": {
-          "type": "integer",
-          "items": {
-           "type": "integer"
-          }
-         },
-         "postCommands": {
-          "oneOf": [
-           {
-            "type": "string"
-           },
-           {
-            "type": "array"
-           },
-           {
-            "type": "object"
-           }
-          ]
-         },
-         "triggerSearch": {
-          "oneOf": [
-           {
-            "type": "boolean"
-           },
-           {
-            "type": "array",
-            "items": {
-             "type": "boolean"
-            }
-           }
-          ]
-         },
-         "triggerReplaceAll": {
-          "oneOf": [
-           {
-            "type": "boolean"
-           },
-           {
-            "type": "array",
-            "items": {
-             "type": "boolean"
-            }
-           }
-          ]
-         },
-         "matchCase": {
-          "type": "boolean",
-          "items": {
-           "type": "boolean"
-          }
-         },
-         "matchWholeWord": {
-          "type": "boolean",
-          "items": {
-           "type": "boolean"
-          }
-         },
-         "preserveCase": {
-          "type": "boolean",
-          "items": {
-           "type": "boolean"
-          }
-         },
-         "onlyOpenEditors": {
-          "type": "boolean",
-          "items": {
-           "type": "boolean"
-          }
-         },
-         "filesToInclude": {
-          "oneOf": [
-           {
-            "type": "string"
-           },
-           {
-            "type": "array",
-            "items": {
-             "type": "string"
-            }
-           }
-          ]
-         },
-         "filesToExclude": {
-          "oneOf": [
-           {
-            "type": "string"
-           },
-           {
-            "type": "array",
-            "items": {
-             "type": "string"
-            }
-           }
-          ]
-         },
-         "useExcludeSettingsAndIgnoreFiles": {
-          "type": "boolean",
-          "items": {
-           "type": "boolean"
-          }
-         }
-        },
-        "required": [
-         "title"
-        ],
-        "allOf": [
-         {
-          "if": {
-           "properties": {
-            "triggerReplaceAll": {
-             "const": true
-            },
-            "required": [
-             "triggerReplaceAll"
-            ]
-           }
-          },
-          "then": {
-           "required": [
-            "triggerSearch"
-           ],
-           "properties": {
-            "triggerSearch": {
-             "const": true
-            }
-           }
-          }
-         },
-         {
-          "if": {
-           "not": {
-            "required": [
-             "replace"
-            ]
-           }
-          },
-          "then": {
-           "anyOf": [
-            {
-             "properties": {
-              "triggerReplaceAll": {
-               "const": false
+          "findInCurrentFile": {
+            "type": "object",
+            "scope": "resource",
+            "description": "Find in the current file.",
+            "patternProperties": {
+              "^.*$": {
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "This will appear in the Command Palette as 'Find-Transform: your title'"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "This is only for your own use"
+                  },
+                  "preCommands": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array"
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ],
+                    "description": "These run before any find or replace"
+                  },
+                  "find": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "isRegex": {
+                    "type": "boolean",
+                    "description": "Is the 'find' to be considered a regular expression"
+                  },
+                  "ignoreWhiteSpace": {
+                    "type": "boolean",
+                    "description": "Collapse any whitespace in the searched text"
+                  },
+                  "replace": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "run": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "runWhen": {
+                    "type": "string",
+                    "enum": [
+                      "onceIfAMatch",
+                      "onEveryMatch",
+                      "onceOnNoMatches"
+                    ]
+                  },
+                  "postCommands": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array"
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "runPostCommands": {
+                    "type": "string",
+                    "enum": [
+                      "onceIfAMatch",
+                      "onEveryMatch",
+                      "onceOnNoMatches"
+                    ],
+                    "description": "When should the 'postCommands' run"
+                  },
+                  "preserveSelections": {
+                    "type": "boolean",
+                    "description": "Re-enable any selections that were present before running this find/replace"
+                  },
+                  "matchCase": {
+                    "type": "boolean"
+                  },
+                  "matchWholeWord": {
+                    "type": "boolean"
+                  },
+                  "reveal": {
+                    "type": "boolean",
+                    "description": "Scroll the window to show any match"
+                  },
+                  "cursorMoveSelect": {
+                    "type": "string",
+                    "description": "Text or regex to match and select after any find/replace"
+                  },
+                  "restrictFind": {
+                    "type": "string",
+                    "enum": [
+                      "document",
+                      "line",
+                      "selections",
+                      "matchAroundCursor",
+                      "onceIncludeCurrentWord",
+                      "onceExcludeCurrentWord",
+                      "nextSelect",
+                      "nextMoveCursor",
+                      "nextDontMoveCursor",
+                      "previousSelect",
+                      "previousMoveCursor",
+                      "previousDontMoveCursor"
+                    ]
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "dependentRequired": {
+                  "runWhen": [
+                    "run"
+                  ],
+                  "runPostCommands": [
+                    "postCommands"
+                  ]
+                },
+                "additionalProperties": false
               }
-             }
-            },
-            {
-             "properties": {
-              "triggerReplaceAll": {
-               "const": null
-              }
-             }
             }
-           ]
+          },
+          "runInSearchPanel": {
+            "type": "object",
+            "scope": "resource",
+            "description": "Search using the Search Panel.",
+            "patternProperties": {
+              "^.*$": {
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "This will appear in the Command Palette as 'Find-Transform: your title'"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "preCommands": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array"
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "find": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "isRegex": {
+                    "type": "boolean",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "ignoreWhiteSpace": {
+                    "type": "boolean"
+                  },
+                  "replace": {
+                    "type": "string"
+                  },
+                  "delay": {
+                    "type": "integer",
+                    "items": {
+                      "type": "integer"
+                    }
+                  },
+                  "postCommands": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array"
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "triggerSearch": {
+                    "oneOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "boolean"
+                        }
+                      }
+                    ]
+                  },
+                  "triggerReplaceAll": {
+                    "oneOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "boolean"
+                        }
+                      }
+                    ]
+                  },
+                  "matchCase": {
+                    "type": "boolean",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "matchWholeWord": {
+                    "type": "boolean",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "preserveCase": {
+                    "type": "boolean",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "onlyOpenEditors": {
+                    "type": "boolean",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "filesToInclude": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "filesToExclude": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "useExcludeSettingsAndIgnoreFiles": {
+                    "type": "boolean",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "required": [
+                  "title"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "triggerReplaceAll": {
+                          "const": true
+                        },
+                        "required": [
+                          "triggerReplaceAll"
+                        ]
+                      }
+                    },
+                    "then": {
+                      "required": [
+                        "triggerSearch"
+                      ],
+                      "properties": {
+                        "triggerSearch": {
+                          "const": true
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "not": {
+                        "required": [
+                          "replace"
+                        ]
+                      }
+                    },
+                    "then": {
+                      "anyOf": [
+                        {
+                          "properties": {
+                            "triggerReplaceAll": {
+                              "const": false
+                            }
+                          }
+                        },
+                        {
+                          "properties": {
+                            "triggerReplaceAll": {
+                              "const": null
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "find-and-transform.enableContextMenus": {
+            "type": "boolean",
+            "scope": "resource",
+            "default": true,
+            "markdownDescription": "Show `Search in this File`, `Search in this Folder` and `Search in the Results Files` in the context menus."
+          },
+          "find-and-transform.enableWarningDialog": {
+            "type": "boolean",
+            "scope": "resource",
+            "default": true,
+            "markdownDescription": "Enable a warning dialog if there are bad argument keys or values in settings and keybindings."
           }
-         }
-        ],
-        "additionalProperties": false
-       }
+        }
       }
-     },
-     "find-and-transform.enableContextMenus": {
-      "type": "boolean",
-      "scope": "resource",
-      "default": true,
-      "markdownDescription": "Show `Search in this File`, `Search in this Folder` and `Search in the Results Files` in the context menus."
-     },
-     "find-and-transform.enableWarningDialog": {
-      "type": "boolean",
-      "scope": "resource",
-      "default": true,
-      "markdownDescription": "Enable a warning dialog if there are bad argument keys or values in settings and keybindings."
-     }
-    }
-   }
-  ]
- },
- "scripts": {
-  "lint": "eslint .",
-  "pretest": "npm run lint",
-  "test": "node ./test/runTest.js"
- },
- "devDependencies": {
-  "@types/glob": "^7.1.1",
-  "@types/mocha": "^7.0.2",
-  "@types/node": "^18.19.3",
-  "@types/vscode": "^1.56.0",
-  "@vscode/test-electron": "^3.1.0",
-  "eslint": "^9.39.5",
-  "glob": "^7.1.7",
-  "globals": "^17.9.0",
-  "mocha": "^7.1.2",
-  "typescript": "^3.9.10"
- },
- "extensionKind": [
-  "ui",
-  "workspace"
- ],
- "dependencies": {
-  "jsonc-parser": "^3.0.0"
- }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "node ./test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.1",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^18.19.3",
+    "@types/vscode": "^1.56.0",
+    "@vscode/test-electron": "^3.1.0",
+    "eslint": "^9.39.5",
+    "glob": "^7.1.7",
+    "globals": "^17.9.0",
+    "mocha": "^7.1.2",
+    "typescript": "^3.9.10"
+  },
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "dependencies": {
+    "jsonc-parser": "^3.0.0"
+  }
 }
