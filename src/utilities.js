@@ -247,8 +247,8 @@ exports.getSearchResultsFiles = async function (clipText) {
 exports.toPascalCase = function (value) {
 
   value = value.trim();  // whitespaces are removed
-  // split on uppercase letter that is followed by a lowercase letter or a '-' or an '_'
-  const words = value.split(/(?=[A-Z])|[-_]/);
+  // split on uppercase letter that is followed by a lowercase letter, a '-', an '_', or whitespace
+  const words = value.split(/(?=[A-Z])|[-_]|\s+/).filter(word => word.length);
   const capitalizedWords = words.map(word => word.charAt(0).toUpperCase() + word.slice(1));
   return capitalizedWords.join('');
 };

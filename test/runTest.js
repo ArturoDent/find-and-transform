@@ -65,12 +65,17 @@ async function main() {
     // --disable-extensions: isolate the test host from other bundled/built-in extensions
     // (e.g. vscode.mermaid-markdown-features), which otherwise load alongside ours and
     // can interfere with the test run; --extensionDevelopmentPath still loads ours regardless
+    // extensionDevelopmentPath as a positional arg: opens the repo itself as the test
+    // instance's workspace folder, so workspace-relative variables like ${relativeFile}
+    // resolve to a short forward-slash path instead of falling back to the raw absolute
+    // fsPath (which, on Windows, can misparse as regex escapes like \f in a find/replace
+    // that uses isRegex - see the "relativeFile/fileExtname" findInCurrentFile test)
     // stdout/stderr: filtered through filterNoise() to drop VS Code's own startup noise
     // while forwarding Mocha's test output and any real failures untouched
     await runTests({
       extensionDevelopmentPath,
       extensionTestsPath,
-      launchArgs: ['--disable-extensions'],
+      launchArgs: ['--disable-extensions', extensionDevelopmentPath],
       stdout: filterNoise(process.stdout),
       stderr: filterNoise(process.stderr),
     });

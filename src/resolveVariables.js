@@ -1350,7 +1350,7 @@ function _applyCaseTransform(p2, p3, groups) {
 
   let resolved = groups[p2];
 
-  if (!resolved) return undefined;
+  if (!resolved) return "";
 
   switch (p3) {
 

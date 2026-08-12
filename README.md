@@ -642,7 +642,7 @@ ${getTextLines:n}          get the text of a line, 'n' is 0-based, so ${getLineT
 
 ${getTextLines:n-p}        get the text of lines n through p inclusive, example  ${getTextLines:2-4}  
 
-${getTextLines:(n-p)}      get the text of a line n-n, example  ${getTextLines:(${lineIndex}-1)} : get previous line
+${getTextLines:(n-p)}      get the text of a line n-p (i.e., n minus p), example  ${getTextLines:(${lineIndex}-1)} : get previous line
                            use the parentheses, if you want to do math to resolve to a line.  Can use `+-/*%`.  ${getTextLines:(${lineIndex}+p)}, etc.
                            
 ${getTextLines:n,p,q,r}    get the text from line `n`, column `p` through line `q`, column `r` inclusive, 
@@ -928,7 +928,7 @@ Example:
 
 ### Conditional replacements in `findInCurrentFile` commands or keybindings
 
-Vscode **snippets** allow you to make conditional replacements, see [vscode's snippet grammar documentation](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_grammar).  However you cannot use those in the find/replace widget.  This extension allows you to use those conditionals in a `findInCurrentFile` command or keybinding.  Types of conditionals and their meaning:
+Vscode **snippets** allow you to make conditional replacements, see [vscode's snippet grammar documentation](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_grammar).  However you cannot use those in vscode's find/replace widget.  This extension allows you to use those conditionals in a `findInCurrentFile` command or keybinding.  Types of conditionals and their meaning:
 
 ```text
 ${1:+add this text}  If found a capture group 1, add the text. `+` means `if`  
@@ -1569,7 +1569,7 @@ Explanation for above: With no `find` key, find matches of selections or nearest
 
 > If you are using no `find` but are selecting text that you want treated as a regular expression (like `\n text (\d)`) do not double-escape those special regex characters.  Just use the same regex you would use in the Find Widget.  Remember to have `isRegex` set to true in this case.  
 
-> Finally, if you select multiple instances of the same text the generated `find` term will have any duplicates removed.  `Set.add()` is a beautiful thing.  
+> Finally, if you select multiple instances of the same text the generated `find` term will have any duplicates removed.  Javascript's `Set.add()` is a beautiful thing.  
 
 ```jsonc
 {
