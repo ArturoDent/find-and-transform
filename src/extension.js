@@ -34,8 +34,8 @@ async function activate(context) {
 
   await _loadSettingsAsCommands(context, _disposables, firstRun);
 
-  providers.makeKeybindingsCompletionProvider(context);
-  providers.makeSettingsCompletionProvider(context);
+  providers.makeKeybindingsCompletionProvider(context, _disposables);
+  providers.makeSettingsCompletionProvider(context, _disposables);
   providers.makeScriptCompletionProvider(context);
 
   enableWarningDialog = await workspace.getConfiguration().get('find-and-transform.enableWarningDialog') ?? false;
@@ -187,12 +187,13 @@ async function activate(context) {
       for (let disposable of _disposables) {
         await disposable.dispose();
       }
+      _disposables.length = 0;
 
       // reload
       await _loadSettingsAsCommands(context, _disposables, false);
 
-      await providers.makeKeybindingsCompletionProvider(context);
-      await providers.makeSettingsCompletionProvider(context);
+      await providers.makeKeybindingsCompletionProvider(context, _disposables);
+      await providers.makeSettingsCompletionProvider(context, _disposables);
 
       if (!event.affectsConfiguration("find-and-transform.enableWarningDialog")) {
         window
@@ -226,7 +227,7 @@ async function _loadSettingsAsCommands(context, _disposables, firstRun) {
 
   if (findSettings.length) {
     await registerCommands.find(findSettings, context, _disposables, enableWarningDialog);
-    await codeActions.makeCodeActionProvider(context, findSettings);
+    await codeActions.makeCodeActionProvider(context, findSettings, _disposables);
   }
 
   if (searchSettings.length) {

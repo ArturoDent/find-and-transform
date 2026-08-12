@@ -12,8 +12,9 @@ const scriptStorage = require('./scriptStorage');
 /**
  * Register a CompletionItemProvider for keybindings.json
  * @param {import("vscode").ExtensionContext} context
+ * @param {Array<import("vscode").Disposable>} disposables
  */
-exports.makeKeybindingsCompletionProvider = async function (context) {
+exports.makeKeybindingsCompletionProvider = async function (context, disposables) {
   const configCompletionProvider = languages.registerCompletionItemProvider(
     {pattern: '**/keybindings.json'},
     {
@@ -169,6 +170,7 @@ exports.makeKeybindingsCompletionProvider = async function (context) {
   );
 
   context.subscriptions.push(configCompletionProvider);
+  disposables.push(configCompletionProvider);
 };
 
 
@@ -251,8 +253,9 @@ function _completeScriptVariables(position, trigger) {
 /**
  * Register a CompletionItemProvider for settings.json
  * @param {import("vscode").ExtensionContext} context
+ * @param {Array<import("vscode").Disposable>} disposables
  */
-exports.makeSettingsCompletionProvider = async function (context) {
+exports.makeSettingsCompletionProvider = async function (context, disposables) {
   const settingsCompletionProvider = languages.registerCompletionItemProvider(
     [{pattern: '**/settings.json'}, {pattern: '**/*.code-workspace'}],
     {
@@ -412,6 +415,7 @@ exports.makeSettingsCompletionProvider = async function (context) {
   );
 
   context.subscriptions.push(settingsCompletionProvider);
+  disposables.push(settingsCompletionProvider);
 };
 
 

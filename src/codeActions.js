@@ -4,26 +4,29 @@ const { languages, CodeAction, CodeActionKind } = require('vscode');
 /**
  * Create codeActions to use on save from settings
  * @param {import("vscode").ExtensionContext} context
+ * @param {Array} codeActionCommands
+ * @param {Array<import("vscode").Disposable>} disposables
  */
-exports.makeCodeActionProvider = async function (context, codeActionCommands) {
+exports.makeCodeActionProvider = async function (context, codeActionCommands, disposables) {
 
-	context.subscriptions.push(
-		languages.registerCodeActionsProvider('*',
-			{
-				async provideCodeActions() {
+	const codeActionProvider = languages.registerCodeActionsProvider('*',
+		{
+			async provideCodeActions() {
 
-					const commandArray = [];
+				const commandArray = [];
 
-					for await (const command of codeActionCommands) {
-						commandArray.push(_createCommand(command));
-					}
-					return commandArray;
+				for await (const command of codeActionCommands) {
+					commandArray.push(_createCommand(command));
 				}
-			},
-			{
-				providedCodeActionKinds: [CodeActionKind.Source]
-			})
-	);
+				return commandArray;
+			}
+		},
+		{
+			providedCodeActionKinds: [CodeActionKind.Source]
+		});
+
+	context.subscriptions.push(codeActionProvider);
+	disposables.push(codeActionProvider);
 }
 
 /**

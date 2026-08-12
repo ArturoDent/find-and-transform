@@ -14,7 +14,7 @@
     "find": "(\\$1) (\\d+)",
     "isRegex": true,
     "replace": [
-      "$${script:math_with_numbers}$$"    // run matth_with_numbers.js
+      "$${script:math_with_numbers}$$"    // run math_with_numbers.js
     ]
   }
 }
@@ -1561,7 +1561,7 @@ This is demonstrated in some of the demos below.
 
 Explanation for above: With no `find` key, find matches of selections or nearest words at cursors (multi-cursors work) and select all those matches.  Blue text are selections in the demo gif.
 
-> Important: If there is no `find` key and there are **mutiple selections** then this extension will create a `find` query using **all** those selections.  The generated `find` will be in the form of `"find": "(word1|word2|other selected text)`.  Note the use of the alternation pipe `|` so any of those selected words can be found.  Thus, the find in file or find across files must have the regex flag enabled.  Therefore, if you have multiple selections with no `find` key, `"isRegex": true` will be automatically set - possibly overriding what you had the settings or keybinding.  
+> Important: If there is no `find` key and there are **mutiple selections** then this extension will create a `find` query using **all** those selections.  The generated `find` will be in the form of `"find": "(word1|word2|other selected text)`.  Note the use of the alternation pipe `|` so any of those selected words can be found.  Thus, the find in file or find across files must have the regex flag enabled.  Therefore, if you have multiple selections with no `find` key, `"isRegex": true` will be automatically set - possibly overriding what you had in the settings or keybindings.  
 
 > That should only be a problem if you select text that gets generated into a `find` term that itself contains regexp special characters, like `.?*^$`, etc.  They will not be treated as literal characters but as their usual regexp functionality.  
 
