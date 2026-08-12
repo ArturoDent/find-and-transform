@@ -1,0 +1,3 @@
+line one
+MY_TEST_FILE
+line two

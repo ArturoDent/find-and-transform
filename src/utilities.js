@@ -1,6 +1,7 @@
 const { window, workspace, env, extensions, commands, Uri } = require('vscode');
 
 const languageConfigs = require('./getLanguageConfig');
+const scriptStorage = require('./scriptStorage');
 const path = require('path');
 const os = require('os');
 
@@ -162,6 +163,18 @@ exports.getRelativeFolderPath = function (filePath) {
 
 
 /**
+ * If `text` is a "$${script:name}$$" or "$${script:name(arg)}$$" reference,
+ * return the saved script's code.
+ * @param {string} text
+ * @returns {string | undefined}
+ */
+function _scriptRefCode(text) {
+  const jsOpMatch = /\$\$\{([\s\S]*?)\}\$\$/.exec(text ?? "");
+  const scriptRefMatch = jsOpMatch && /^\s*script:(.+?)(?:\([\s\S]*\))?\s*$/.exec(jsOpMatch[1]);
+  return scriptRefMatch ? scriptStorage.get(scriptRefMatch[1].trim()) : undefined;
+}
+
+/**
  * Get the language configuration comments object for  the current file
  * @returns {Promise<object|undefined>} comments object
  */
@@ -170,9 +183,13 @@ exports.getlanguageConfigComments = async function (args) {
   const document = window.activeTextEditor?.document;
   if (!document) return undefined;
 
-  // do only if $LINE_COMMENT, $BLOCK_COMMENT_START, $BLOCK_COMMENT_END in find or replace
-  let re = /\$\{LINE_COMMENT\}|\$\{BLOCK_COMMENT_START\}|\$\{BLOCK_COMMENT_END\}/;
-  if (args.find?.search(re) !== -1 || args.replace?.search(re) !== -1) {
+  // do only if $LINE_COMMENT, $BLOCK_COMMENT_START, $BLOCK_COMMENT_END in find or replace -
+  // checking inside a $${script:name}$$ reference's saved code too, since the reference
+  // text itself never literally contains these variables even if the saved script does
+  const re = /\$\{LINE_COMMENT\}|\$\{BLOCK_COMMENT_START\}|\$\{BLOCK_COMMENT_END\}/;
+  const scriptCode = _scriptRefCode(args.find) ?? _scriptRefCode(args.replace) ?? "";
+
+  if (args.find?.search(re) !== -1 || args.replace?.search(re) !== -1 || re.test(scriptCode)) {
     const documentLanguageId = document.languageId;
     return await languageConfigs.get(documentLanguageId, 'comments');
   }
@@ -230,8 +247,8 @@ exports.getSearchResultsFiles = async function (clipText) {
 exports.toPascalCase = function (value) {
 
   value = value.trim();  // whitespaces are removed
-  // split on uppercase letter that is followed by a lowercase letter or a '-' or an '_'
-  const words = value.split(/(?=[A-Z])|[-_]/);
+  // split on uppercase letter that is followed by a lowercase letter, a '-', an '_', or whitespace
+  const words = value.split(/(?=[A-Z])|[-_]|\s+/).filter(word => word.length);
   const capitalizedWords = words.map(word => word.charAt(0).toUpperCase() + word.slice(1));
   return capitalizedWords.join('');
 };

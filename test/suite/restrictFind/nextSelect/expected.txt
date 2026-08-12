@@ -1,0 +1,5 @@
+const a = 12;
+
+i am const;
+
+[CONST] b = 13;

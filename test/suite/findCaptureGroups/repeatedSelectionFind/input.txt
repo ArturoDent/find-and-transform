@@ -1,0 +1,1 @@
+con|st const const other

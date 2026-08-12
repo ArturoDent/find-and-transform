@@ -48,9 +48,10 @@ exports.hide = async function () {
  * @returns void
  */
 exports.dispose = async function () {
-  
+
   if (!exports.outputChannel) return;
-  else return exports.outputChannel.dispose();
+  exports.outputChannel.dispose();
+  exports.outputChannel = undefined;
 };
 
 

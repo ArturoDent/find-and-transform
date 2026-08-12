@@ -57,7 +57,7 @@ exports.load = async function (findSettings, searchSettings, context, enableWarn
   // if (!_commandArraysAreEquivalent(settingsCommands, packageCommands) ||
   // 	!_activationEventArraysAreEquivalent(settingsEvents, packageEvents)) {
 
-  if (!_commandArraysAreEquivalent(settingsCommands, packageCommands)) {
+  if (!_commandArraysAreEquivalent(settingsCommands, packageCommands, builtins.length)) {
 
     packageJSON.contributes.commands = builtins.concat(settingsCommands);
     // packageJSON.activationEvents = settingsEvents;
@@ -165,6 +165,31 @@ function _makeCommandsFromPackageCommands() {
     "command": "find-and-transform.searchInResults",
     "title": "Search in the Results Files",
     "category": "Find-Transform"
+  },
+  {
+    "command": "find-and-transform.newScript",
+    "title": "New Script",
+    "category": "Find-Transform"
+  },
+  {
+    "command": "find-and-transform.editScript",
+    "title": "Edit Script",
+    "category": "Find-Transform"
+  },
+  {
+    "command": "find-and-transform.deleteScript",
+    "title": "Delete Script",
+    "category": "Find-Transform"
+  },
+  {
+    "command": "find-and-transform.revealScriptsFolder",
+    "title": "Reveal Scripts Folder in File Explorer",
+    "category": "Find-Transform"
+  },
+  {
+    "command": "find-and-transform.saveInlineScriptAsNamedScript",
+    "title": "Save Selected Code as Named Script",
+    "category": "Find-Transform"
   }
   ];
 
@@ -211,12 +236,12 @@ function _makeCommandsFromPackageCommands() {
  *
  * @param {Array} settings - commands constructed from the settings.json 'command aliases'
  * @param {Array} packages - the pre-existing commands from package.json
+ * @param {number} builtinsCount - how many of `packages` are this extension's own fixed (non-settings-derived) commands
  * @returns {boolean}
  */
-function _commandArraysAreEquivalent(settings, packages) {
+function _commandArraysAreEquivalent(settings, packages, builtinsCount) {
 
-  // subtract 3 for searchInFile/searchInFolder/searchInResults commands
-  if (settings.length !== (packages.length - 3)) return false;
+  if (settings.length !== (packages.length - builtinsCount)) return false;
 
   return settings.every(setting => packages.some(pcommand => {
     if ((pcommand.command !== "find-and-transform.searchInFile") && (pcommand.command !== "find-and-transform.searchInFolder")

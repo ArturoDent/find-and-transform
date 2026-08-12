@@ -80,6 +80,11 @@ exports.startRunInSearchPanel = async function (args, enableWarningDialog) {
 
   if (args?.preCommands) await prePostCommands.run(args.preCommands, "preCommands");
 
+  // could be an array of 1 : ["$${ return '****', }$$"] or ["**** $${ return 'pardner', }$$"]
+  // call a function that looks for all jsOp's $${...}$$ in args.replace
+  if (args && Array.isArray(args.replace) && args.replace.find(el => el.search(/^\s*\$\$\{\s*/m) !== -1))
+    args.replace = await parseCommands.buildJSOperationsFromArgs(args.replace);
+
   const argsBadObject = await utilities.checkArgs(args, "searchBinding");
 
   if (Object.entries(argsBadObject).length) {  // send to utilities function

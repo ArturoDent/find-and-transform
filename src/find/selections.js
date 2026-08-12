@@ -199,15 +199,21 @@ exports.replaceInSelections = async function (editor, args) {
 
         if (cursorMoveSelect.length) {  // don't if cursorMoveSelect === ""
 
-          // put cursor at the old start of the/each selection
+          // "^" = the selection's anchor (opposite of where the cursor was) - structural
+          // end if the selection is reversed, structural start otherwise
           if (cursorMoveSelect === "^(?!\n)") {  // args.cursorMoveSelect === "^"
-            const startPos = document.positionAt(selectionStartIndex + selectionStartAdjust);
-            foundCMSSelections.push(new Selection(startPos, startPos));
+            const pos = selection.isReversed
+              ? document.positionAt(selectionStartIndex + originalLength + cumulativeChangesInSelectionLength)
+              : document.positionAt(selectionStartIndex + selectionStartAdjust);
+            foundCMSSelections.push(new Selection(pos, pos));
           }
-          // put cursor at the old end of the/each selection
+          // "$" = the selection's active point (where the cursor was) - structural start
+          // if the selection is reversed, structural end otherwise
           else if (cursorMoveSelect === "$(?!\n)") {  // args.cursorMoveSelect === "$"
-            const endPos = document.positionAt(selectionStartIndex + originalLength + cumulativeChangesInSelectionLength);
-            foundCMSSelections.push(new Selection(endPos, endPos));
+            const pos = selection.isReversed
+              ? document.positionAt(selectionStartIndex + selectionStartAdjust)
+              : document.positionAt(selectionStartIndex + originalLength + cumulativeChangesInSelectionLength);
+            foundCMSSelections.push(new Selection(pos, pos));
           }
           else {
             const startPos = document.positionAt(selectionStartIndex + selectionStartAdjust);

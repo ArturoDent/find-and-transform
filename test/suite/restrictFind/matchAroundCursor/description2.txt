@@ -1,0 +1,1 @@
+matches with cursor before or after match, and if match is already selected

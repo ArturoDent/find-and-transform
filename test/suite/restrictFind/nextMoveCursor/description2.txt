@@ -1,0 +1,1 @@
+should wrap to first from top of file, cursor before match

@@ -1,0 +1,5 @@
+co[nst a = 12;
+
+i am const;
+
+con]st b = 13;

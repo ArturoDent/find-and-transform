@@ -15,7 +15,7 @@ exports.getPathVariables = function () {
 
   return [
     "${file}", "${relativeFile}", "${fileBasename}", "${fileBasenameNoExtension}", "${fileExtname}", "${fileDirname}",
-    "${fileWorkspaceFolder}", "${workspaceFolder}", "${relativeFileDirname}", "${workspaceFolderBasename}",
+    "${fileWorkspaceFolder}", "${workspaceFolder}", "${relativeFileDirname}", "${workspaceFolderBasename}", "${userHome}",
     "${selectedText}", "${pathSeparator}", "${/}", "${lineIndex}", "${lineNumber}", "${CLIPBOARD}",
     "${columnNumber}", "${matchIndex}", "${matchNumber}"
   ];

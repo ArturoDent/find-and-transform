@@ -10,6 +10,8 @@ const codeActions = require('./codeActions');
 const utilities = require('./utilities');
 const outputChannel = require('./outputChannel');
 const searchArgs = require('./args/searchOptions');
+const scriptStorage = require('./scriptStorage');
+const scriptCommands = require('./scriptCommands');
 
 
 /** @type { Array<import("vscode").Disposable> } */
@@ -25,13 +27,16 @@ async function activate(context) {
 
   await outputChannel.dispose();
 
-  this.context = context;  // global  
+  this.context = context;  // global
   let firstRun = true;
+
+  await scriptStorage.init(context);
 
   await _loadSettingsAsCommands(context, _disposables, firstRun);
 
-  providers.makeKeybindingsCompletionProvider(context);
-  providers.makeSettingsCompletionProvider(context);
+  providers.makeKeybindingsCompletionProvider(context, _disposables);
+  providers.makeSettingsCompletionProvider(context, _disposables);
+  providers.makeScriptCompletionProvider(context);
 
   enableWarningDialog = await workspace.getConfiguration().get('find-and-transform.enableWarningDialog') ?? false;
 
@@ -158,6 +163,18 @@ async function activate(context) {
 
   // ---------------------------------------------------------------------------------------------------------------------
 
+  // commands for managing named scripts stored in global storage, see scriptStorage.js/scriptCommands.js
+  context.subscriptions.push(
+    commands.registerCommand('find-and-transform.newScript', scriptCommands.newScript),
+    commands.registerCommand('find-and-transform.editScript', scriptCommands.editScript),
+    commands.registerCommand('find-and-transform.deleteScript', scriptCommands.deleteScript),
+    commands.registerCommand('find-and-transform.revealScriptsFolder', scriptCommands.revealScriptsFolder),
+    commands.registerCommand('find-and-transform.saveInlineScriptAsNamedScript', scriptCommands.saveInlineScriptAsNamedScript),
+    workspace.onDidSaveTextDocument(document => scriptStorage.syncFileToStorage(document))
+  );
+
+  // ---------------------------------------------------------------------------------------------------------------------
+
   context.subscriptions.push(workspace.onDidChangeConfiguration(async (event) => {
 
     if (event.affectsConfiguration("find-and-transform.enableWarningDialog")
@@ -170,12 +187,13 @@ async function activate(context) {
       for (let disposable of _disposables) {
         await disposable.dispose();
       }
+      _disposables.length = 0;
 
       // reload
       await _loadSettingsAsCommands(context, _disposables, false);
 
-      await providers.makeKeybindingsCompletionProvider(context);
-      await providers.makeSettingsCompletionProvider(context);
+      await providers.makeKeybindingsCompletionProvider(context, _disposables);
+      await providers.makeSettingsCompletionProvider(context, _disposables);
 
       if (!event.affectsConfiguration("find-and-transform.enableWarningDialog")) {
         window
@@ -209,7 +227,7 @@ async function _loadSettingsAsCommands(context, _disposables, firstRun) {
 
   if (findSettings.length) {
     await registerCommands.find(findSettings, context, _disposables, enableWarningDialog);
-    await codeActions.makeCodeActionProvider(context, findSettings);
+    await codeActions.makeCodeActionProvider(context, findSettings, _disposables);
   }
 
   if (searchSettings.length) {

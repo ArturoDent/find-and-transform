@@ -1,0 +1,5 @@
+[const] a = 12;
+
+i am co|nstantly being const;
+
+const| b = 13;

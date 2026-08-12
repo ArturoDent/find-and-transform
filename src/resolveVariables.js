@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const { window, workspace, env, Range } = require('vscode');
+const {window, workspace, env, Range} = require('vscode');
 
 // const variables = require('./variables');
 const regexp = require('./regex');
@@ -7,133 +7,57 @@ const path = require('path');
 const os = require('os');
 const utilities = require('./utilities');
 const outputChannel = require('./outputChannel');
+const scriptStorage = require('./scriptStorage');
+const jsComments = require('./jsComments');
 
 
 /**
- * If '${getTextLines:${line(Index|Number)}}' resolve lineIndex/Number immediately.
- * Else, resolve later in transform.js for each line of document/selection/line.
- * Only works on 'find' value, not 'replace', etc.
- * 
- * @param {import("vscode").TextEditor} editor
- * @param {Object} args - keybinding/settings args
- * @param {Number | null} matchIndex - which match is it: first, second, etc.
- * @param {import("vscode").Selection | null} selection
- * @returns {Promise<object>} findValue, isRegex
+ * If a jsOp's inner content is a "script:name" or "script:name(arg)" reference,
+ * return the script's name and, if present, the argument to expose as `arg`
+ * inside the script. `arg` is `undefined` when no parentheses are present.
+ * @param {string} operation - the content between $${ and }$$
+ * @returns {{name: string, arg: string | undefined} | null}
  */
-exports.resolveFind = async function (editor, args, matchIndex, selection) {
-
-  let resolvedFind = "";
-  let cursorIndex = editor?.document?.offsetAt(editor.selection?.active) ?? null;
-
-  const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
-
-  if (args.find && args?.find?.search(lineIndexNumberRE) !== -1)
-    resolvedFind = await exports.resolveVariables(args, "find", null, selection ?? editor?.selection, cursorIndex, matchIndex);
-  else
-    resolvedFind = await exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor?.selection, cursorIndex, matchIndex);
-
-  return await exports.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.ignoreWhiteSpace, args.madeFind);
-};
+function _getScriptRefName(operation) {
+  const match = /^\s*script:(?<name>.+?)(?:\((?<arg>[\s\S]*)\))?\s*$/.exec(operation ?? "");
+  return match ? {name: match.groups?.name.trim() ?? "", arg: match.groups?.arg} : null;
+}
 
 
 /**
- * Build the replaceString by updating the setting 'replaceValue' to
- * account for case modifiers, capture groups and conditionals
- *
+ * The case-modifier regexes accept a doubled backslash ('\\U' as well as '\U') so a
+ * script file's raw text doesn't strand one - see the note in regex.js. Collapse it back
+ * to a single backslash here, before the switches that compare against '\U'/'\u'/etc.
+ * Non-string input is passed through untouched (_applyCaseModifier's switch can fall
+ * back to the namedGroups object itself).
+ * @param {*} caseModifier - e.g. '\U' or '\\U'
+ * @returns {*} - the modifier with at most one leading backslash
+ */
+function _normalizeCaseModifier(caseModifier) {
+  if (typeof caseModifier !== 'string') return caseModifier;
+  return caseModifier.replace(/^\\\\/, '\\');
+}
+
+
+/**
+ * Run every variable-resolution pass EXCEPT jsOp execution against `text`:
+ * path variables, snippet variables, extension-defined variables, case
+ * modifier/capture group, case transform, conditional, and bare capture
+ * group. Used both for the main find/replace/run/etc. value and, recursively,
+ * for a named script's code - so `${snippetVar}`/`$1`/etc. inside a saved
+ * script resolve exactly like they would in an equivalent inline jsOp.
+ * @param {*} text
  * @param {Object} args - keybinding/settings args
- * @param {string} caller - find/replace/cursorMoveSelect
+ * @param {string} caller - find/replace/run/etc.
  * @param {Object} groups - may be a single match
  * @param {import("vscode").Selection | null} selection - the current selection
  * @param {number | null} selectionStartIndex
  * @param {number | null} matchIndex - which match is it
- * @returns {Promise<string>} - the resolved string
+ * @returns {Promise<*>}
  */
-exports.resolveVariables = async function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
+async function _resolveNonJsOpVariables(text, args, caller, groups, selection, selectionStartIndex, matchIndex) {
 
-  // if (!window.activeTextEditor) return;  // or return ""
-  const document = window.activeTextEditor?.document;
-  let replaceValue;
-  let jsOPerationHasAwait = [];
-
-  // {
-  //   "command": "workbench.action.terminal.sendSequence",
-  //   "args": {
-  //     // send the filename: to the terminal
-  //     // "text": "code -g '${relativeFileDirname}\\${selectedText}':"
-  //     // "text": "code -g '${relativeFileDirname}\\${selectedText}'\u000D"
-  //     // "text": "code -g '${selectedText}'\u000D" // works but no line number
-  //     // "text": "code -g '${selectedText}'\u000D" // works but no line number
-  //     "text": "code -g '$1'\u000D" // does not work, vars are resolved but not capture groups?
-  //   }
-  // }
-
-
-  if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
-  else if (caller === "replace") replaceValue = args?.replace;
-
-  // else if (caller === "run") replaceValue = args?.run;
-  else if (caller === "run")
-    replaceValue = Array.isArray(args?.run) ? args?.run[0] : args?.run;
-
-  // else if (caller === "cursorMoveSelect") replaceValue = args;
-  else if (caller === "cursorMoveSelect") replaceValue = args.cursorMoveSelect;
-  else if (caller === "snippet") replaceValue = args?.snippet;
-  // else if (caller === "postCommands") replaceValue = args?.postCommands[matchIndex]?.args?.text;
-  else if (caller === "postCommands") {
-    if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex ?? 0]?.args?.text;
-    else replaceValue = args?.postCommands?.args?.text;
-    // if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex]?.args?.lineNumber;
-    // else replaceValue = args?.postCommands?.args?.lineNumber;
-
-    // loop through args to find which one has a variable?
-  }
-
-  // need to set a flag for presence of 'await' in jsOp BEFORE any variable substitution,
-  // in case some variable has "await" in it like ${selectedText}, but not part of jsOp
-
-  //  const jsOpRE = regexp.jsOpRE;  // this does work
-  const jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
-
-  if (caller === "run" || caller === "replace") {
-    // const re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
-
-    // const matches = [...replaceValue.matchAll(re)];
-    const matches = [...replaceValue.matchAll(jsOpRE)];
-    let i = 0;
-
-    for await (const match of matches) {
-      const jsOp = match.groups.jsOp;
-      if (jsOp && /\bawait\b/.test(jsOp)) jsOPerationHasAwait[i] = "true";
-      else jsOPerationHasAwait[i] = "false";
-      i++;
-    }
-  }
-
-  // if jsOp replace all \w => \\w
-  if (groups?.length && (caller === "replace" || caller === "run")) {
-
-    // let jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
-    //  const jsOpRE = regexp.jsOpRE;
-
-    if (jsOpRE.test(args.replace) || jsOpRE.test(args.run)) {
-
-      const tempIndex = groups.index;
-
-      // loop through groups[1,2, etc.]      
-      groups = groups.map((item, index) => {
-        if (index === 0) return item;
-        else return item?.replace(/(?<!\\)\\(?!\\)/g, "\\$&");  // only 1 \
-      });
-
-      groups.index = tempIndex;
-    }
-  }
-
-  if (!replaceValue) return replaceValue;
-  const specialVariable = new RegExp('\\$[\\{\\d]');
-  if (replaceValue.search(specialVariable) === -1) return replaceValue;  // doesn't contain '${' or '$\d'
-
-  let resolved = replaceValue;
+  let resolved = text;
   let re;
   let groupNames = {};
 
@@ -253,10 +177,175 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
 
     if (groups && p2 && (groups[p2] !== undefined)) return groups[p2];
     else if (groups && p3 && (groups[p3] !== undefined)) return groups[p3];
+    // groups === [] means runInSearchPanel: defer $n to vscode's own search
+    // engine rather than blanking it out here - see _applyCaseModifier
+    else if (Array.isArray(groups) && groups.length === 0) return `"$${p2 ?? p3}"`;
     else return "";     // no matching capture group
   });
   // --------------------  capGroupOnly ----------------------------------------------------------
 
+  return resolved;
+}
+
+
+/**
+ * If '${getTextLines:${line(Index|Number)}}' resolve lineIndex/Number immediately.
+ * Else, resolve later in transform.js for each line of document/selection/line.
+ * Only works on 'find' value, not 'replace', etc.
+ * 
+ * @param {import("vscode").TextEditor} editor
+ * @param {Object} args - keybinding/settings args
+ * @param {Number | null} matchIndex - which match is it: first, second, etc.
+ * @param {import("vscode").Selection | null} selection
+ * @returns {Promise<object>} findValue, isRegex
+ */
+exports.resolveFind = async function (editor, args, matchIndex, selection) {
+
+  let resolvedFind = "";
+  let cursorIndex = editor?.document?.offsetAt(editor.selection?.active) ?? null;
+
+  const lineIndexNumberRE = /\$\{getTextLines:[^}]*\$\{line(Index|Number)\}.*?\}/;
+
+  if (args.find && args?.find?.search(lineIndexNumberRE) !== -1)
+    resolvedFind = await exports.resolveVariables(args, "find", null, selection ?? editor?.selection, cursorIndex, matchIndex);
+  else
+    resolvedFind = await exports.resolveVariables(args, "ignoreLineNumbers", null, selection ?? editor?.selection, cursorIndex, matchIndex);
+
+  return await exports.adjustValueForRegex(resolvedFind, args.replace, args.isRegex, args.matchWholeWord, args.ignoreWhiteSpace, args.madeFind);
+};
+
+
+/**
+ * Build the replaceString by updating the setting 'replaceValue' to
+ * account for case modifiers, capture groups and conditionals
+ *
+ * @param {Object} args - keybinding/settings args
+ * @param {string} caller - find/replace/cursorMoveSelect
+ * @param {Object} groups - may be a single match
+ * @param {import("vscode").Selection | null} selection - the current selection
+ * @param {number | null} selectionStartIndex
+ * @param {number | null} matchIndex - which match is it
+ * @returns {Promise<string>} - the resolved string
+ */
+exports.resolveVariables = async function (args, caller, groups, selection, selectionStartIndex, matchIndex) {
+
+  // if (!window.activeTextEditor) return;  // or return ""
+  let replaceValue;
+
+  // {
+  //   "command": "workbench.action.terminal.sendSequence",
+  //   "args": {
+  //     // send the filename: to the terminal
+  //     // "text": "code -g '${relativeFileDirname}\\${selectedText}':"
+  //     // "text": "code -g '${relativeFileDirname}\\${selectedText}'\u000D"
+  //     // "text": "code -g '${selectedText}'\u000D" // works but no line number
+  //     // "text": "code -g '${selectedText}'\u000D" // works but no line number
+  //     "text": "code -g '$1'\u000D" // does not work, vars are resolved but not capture groups?
+  //   }
+  // }
+
+
+  if (caller === "find" || caller === "ignoreLineNumbers") replaceValue = args?.find;
+  else if (caller === "replace") replaceValue = args?.replace;
+
+  // else if (caller === "run") replaceValue = args?.run;
+  else if (caller === "run")
+    replaceValue = Array.isArray(args?.run) ? args?.run[0] : args?.run;
+
+  // else if (caller === "cursorMoveSelect") replaceValue = args;
+  else if (caller === "cursorMoveSelect") replaceValue = args.cursorMoveSelect;
+  else if (caller === "snippet") replaceValue = args?.snippet;
+  // else if (caller === "postCommands") replaceValue = args?.postCommands[matchIndex]?.args?.text;
+  else if (caller === "postCommands") {
+    if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex ?? 0]?.args?.text;
+    else replaceValue = args?.postCommands?.args?.text;
+    // if (Array.isArray(args.postCommands)) replaceValue = args?.postCommands[matchIndex]?.args?.lineNumber;
+    // else replaceValue = args?.postCommands?.args?.lineNumber;
+
+    // loop through args to find which one has a variable?
+  }
+
+  return exports.resolveJSOperations(replaceValue, args, caller, groups, selection, selectionStartIndex, matchIndex);
+};
+
+
+/**
+ * Resolve non-jsOp variables in `text`, then detect and execute any
+ * `$${ ... }$$` jsOperations / `$${script:name}$$` references it contains.
+ * Split out of resolveVariables() so callers that already know their replace
+ * string (like runInSearchPanel's search.js, which resolves its own
+ * path/snippet/extension-defined variables first) can run jsOp resolution
+ * directly on it, without going through resolveVariables()'s args/caller
+ * dispatch again.
+ *
+ * @param {string} text - the value to resolve, e.g. args.replace
+ * @param {Object} args - keybinding/settings args
+ * @param {string} caller - find/replace/run/etc.
+ * @param {Object} groups - may be a single match
+ * @param {import("vscode").Selection | null} selection - the current selection
+ * @param {number | null} selectionStartIndex
+ * @param {number | null} matchIndex - which match is it
+ * @returns {Promise<string>} - the resolved string
+ */
+exports.resolveJSOperations = async function (text, args, caller, groups, selection, selectionStartIndex, matchIndex) {
+
+  const document = window.activeTextEditor?.document;
+  let replaceValue = text;
+  let jsOPerationHasAwait = [];
+
+  // need to set a flag for presence of 'await' in jsOp BEFORE any variable substitution,
+  // in case some variable has "await" in it like ${selectedText}, but not part of jsOp
+
+  //  const jsOpRE = regexp.jsOpRE;  // this does work
+  const jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
+
+  if (caller === "run" || caller === "replace") {
+    // const re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "g");
+
+    // const matches = [...replaceValue.matchAll(re)];
+    const matches = [...replaceValue.matchAll(jsOpRE)];
+    let i = 0;
+
+    for await (const match of matches) {
+      let jsOp = match.groups?.jsOp;
+
+      // a "$${script:name}$$" reference doesn't literally contain "await" even if
+      // the saved script does, so check the saved script's code instead
+      const scriptRef = _getScriptRefName(match[2]);
+      if (scriptRef) jsOp = scriptStorage.get(scriptRef.name) ?? "";
+
+      if (jsOp && /\bawait\b/.test(jsOp)) jsOPerationHasAwait[i] = "true";
+      else jsOPerationHasAwait[i] = "false";
+      i++;
+    }
+  }
+
+  // if jsOp replace all \w => \\w
+  if (groups?.length && (caller === "replace" || caller === "run")) {
+
+    // let jsOpRE = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
+    //  const jsOpRE = regexp.jsOpRE;
+
+    if (jsOpRE.test(args.replace) || jsOpRE.test(args.run)) {
+
+      const tempIndex = groups.index;
+
+      // loop through groups[1,2, etc.]      
+      groups = groups.map((item, index) => {
+        if (index === 0) return item;
+        else return item?.replace(/(?<!\\)\\(?!\\)/g, "\\$&");  // only 1 \
+      });
+
+      groups.index = tempIndex;
+    }
+  }
+
+  if (!replaceValue) return replaceValue;
+  const specialVariable = new RegExp('\\$[\\{\\d]');
+  if (replaceValue.search(specialVariable) === -1) return replaceValue;  // doesn't contain '${' or '$\d'
+
+  let resolved = await _resolveNonJsOpVariables(replaceValue, args, caller, groups, selection, selectionStartIndex, matchIndex);
+  let re;
 
   // -------------------  jsOp ------------------------------------------------------------------
 
@@ -264,45 +353,65 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   re = new RegExp("(?<jsOp>\\$\\$\\{([\\S\\s]*?)\\}\\$\\$)", "gm");
   //  re = regexp.jsOpRE;  // doesn't work although it is the same?
 
+  // kept outside the try so the catch can report the *resolved* source that
+  // actually failed to compile/run - the error itself only points at the
+  // Function() call here, never at the code $1/$2/etc. were substituted into
+  let failedOperation = '';
+  let failedScriptName = '';
+
   try {
 
     resolved = await utilities.replaceAsync(resolved, re, async function (match, p1, operation) {
 
-      // fix for newlines in operations, like from selectedText, etc.
-      operation = operation.replaceAll(/\r\n/g, '\\r\\n').replaceAll(/(?<!\r)\n/g, '\\n');
+      const scriptRef = _getScriptRefName(operation);
 
-      if (jsOPerationHasAwait.includes("true")) {
-
-        if (/vscode\./.test(operation) && /path\./.test(operation))
-          return Function('vscode', 'path', 'require', 'document', `"use strict"; (async function run (){${ operation }})()`)
-            (vscode, path, require, document);
-        else if (/vscode\./.test(operation))
-          return Function('vscode', 'require', 'document', `"use strict"; (async function run (){${ operation }})()`)
-            (vscode, require, document);
-        else if (/path\./.test(operation))
-          return Function('path', 'require', 'document', `"use strict"; (async function run (){${ operation }})()`)
-            (path, require, document);
-        else {
-          return Function('require', 'document', `"use strict"; return (async function run (){${ operation }})()`)
-            (require, document);
+      if (scriptRef) {
+        const scriptCode = scriptStorage.get(scriptRef.name);
+        if (scriptCode === undefined) {
+          const message = `No saved script named "${scriptRef.name}".  Run "Find-Transform: New Script" to create one.`;
+          outputChannel.write(`\n${message}\n`);
+          window.showWarningMessage(message);
+          throw new Error(message);
         }
+        // resolve ${snippetVar}/$1/etc. inside the script exactly like an inline jsOp would,
+        // but not inside its comments - a script file is raw text, so without this a
+        // '${getInput}' mentioned in a '// ...' line pops an input box for code that never
+        // runs, and a '\U$1'/'${1:text}' written in a comment gets silently rewritten
+        const {masked, comments} = jsComments.maskComments(scriptCode);
+        const resolvedCode = await _resolveNonJsOpVariables(masked, args, caller, groups, selection, selectionStartIndex, matchIndex);
+        operation = jsComments.restoreComments(resolvedCode, comments);
+      }
+      else {
+        // fix for newlines in operations, like from selectedText, etc.
+        operation = operation.replaceAll(/\r\n/g, '\\r\\n').replaceAll(/(?<!\r)\n/g, '\\n');
+      }
+
+      // record the post-substitution source, so a throw below can show it
+      failedOperation = operation;
+      failedScriptName = scriptRef ? scriptRef.name : '';
+
+      // named scripts require() their own vscode/path/document, so only 'require' is
+      // injected here - injecting the others too would redeclare whatever the script
+      // itself declares under those names and throw a SyntaxError. 'arg' is always
+      // injected too, undefined unless the reference was "script:name(arg)".
+      if (scriptRef) {
+
+        if (jsOPerationHasAwait.includes("true"))
+          return Function('require', 'arg', `"use strict"; return (async function run (){${operation}})()`)
+            (require, scriptRef.arg);
+        else
+          return Function('require', 'arg', `"use strict"; ${operation}`)
+            (require, scriptRef.arg);
+      }
+
+      else if (jsOPerationHasAwait.includes("true")) {
+        return Function('vscode', 'path', 'require', 'document', `"use strict"; return (async function run (){${operation}})()`)
+          (vscode, path, require, document);
       }
 
       else {  // no await in the jsOp
-
-        if (/vscode\./.test(operation) && /path\./.test(operation))
-          return Function('vscode', 'path', 'require', 'document', `"use strict"; ${ operation }`)
-            (vscode, path, require, document);
-        else if (/vscode\./.test(operation))
-          return Function('vscode', 'require', 'document', `"use strict"; ${ operation }`)
-            (vscode, require, document);
-        else if (/path\./.test(operation))
-          return Function('path', 'require', 'document', `"use strict"; ${ operation }`)
-            (path, require, document);
-        else {
-          return Function('require', 'document', `"use strict"; ${ operation }`)
-            (require, document);
-        }
+        return Function('vscode', 'path', 'require', 'document', `"use strict"; ${operation}`)
+          (vscode, path, require, document);
       }
     });
   }
@@ -310,12 +419,22 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
   catch (jsOPError) {  // this doesn't run async
     const jsOPErrorStack = jsOPError instanceof Error ? jsOPError.stack : String(jsOPError);
     resolved = 'Error: jsOPError';
-    outputChannel.write(`\n${ jsOPErrorStack }\n`);
+
+    // the error is thrown against generated code, so show what $1/$2/${var}/etc.
+    // actually resolved to - otherwise a plain "SyntaxError: Unexpected number"
+    // gives no way to see the mistake
+    const errorSource = failedScriptName ? `named script "${failedScriptName}"` : 'jsOperation';
+    const detail = failedOperation
+      ? `\nThe resolved ${errorSource} code that failed:\n\n${failedOperation}\n`
+      : '';
+
+    // one write() only - it clears the output channel on every call
+    outputChannel.write(`\n${jsOPErrorStack}\n${detail}`);
 
     // below: could be in 'run' value, not 'replace'
     window.showWarningMessage("There was an error in the `$${<operations>}$$`.  See the Output channel: `find-and-transform` for more.");
 
-    throw new Error(jsOPErrorStack);
+    throw new Error(`${jsOPErrorStack}${detail}`);
   }
   // -------------------  jsOp ------------------------------------------------------------------
 
@@ -343,29 +462,26 @@ exports.resolveVariables = async function (args, caller, groups, selection, sele
  */
 exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, matchWholeWord, ignoreWhiteSpace, madeFind) {
 
-  if (findValue === "") return { findValue, isRegex };
+  if (findValue === "") return {findValue, isRegex};
   if (matchWholeWord) findValue = findValue?.replace(/\\b/g, "@%@");
+
+  const replaceUsesCapGroup = _replaceUsesCaptureGroup(replaceValue);
 
   // when there is a capture group in a replace && isRegex = false
   // then do want to treat as text (so escape regex characters) and set regex to true
 
-  if (!isRegex && replaceValue) {
-    const re = /\$(\d+)/g;
-    const capGroups = [...replaceValue?.matchAll(re)];
+  if (!isRegex && replaceUsesCapGroup) {
 
-    if (capGroups.length) {
-
-      if (!ignoreWhiteSpace) findValue = findValue?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
-      findValue = `(${ findValue })`;
-      isRegex = true;
-    }
+    if (!ignoreWhiteSpace) findValue = findValue?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
+    findValue = `(${findValue})`;
+    isRegex = true;
   }
 
   if (!isRegex && madeFind) findValue = findValue?.replace(/([+?$^.\\*\{\}\[\]\(\)])/g, "\\$1");
   else if (!isRegex) findValue = findValue?.replace(/([+?^.\\*\[\]\(\)]|\$(?!{line(Number|Index)})|\{(?!line(Number|Index)})|(?<!\$\{lineNumber)(?<!\$\{lineIndex)\})/g, "\\$1");
 
   if (matchWholeWord) findValue = findValue?.replace(/@%@/g, "\\b");
-  if (matchWholeWord && !madeFind) findValue = `\\b${ findValue }\\b`;
+  if (matchWholeWord && !madeFind) findValue = `\\b${findValue}\\b`;
   if (matchWholeWord && !madeFind) findValue = findValue?.replace(/(\\b)+/g, "\\b");
   if (matchWholeWord && !madeFind) findValue = findValue?.replace(/(?<!\\b)(\|)(?!\\b)/g, "\\b$1\\b");
 
@@ -397,6 +513,12 @@ exports.adjustValueForRegex = async function (findValue, replaceValue, isRegex, 
   // works in a more complex regex, like 'howdy\\n^$\\nthere' => with a blank line between
   if (window.activeTextEditor?.document.eol === vscode.EndOfLine.CRLF)
     if (isRegex) findValue = findValue?.replaceAll(/\^\$/g, "^(?!\n)$(?!\n)");  // is this necessary? Yes
+
+  // isRegex was set in the keybinding/setting, so the auto-wrap above was skipped.
+  // Without a group here a replace's $1 would silently resolve to the empty string.
+  // Done last so the findValue === "^"/"$" checks above still see an unwrapped value.
+  if (isRegex && replaceUsesCapGroup && _countCaptureGroups(findValue) === 0)
+    findValue = `(${findValue})`;
 
   return {
     findValue,
@@ -441,7 +563,7 @@ exports.adjustCMSValueForRegex = async function (cursorMoveSelect, isRegex, matc
 
     if (cursorMoveSelect === '()' || cursorMoveSelect === '') return "";
 
-    if (matchWholeWord) cursorMoveSelect = `\\b${ cursorMoveSelect }\\b`;  // wrap with \\b
+    if (matchWholeWord) cursorMoveSelect = `\\b${cursorMoveSelect}\\b`;  // wrap with \\b
 
     if (matchWholeWord && containsOr)
       cursorMoveSelect = cursorMoveSelect?.replace(/(?<!\\b)(\|)(?!\\b)/g, "\\b$1\\b");// ($1|$2) => (\\b$1\\b|\\b$2\\b)
@@ -461,8 +583,56 @@ exports.adjustCMSValueForRegex = async function (cursorMoveSelect, isRegex, matc
 };
 
 /**
- * 
- * @param {string} findValue 
+ * Does a replace/run value refer to a capture group, like `$1`?
+ * A "$${script:name}$$" reference doesn't literally contain "$1" even when the
+ * saved script does, so check the script's saved code instead.
+ * @param {string} replaceValue
+ * @returns {boolean}
+ */
+function _replaceUsesCaptureGroup(replaceValue) {
+
+  if (!replaceValue) return false;
+
+  const jsOpMatch = /\$\$\{([\s\S]*?)\}\$\$/.exec(replaceValue);
+  const scriptRef = jsOpMatch ? _getScriptRefName(jsOpMatch[1]) : null;
+  const textToCheck = scriptRef ? (scriptStorage.get(scriptRef.name) ?? replaceValue) : replaceValue;
+
+  return /\$(\d+)/.test(textToCheck);
+}
+
+
+/**
+ * How many real capturing groups does this find have?
+ * Skips escaped parens, parens within a character class, non-capturing groups
+ * and lookarounds - but named groups, `(?<name>...)`, do count.
+ * @param {string} findValue
+ * @returns {number}
+ */
+function _countCaptureGroups(findValue) {
+
+  let count = 0;
+  let inClass = false;
+
+  for (let index = 0; index < findValue.length; index++) {
+
+    const char = findValue[index];
+
+    if (char === '\\') {index++; continue;}
+    if (inClass) {if (char === ']') inClass = false; continue;}
+    if (char === '[') {inClass = true; continue;}
+    if (char !== '(') continue;
+
+    if (findValue[index + 1] !== '?') count++;
+    else if (findValue[index + 2] === '<' && findValue[index + 3] !== '=' && findValue[index + 3] !== '!') count++;
+  }
+
+  return count;
+}
+
+
+/**
+ *
+ * @param {string} findValue
  * @returns {Promise<string>}
  */
 exports.replaceFindCaptureGroups = async function (findValue) {
@@ -501,7 +671,7 @@ function _modifyCaseOfFindCaptureGroup(caseModifier, resolvedCaptureGroup) {
 
   if (!caseModifier) return resolvedCaptureGroup;
 
-  switch (caseModifier) {
+  switch (_normalizeCaseModifier(caseModifier)) {
 
     case "\\U":
       resolvedCaptureGroup = resolvedCaptureGroup?.toLocaleUpperCase();
@@ -684,12 +854,14 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
 
   selectionStartIndex = selectionStartIndex ?? 0;
   if (!selection) selection = editor.selection;
-  const filePath = document.uri.path;
+  // forward slashes so a resolved path is safe to splice into a $${ ... }$$ jsOp's JS
+  // source without its separators being misread as JS string-escape sequences
+  const filePath = document.uri.fsPath.replace(/\\/g, '/');
 
   let relativePath;
   if ((caller === "filesToInclude" || caller === "filesToExclude") && (workspace.workspaceFolders?.length ?? 0) > 1) {
     relativePath = workspace?.asRelativePath(document.uri, true);
-    relativePath = `./${ relativePath }`;
+    relativePath = `./${relativePath}`;
   }
   else relativePath = workspace?.asRelativePath(document.uri, false);
 
@@ -702,8 +874,7 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
   switch (namedGroups?.vars) {
 
     case "${file}": case "${ file }":
-      if (os.type() === "Windows_NT") resolved = filePath?.substring(4);
-      else resolved = filePath;
+      resolved = filePath;
       break;
 
     case "${relativeFile}": case "${ relativeFile }":
@@ -727,11 +898,11 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
       break;
 
     case "${fileWorkspaceFolder}": case "${ fileWorkspaceFolder }":
-      resolved = workspace?.getWorkspaceFolder(document.uri)?.uri.path;
+      resolved = workspace?.getWorkspaceFolder(document.uri)?.uri.fsPath.replace(/\\/g, '/');
       break;
 
     case "${workspaceFolder}": case "${ workspaceFolder }":
-      resolved = workspace?.getWorkspaceFolder(document.uri)?.uri.path;
+      resolved = workspace?.getWorkspaceFolder(document.uri)?.uri.fsPath.replace(/\\/g, '/');
       break;
 
     case "${relativeFileDirname}": case "${ relativeFileDirname }":
@@ -743,7 +914,11 @@ async function _resolvePathVariables(variableToResolve, args, caller, selection,
       break;
 
     case "${workspaceFolderBasename}": case "${ workspaceFolderBasename }":
-      resolved = path.basename(workspace?.getWorkspaceFolder(document.uri)?.uri.path ?? '');
+      resolved = path.basename(workspace?.getWorkspaceFolder(document.uri)?.uri.fsPath ?? '');
+      break;
+
+    case "${userHome}": case "${ userHome }":
+      resolved = os.homedir().replace(/\\/g, '/');
       break;
 
     case "${selectedText}": case "${ selectedText }":
@@ -851,7 +1026,9 @@ async function _resolveSnippetVariables(variableToResolve, args, caller, selecti
   const editor = window.activeTextEditor;
   if (!editor) return variableToResolve;
   const document = editor.document;
-  const filePath = document.uri.path;
+  // forward slashes so a resolved path is safe to splice into a $${ ... }$$ jsOp's JS
+  // source without its separators being misread as JS string-escape sequences
+  const filePath = document.uri.fsPath.replace(/\\/g, '/');
   if (!selection) selection = editor.selection;
 
   let comments;
@@ -1123,16 +1300,21 @@ function _applyCaseModifier(namedGroups, groups, resolvedPathVariable) {
   if (namedGroups?.caseModifier) {
     if (namedGroups?.capGroup) {
       const thisCapGroup = namedGroups.capGroup.replace(/[${}]/g, "");
+      // groups === [] means runInSearchPanel: vscode's own search engine hasn't
+      // matched anything yet, so there is no real text to upper/lowercase. Drop
+      // the case modifier and leave a bare $n - the capGroupOnly pass below is
+      // what quotes it, so returning "$n" here would double-quote it.
+      if (Array.isArray(groups) && groups.length === 0) return `$${thisCapGroup}`;
       if (groups[thisCapGroup]) resolved = groups[thisCapGroup];
     }
-    else if (namedGroups?.caseTransform || namedGroups.conditional || namedGroups.extensionVars) { } // do nothing, resolved already = resolvedPathVariable
+    else if (namedGroups?.caseTransform || namedGroups.conditional || namedGroups.extensionVars) {} // do nothing, resolved already = resolvedPathVariable
     else return "";
   }
   else if (namedGroups?.pathCaseModifier) {
     resolved = resolvedPathVariable;
   }
 
-  switch (namedGroups?.caseModifier || namedGroups?.pathCaseModifier || namedGroups) {
+  switch (_normalizeCaseModifier(namedGroups?.caseModifier || namedGroups?.pathCaseModifier || namedGroups)) {
 
     case "\\U":
       resolved = resolved?.toLocaleUpperCase();
@@ -1168,7 +1350,7 @@ function _applyCaseTransform(p2, p3, groups) {
 
   let resolved = groups[p2];
 
-  if (!resolved) return undefined;
+  if (!resolved) return "";
 
   switch (p3) {
 
@@ -1290,7 +1472,7 @@ exports.makeFind = async function (selections, args) {
   let mustBeRegex = false;
   let emptyPointSelections = new Set();
 
-  if (!document) return { find, mustBeRegex, emptyPointSelections };
+  if (!document) return {find, mustBeRegex, emptyPointSelections};
 
   // only use the first selection for these options: nextSelect/nextMoveCursor/nextDontMoveCursor
   if (args?.restrictFind?.startsWith("next") || args?.restrictFind?.startsWith("previous")) {
@@ -1324,7 +1506,7 @@ exports.makeFind = async function (selections, args) {
   for (let item of textSet) {
     // how to deal with multiple finds/ignoreWhiteSpace's (an array)
     if (args.ignoreWhiteSpace && args.ignoreWhiteSpace[0]) item = item.trim();
-    find += `${ item }|`;
+    find += `${item}|`;
   } // Sets are unique, so this de-duplicates any selected text
 
   find = find?.substring(0, find.length - 1);  // remove the trailing '|'
@@ -1332,7 +1514,7 @@ exports.makeFind = async function (selections, args) {
   // if .size of the set is greater than 1 then isRegex must be true
   if (textSet?.size > 1) mustBeRegex = true;
 
-  if ((mustBeRegex || args.isRegex) && find.length) find = `(${ find })`;  // e.g. "(word|some words|more)"
+  if ((mustBeRegex || args.isRegex) && find.length) find = `(${find})`;  // e.g. "(word|some words|more)"
 
-  return { find, mustBeRegex, emptyPointSelections };
+  return {find, mustBeRegex, emptyPointSelections};
 };

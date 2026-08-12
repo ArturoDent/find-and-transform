@@ -1,0 +1,5 @@
+[CONST] a = 12;
+
+i am [CONST]antally being [CONST];
+
+const b = 13;

@@ -1,0 +1,6 @@
+before
+
+someWord-A
+   someWord-B
+
+after
