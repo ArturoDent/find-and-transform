@@ -1,15 +1,24 @@
 # CHANGELOG  
 
+* 6.1.0 **Breaking change**: Renamed the `runWhen`/`runPostCommands` value `onceIgnoreMatches` to `onceAlways` - it doesn't actually ignore a match when one exists (its capture groups are still available), it just runs unconditionally whether or not `find` matched.  Update any keybinding or setting using the old name.  
+&emsp;&emsp; - Fixed a crash (`Cannot read properties of null`) when a case modifier like `\\U$1` was used with `onceAlways`/`onceOnNoMatches` and there was no match to supply capture groups.  
+&emsp;&emsp; - Fixed `run`/`postCommands` reading stale, pre-`replace` match positions whenever `replace` changed the matched text's length - worst for `onEveryMatch` (each successive postCommand drifted further off), but any `runWhen`/`runPostCommands` option combined with a length-changing `replace` could land on the wrong text.  
+&emsp;&emsp; - Fixed `runPostCommands: "onceIgnoreMatches"` (added in 6.0.0) having a package.json schema typo (`onceIgnoreFind`) that made it unusable, and not actually being wired up to fire `postCommands` regardless of match count.  
+&emsp;&emsp; - Added a `kebabcase` snippet-like transform (`${1:/kebabcase}`), alongside the existing upcase/downcase/capitalize/pascalcase/camelcase/snakecase transforms - ported from VS Code's own `/kebabcase` snippet transform.  
+
+* 6.0.0 Added **Named Scripts, stored in Global Storage**: save a `$${ jsOperation }$$` once and reuse it anywhere via `$${script:name}$$` (with intellisense/completions, and optional arguments like `$${script:name(argument)}$$`) - see `scriptOperations.md` for the full details.  
+&emsp;&emsp; - **Save Selected Code as Named Script** now records the keybinding or setting the code came from - the whole keybinding object, or the whole named setting - in a block comment after the script file's `require` header, and leads the file with that config's `title`/`description` as a comment.  
+&emsp;&emsp; - Added the `runWhen` value `onceIgnoreMatches` to trigger `run` exactly once regardless of whether `find` matched (renamed to `onceAlways` in 6.1.0 - see above).  
+&emsp;&emsp; - Fix a `replace` `$1` resolving to the empty string when `"isRegex": true` was set and the `find` had no capture groups of its own (as with a `find` made only of `\\$n` selection substitutions).  The whole find is now wrapped in a group in that case, matching what already happened when `isRegex` was omitted.  
+&emsp;&emsp; - An error in a `$${ jsOperation }$$` or a `$${script:name}$$` now shows the **resolved** code - the source after `$1`/`${variable}`/etc. were substituted - in the `find-and-transform` Output channel beneath the error, instead of only a stack pointing into the extension.  
+&emsp;&emsp; - Document that a saved script file takes a single backslash (`` `\U$1` ``) where a keybinding needs two, and that arithmetic on a capture group belongs outside the quotes/backticks.  
+&emsp;&emsp; - The `require` header of a new script file now stubs out `os`/`fs`/`glob` too, and reminds you not to double-escape and not to put comments after the `return`.  
+&emsp;&emsp; - Fix a `// comment` array element in an array-form `jsOperation` silently swallowing every element joined after it (including the `return`), since a line comment has no newline left to stop it once the array is flattened onto one line.  `// ...` line comments are now stripped before joining; `/* ... */` block comments still work as before.  
+
 * 5.3.0 Make codeActions work better (including multiple actions).  
 &emsp;&emsp; - editBuilder awaits added.  
 &emsp;&emsp; 5.3.1 - Add `reveal` option  to findAndSelect.  
 &emsp;&emsp; 5.3.3 - Fix empty line finds.  
-&emsp;&emsp; 5.3.8 - Fix a `replace` `$1` resolving to the empty string when `"isRegex": true` was set and the `find` had no capture groups of its own (as with a `find` made only of `\\$n` selection substitutions).  The whole find is now wrapped in a group in that case, matching what already happened when `isRegex` was omitted.  
-&emsp;&emsp; - An error in a `$${ jsOperation }$$` or a `$${script:name}$$` now shows the **resolved** code - the source after `$1`/`${variable}`/etc. were substituted - in the `find-and-transform` Output channel beneath the error, instead of only a stack pointing into the extension.  
-&emsp;&emsp; - Document that a saved script file takes a single backslash (`` `\U$1` ``) where a keybinding needs two, and that arithmetic on a capture group belongs outside the quotes/backticks.  
-&emsp;&emsp; - **Save Selected Code as Named Script** now records the keybinding or setting the code came from - the whole keybinding object, or the whole named setting - in a block comment after the script file's `require` header, and leads the file with that config's `title`/`description` as a comment.  
-&emsp;&emsp; - The `require` header of a new script file now stubs out `os`/`fs`/`glob` too, and reminds you not to double-escape and not to put comments after the `return`.  
-&emsp;&emsp; - Fix a `// comment` array element in an array-form `jsOperation` silently swallowing every element joined after it (including the `return`), since a line comment has no newline left to stop it once the array is flattened onto one line.  `// ...` line comments are now stripped before joining; `/* ... */` block comments still work as before.  
 
 * 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
 &emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  

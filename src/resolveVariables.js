@@ -1306,7 +1306,7 @@ function _applyCaseModifier(namedGroups, groups, resolvedPathVariable) {
       // what quotes it, so returning "$n" here would double-quote it.
       if (Array.isArray(groups) && groups.length === 0) return `$${thisCapGroup}`;
       // groups is null when there's no match context at all (e.g. runWhen:
-      // "onceIgnoreMatches"/"onceOnNoMatches" firing with zero matches) - leave
+      // "onceAlways"/"onceOnNoMatches" firing with zero matches) - leave
       // `resolved` as whatever was passed in (typically "") rather than throwing
       if (groups && groups[thisCapGroup]) resolved = groups[thisCapGroup];
     }
@@ -1379,6 +1379,10 @@ function _applyCaseTransform(p2, p3, groups) {
 
     case "snakecase":     // firstSecondThird => first_second_third
       resolved = utilities.toSnakeCase(resolved);
+      break;
+
+    case "kebabcase":     // firstSecondThird => first-second-third
+      resolved = utilities.toKebabCase(resolved);
       break;
   }
 

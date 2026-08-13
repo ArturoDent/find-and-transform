@@ -4,7 +4,7 @@ const vscode = require('vscode');
 const testHelpers = require('../testHelpers');
 
 // Exercises the "run"/"runWhen" arguments of findInCurrentFile end-to-end, across all
-// 4 runWhen values (onceIgnoreMatches/onceIfAMatch/onEveryMatch/onceOnNoMatches) - see
+// 4 runWhen values (onceAlways/onceIfAMatch/onEveryMatch/onceOnNoMatches) - see
 // src/transform.js's exports.runWhen(). One editor tab is opened for the whole suite;
 // each test loads its own starting fixture into that shared document via loadFixture(),
 // instead of reopening/closing an editor per test.
@@ -14,7 +14,7 @@ const testHelpers = require('../testHelpers');
 // findAndSelect.findAndSelect(), which has no zero-match early return anywhere -
 // whereas document.js (used whenever `replace` is present) returns early at
 // `if (!foundMatches.length) return;` BEFORE ever reaching the runWhen dispatch, so
-// onceIgnoreMatches/onceOnNoMatches would silently never fire from that path.
+// onceAlways/onceOnNoMatches would silently never fire from that path.
 suite('runWhen', () => {
 
   let document;
@@ -75,15 +75,15 @@ suite('runWhen', () => {
     assert.strictEqual(actualText, expectedText);
   }
 
-  // onceIgnoreMatches: fires exactly once regardless of match presence. When a match
+  // onceAlways: fires exactly once regardless of match presence. When a match
   // DOES exist its capture-group data (here $1, uppercased) is available to `run`;
   // when it doesn't, $1 falls back to "" - but ${getDocumentText} (unrelated to match
   // state) resolves correctly either way, proving other variables aren't broken by the
   // lack of match context.
-  const onceIgnoreMatchesArgs = (find) => ({
+  const onceAlwaysArgs = (find) => ({
     find,
     isRegex: true,
-    runWhen: "onceIgnoreMatches",
+    runWhen: "onceAlways",
     run: [
       "$${",
       "await vscode.env.clipboard.writeText('[' + '${getDocumentText}' + ']' + '\\U$1');",
@@ -93,13 +93,13 @@ suite('runWhen', () => {
     ],
   });
 
-  test('onceIgnoreMatches: has a match - $1 resolves to the matched text, uppercased', async function () {
+  test('onceAlways: has a match - $1 resolves to the matched text, uppercased', async function () {
     this.timeout(10000);
 
-    await loadFixture('onceIgnoreMatches/input.txt');
+    await loadFixture('onceAlways/input.txt');
     const originalUri = document.uri.toString();
 
-    await vscode.commands.executeCommand('findInCurrentFile', onceIgnoreMatchesArgs("(match)"));
+    await vscode.commands.executeCommand('findInCurrentFile', onceAlwaysArgs("(match)"));
 
     assert.ok(vscode.window.activeTextEditor);
     const newDocument = vscode.window.activeTextEditor.document;
@@ -108,13 +108,13 @@ suite('runWhen', () => {
     await assertEventualText('[please match me now]MATCH', 3000, newDocument);
   });
 
-  test('onceIgnoreMatches: no match - still fires once; $1 is empty but ${getDocumentText} still resolves', async function () {
+  test('onceAlways: no match - still fires once; $1 is empty but ${getDocumentText} still resolves', async function () {
     this.timeout(10000);
 
-    await loadFixture('onceIgnoreMatches/input.txt');
+    await loadFixture('onceAlways/input.txt');
     const originalUri = document.uri.toString();
 
-    await vscode.commands.executeCommand('findInCurrentFile', onceIgnoreMatchesArgs("(zzz_never_matches_zzz)"));
+    await vscode.commands.executeCommand('findInCurrentFile', onceAlwaysArgs("(zzz_never_matches_zzz)"));
 
     assert.ok(vscode.window.activeTextEditor);
     const newDocument = vscode.window.activeTextEditor.document;
@@ -132,16 +132,16 @@ suite('runWhen', () => {
   // wrapped in a capture group, so the selection's own text ends up as a genuine
   // match with $1 set - the same "match exists" path as the first test above, just
   // reached via an auto-built find instead of an explicit one.
-  test('onceIgnoreMatches: no find key - $1 comes from the current selection via the normal makeFind() path', async function () {
+  test('onceAlways: no find key - $1 comes from the current selection via the normal makeFind() path', async function () {
     this.timeout(10000);
 
-    await loadFixture('onceIgnoreMatches/input.txt');
+    await loadFixture('onceAlways/input.txt');
     const originalUri = document.uri.toString();
     editor.selection = new vscode.Selection(0, 7, 0, 12);  // selects "match"
 
     await vscode.commands.executeCommand('findInCurrentFile', {
       isRegex: true,
-      runWhen: "onceIgnoreMatches",
+      runWhen: "onceAlways",
       run: [
         "$${",
         "await vscode.env.clipboard.writeText('[' + '${getDocumentText}' + ']' + '\\U$1');",

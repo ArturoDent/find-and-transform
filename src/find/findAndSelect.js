@@ -53,7 +53,7 @@ exports.findAndSelect = async function ( editor, args ) {
       }
 
       // Any way to designate a capture group to select, like '\\$1(\\d+)' ?
-      if ( args.runWhen !== "onceIgnoreMatches" ) {
+      if ( args.runWhen !== "onceAlways" ) {
         matches?.forEach( ( match, index ) => {
           const startPos = document?.positionAt( match.index );
           const endPos = document?.positionAt( match.index + match[ 0 ].length );
@@ -217,7 +217,7 @@ exports.findAndSelect = async function ( editor, args ) {
   // 'run' might want to access the selections
 
   // ignore args.preserveSelections in findAndSelect
-  // if args.runWhen === onceIgnoreMatches don't do this
+  // if args.runWhen === onceAlways don't do this
   if ( foundSelections.length ) editor.selections = foundSelections;
 
   if ( foundSelections.length && args.reveal && !args.cursorMoveSelect ) {

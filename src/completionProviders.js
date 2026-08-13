@@ -924,6 +924,9 @@ Example: \`"find": "\${1:/camelcase}"\``),
     _makeValueCompletionItem("${n:/snakecase}", replaceRange, "", "085", `Transform to snakecase the ***nth*** capture group.${text}
 Example: \`"find": "\${1:/snakecase}"\``),
 
+    _makeValueCompletionItem("${n:/kebabcase}", replaceRange, "", "086", `Transform to kebabcase the ***nth*** capture group.${text}
+Example: \`"find": "\${1:/kebabcase}"\``),
+
 
     _makeValueCompletionItem("${n:+ if add text}", replaceRange, "", "090", `Conditional replacement: if capture group ***nth***, add test.${text}
 Example: \`"find": "\${2:+ if add text}"\``),
@@ -983,7 +986,7 @@ function _completeRunWhen(position) {
     _makeValueCompletionItem("onceIfAMatch", replaceRange, "onceIfAMatch", "01", "Do the `run` operation only one time for all matches, if there was at least one find match."),
     _makeValueCompletionItem("onEveryMatch", replaceRange, "onceIfAMatch", "02", "Do the `run` operation once for each find match."),
     _makeValueCompletionItem("onceOnNoMatches", replaceRange, "onceIfAMatch", "03", "Do the `run` operation one time when there were no find matches."),
-    _makeValueCompletionItem("onceIgnoreMatches", replaceRange, "onceIfAMatch", "04", "Do the `run` operation one time without matching any find.")
+    _makeValueCompletionItem("onceAlways", replaceRange, "onceIfAMatch", "04", "Do the `run` operation one time without matching any find.")
   ];
 }
 
@@ -1000,7 +1003,7 @@ function _completeRunPostCommands(position) {
     _makeValueCompletionItem("onceIfAMatch", replaceRange, "onceIfAMatch", "01", "Run the `postCommands` only one time for all matches, if there was at least one find match."),
     _makeValueCompletionItem("onEveryMatch", replaceRange, "onceIfAMatch", "02", "EXPERIMENTAL: Run the `postCommands` once for each find match."),
     _makeValueCompletionItem("onceOnNoMatches", replaceRange, "onceIfAMatch", "03", "Run the `postCommands` one time when there were no find matches."),
-    _makeValueCompletionItem("onceIgnoreMatches", replaceRange, "onceIfAMatch", "04", "Run the `postCommands` one time without matching any find.")
+    _makeValueCompletionItem("onceAlways", replaceRange, "onceIfAMatch", "04", "Run the `postCommands` one time without matching any find.")
   ];
 }
 
@@ -1154,12 +1157,12 @@ function _makeKeyCompletionItem(key, replaceRange, defaultValue, sortText, docum
   const runWhenText = ` "onceIfAMatch":  "one time only for all find matches"
  "onEveryMatch":  "one time for each match"
  "onceOnNoMatches":   "when there are no matches run one time"
- "onceIgnoreMatches":  "run without matching any find query"`;
+ "onceAlways":  "run without matching any find query"`;
 
  const runPostCommandsText = ` "onceIfAMatch":  "one time only for all find matches"
  "onEveryMatch":  "EXPERIMENTAL: one time for each match"
  "onceOnNoMatches":   "when there are no matches run one time"
- "onceIgnoreMatches":  "run without matching any find query"`;
+ "onceAlways":  "run without matching any find query"`;
 
   // TODO implement getDocumentation()/getCodeBlock() and possibly an array/object loading here rather than if/elses
   if (documentation) {

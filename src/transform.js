@@ -98,7 +98,7 @@ exports.matchAroundCursor = function (args, resolvedFind, selection) {
  */
 exports.runWhen = async function (args, foundMatches, foundSelections, selection) {
 
-  if (args.runWhen === "onceIgnoreMatches")
+  if (args.runWhen === "onceAlways")
     // runs once regardless of whether there was a match - but if one did occur, its
     // capture groups/selection should still be available, same as onceIfAMatch
     await resolve.resolveVariables(args, "run", foundMatches[0] ?? null, foundSelections[0] ?? selection, null, null);

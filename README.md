@@ -83,6 +83,8 @@ Below you will find information on using the `findInCurrentFile` command - which
 
 &emsp; &emsp; [4. `findInCurrentFile` Arguments](#what-arguments-can-a-findincurrentfile-setting-or-keybinding-use)  
 
+&emsp; &emsp; &emsp; [a. `runWhen` and `runPostCommands` options](#runwhen-and-runpostcommands-options)  
+
 &emsp; &emsp; [5. Using numbered capture groups in a `find`](#using-numbered-capture-groups-in-a-find)
 
 &emsp; &emsp; [6. How to Insert a value at the Cursor](#how-to-insert-a-value-at-the-cursor)  
@@ -163,7 +165,7 @@ Below you will find information on using the `findInCurrentFile` command - which
     
     "postCommands": "editor.action.insertCursorAtEndOfEachLineSelected",
     
-    "runPostCommands": "onceIfAMatch/ onceOnNoMatches / onEveryMatch / onceIgnoreMatches"  // default is "onceIfAMatch"
+    "runPostCommands": "onceIfAMatch/ onceOnNoMatches / onEveryMatch / onceAlways"  // default is "onceIfAMatch"
   }
 }    
 ```
@@ -368,7 +370,7 @@ Newline examples that work and don't work:
     "runWhen": "onceIfAMatch",         // default, trigger the "run" operation only once no matter how many matches
     "runWhen": "onEveryMatch",         // trigger the "run" operation for each successful find match
     "runWhen": "onceOnNoMatches",      // only trigger the "run" operation if there is no find match
-    "runWhen": "onceIgnoreMatches",      // trigger the "run" operation whether or not there is a find match
+    "runWhen": "onceAlways",      // trigger the "run" operation whether or not there is a find match
     
     "isRegex": true,                   // boolean, will apply to 'cursorMoveSelect' as well as the find query
     "matchWholeWord": true,            // boolean, same as above
@@ -408,7 +410,51 @@ Newline examples that work and don't work:
 
 > **Defaults**: If you do not specify an argument, its default will be applied.  So `"matchCase": false` is the same as no `"matchCase"` argument at all.  
 
-> **Important**: Some checking for bad `args` keys and values will be done by this extension for both `findInCurrentFile` and `runInSearchPanel` commands.  For example, if you used `"restrictFind": "selection"` (instead of the proper `"restrictFind": "selections"`) or `"matchCases": false` (should be `"matchCase": false`) - a error message will be printed to the **Output** (under the dropdown *find-and-transform* option) notifying you of the errors and the current command will be aborted with no action.  So any bad `args` option will stop execution and nothing will be done.  
+> **Important**: Some checking for bad `args` keys and values will be done by this extension for both `findInCurrentFile` and `runInSearchPanel` commands.  For example, if you used `"restrictFind": "selection"` (instead of the proper `"restrictFind": "selections"`) or `"matchCases": false` (should be `"matchCase": false`) - a error message will be printed to the **Output** (under the dropdown *find-and-transform* option) notifying you of the errors and the current command will be aborted with no action.  So any bad `args` option will stop execution and nothing will be done.
+
+-------------
+
+### `runWhen` and `runPostCommands` options
+
+`runWhen` controls when the `run` argument fires (see [Running Javascript Code](#running-javascript-code-and-named-scripts)); `runPostCommands` controls when `postCommands` fires (see [`preCommands` and `postCommands`](#precommands-and-postcommands)) - both take the same 4 values and follow the same firing rules:  
+
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; border: 2px solid #888888;">
+<tr>
+<th style="border: 1px solid #888888; padding: 6px;">value</th>
+<th style="border: 1px solid #888888; padding: 6px;">Fires w/ 0 matches?</th>
+<th style="border: 1px solid #888888; padding: 6px;">Fires w/ matches?</th>
+<th style="border: 1px solid #888888; padding: 6px;">Times</th>
+<th style="border: 1px solid #888888; padding: 6px;">Match context (<code>$1</code>, etc.)</th>
+</tr>
+<tr>
+<td style="border: 1px solid #888888; padding: 6px;"><code>onceAlways</code></td>
+<td style="border: 1px solid #888888; padding: 6px;">yes</td>
+<td style="border: 1px solid #888888; padding: 6px;">yes</td>
+<td style="border: 1px solid #888888; padding: 6px;">always exactly 1</td>
+<td style="border: 1px solid #888888; padding: 6px;">if a match exists, its capture groups are available (same as <code>onceIfAMatch</code>); otherwise <code>$1</code> etc. resolve to <code>""</code></td>
+</tr>
+<tr>
+<td style="border: 1px solid #888888; padding: 6px;"><code>onceIfAMatch</code> (default)</td>
+<td style="border: 1px solid #888888; padding: 6px;">no</td>
+<td style="border: 1px solid #888888; padding: 6px;">yes</td>
+<td style="border: 1px solid #888888; padding: 6px;">exactly 1, using the first match even if there are more</td>
+<td style="border: 1px solid #888888; padding: 6px;">first match only</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888888; padding: 6px;"><code>onEveryMatch</code></td>
+<td style="border: 1px solid #888888; padding: 6px;">no</td>
+<td style="border: 1px solid #888888; padding: 6px;">yes</td>
+<td style="border: 1px solid #888888; padding: 6px;">once per match, in document order</td>
+<td style="border: 1px solid #888888; padding: 6px;">that match's own capture groups</td>
+</tr>
+<tr>
+<td style="border: 1px solid #888888; padding: 6px;"><code>onceOnNoMatches</code></td>
+<td style="border: 1px solid #888888; padding: 6px;">yes</td>
+<td style="border: 1px solid #888888; padding: 6px;">no</td>
+<td style="border: 1px solid #888888; padding: 6px;">exactly 1</td>
+<td style="border: 1px solid #888888; padding: 6px;">none (<code>$1</code> etc. resolve to <code>""</code>)</td>
+</tr>
+</table>
 
 -----------
 
@@ -993,6 +1039,9 @@ ${1:/camelcase}   if capture group 1, transform it to camelcase
     
 ${1:/snakecase}   if capture group 1, transform it to snakecase  
     (`firstSecondThird` => `first_second_third`, so camelcase only to snakecase) 
+
+${1:/kebabcase}   if capture group 1, transform it to kebab-case  
+    (`first_second_third`, `first second third`, or `firstSecondThird` => `first-second-third`)
 ```  
 
 ### Examples:
@@ -1950,7 +1999,7 @@ If you want to find two consecutive empty lines use `(^$)\n(^$)`.  For three emp
 * Support the  `preserveCase` option in  `findInCurrentFile`.  
 * Check `cursorMoveSelect` and `${TM_CURRENT_LINE}` interaction.  
 * Deal with redundant "Extensions have been modified on disk.  Please reload..." notification.  
-* Move `preCommands` to a script file?  
+* Move `preCommands` to the script file?  
 
 ## Release Notes
 
@@ -1959,41 +2008,9 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 * 6.0.0 Added script files for `replace` and `run`:  "replace": `"$${script:math_with_numbers}$$"`  
 &emsp;&emsp; - extensive test coverage  
 &emsp;&emsp; - clarified using `$1`, etc. in `find`.  
-
-* 5.3.0 Make codeActions work better (including multiple actions).  
-&emsp;&emsp; - editBuilder awaits added.  
-&emsp;&emsp; 5.3.1 - Add `reveal` option  to findAndSelect.  
-&emsp;&emsp; 5.3.3 - Fix empty line finds.  
-&emsp;&emsp; 5.3.4 - Added `columnNumber` variable.  
-
-* 5.2.0 Switched from CompletionProvider to JSON Schema for keybindings/settings.  
-&emsp;&emsp; - Fix [\\n] being replaced with [\r?\n] in regex's.  
-&emsp;&emsp; 5.2.1 - Fix next/previous `^/$/^$`. More vscode.EndOfLine.CRLF in resolveFind.  
-&emsp;&emsp; 5.2.2 - Add the generic next/previous case handling back.  
-&emsp;&emsp; 5.2.3 - Better `[\n]` handling in and out of character classes.  
-
-* 5.1.0 Enabled multiple `${getInput}`'s in an argument.  Added regex.js for commonly used regular expressions.  
-&emsp;&emsp; - Fix lineNumber/Index matching.  
-&emsp;&emsp; - Fix  `matchAroundCursor`  bug - set regex true.  
-&emsp;&emsp; 5.1.3 Fix next/previous  bug - calculate cursorIndex again.  
-
-* 5.0.0 Much work on making the code more asynchronous.  Using `replaceAsync`.  
-&emsp;&emsp; - `${getInput}` is replacing `${getFindInput}`.  It now works in `replace`, `run`, `postCommands`, `cursorMoveSelect`, `filesToInclude` and `filesToExclude` arguments.  
-&emsp;&emsp; - `${/}` path separator variable added.  
-&emsp;&emsp; - Work on matching empty lines.  
-&emsp;&emsp; - Work on keeping track of multiple replacements with newlines.  
-
-* 4.8.0 Added `preserveSelections` argument.  Completions work in `.code-workspace` (workspace settings) files.  
-&emsp;&emsp; 4.8.2 Fixed escaping while using `${getFindInput}`.  
-&emsp;&emsp; 4.8.3 Less escaping on variable replacements not in `replace/run`.  
-&emsp;&emsp; 4.8.4 Work on capture groups in replace with no find and `isRegex` true or false.
-
-* 4.7.0 Added `ignoreWhiteSpace` argument.  
-&emsp;&emsp; Added `${getFindInput}` variable for `find` queries.  
-&emsp;&emsp; Added `runWhen` argument to control when the `run` operation is triggered.  
-&emsp;&emsp; Added `"restrictFind": "matchAroundCursor"` option.  
-&emsp;&emsp; 4.7.1 Added `runPostCommands` and `resolvePostCommandVariables`.  Added a command to enable opening readme anchors from completion details.  
-&emsp;&emsp; 4.7.2 Added intellisense to `.code-workspace` settings.  
+&emsp;&emsp; 6.1.0 - added `onceAlways` for runWHen and runPostCommands.  
+&emsp;&emsp; 6.1.0 - fixed selection positions when text added/removed of a different length.  
+&emsp;&emsp; 6.1.0 - added `kebabcase` transform support: `${1:/kebabcase}`.  
 
 <br/>
 

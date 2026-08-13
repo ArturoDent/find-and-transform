@@ -5,7 +5,7 @@ const testHelpers = require('../testHelpers');
 
 // Exercises the "postCommands"/"runPostCommands" arguments of findInCurrentFile
 // end-to-end, across all 4 runPostCommands values
-// (onceIgnoreMatches/onceIfAMatch/onEveryMatch/onceOnNoMatches) - see
+// (onceAlways/onceIfAMatch/onEveryMatch/onceOnNoMatches) - see
 // src/prePostCommands.js's exports.runPost(). Mirrors test/suite/runWhen/'s shape and
 // fixture text, but observes results via the real "type" vscode command (which
 // replaces the currently active selection, or inserts at a collapsed cursor) instead
@@ -16,7 +16,7 @@ const testHelpers = require('../testHelpers');
 // findAndSelect.findAndSelect(), which has no zero-match early return anywhere -
 // whereas document.js (used whenever `replace` is present) returns early at
 // `if (!foundMatches.length) return;` BEFORE ever reaching the runPost dispatch, so
-// onceIgnoreMatches/onceOnNoMatches would silently never fire from that path.
+// onceAlways/onceOnNoMatches would silently never fire from that path.
 //
 // findAndSelect.js's "document" branch sets editor.selections to the real find
 // matches unconditionally (regardless of runPostCommands) whenever there IS at least
@@ -76,38 +76,38 @@ suite('runPostCommands', () => {
     assert.strictEqual(actualText, expectedText);
   }
 
-  // onceIgnoreMatches: fires exactly once regardless of match presence - same
-  // contract as runWhen's onceIgnoreMatches. When a match DOES exist, its
+  // onceAlways: fires exactly once regardless of match presence - same
+  // contract as runWhen's onceAlways. When a match DOES exist, its
   // capture-group data ($1, uppercased) is available to postCommands; when it
   // doesn't, $1 falls back to "".
-  const onceIgnoreMatchesArgs = (find) => ({
+  const onceAlwaysArgs = (find) => ({
     find,
     isRegex: true,
-    runPostCommands: "onceIgnoreMatches",
+    runPostCommands: "onceAlways",
     postCommands: [
       { command: "type", args: { text: "RAN:\\U$1" } },
     ],
   });
 
-  test('onceIgnoreMatches: has a match - $1 resolves to the matched text, uppercased', async function () {
+  test('onceAlways: has a match - $1 resolves to the matched text, uppercased', async function () {
     this.timeout(10000);
 
-    await loadFixture('onceIgnoreMatches/input.txt');
+    await loadFixture('onceAlways/input.txt');
     editor.selection = new vscode.Selection(0, 0, 0, 0);
 
-    await vscode.commands.executeCommand('findInCurrentFile', onceIgnoreMatchesArgs("(match)"));
+    await vscode.commands.executeCommand('findInCurrentFile', onceAlwaysArgs("(match)"));
 
     // "match" (chars 7-12) is replaced by the typed "RAN:MATCH"
     await assertEventualText('please RAN:MATCH me now');
   });
 
-  test('onceIgnoreMatches: no match - still fires once; $1 is empty', async function () {
+  test('onceAlways: no match - still fires once; $1 is empty', async function () {
     this.timeout(10000);
 
-    await loadFixture('onceIgnoreMatches/input.txt');
+    await loadFixture('onceAlways/input.txt');
     editor.selection = new vscode.Selection(0, 0, 0, 0);  // no match found - stays here
 
-    await vscode.commands.executeCommand('findInCurrentFile', onceIgnoreMatchesArgs("(zzz_never_matches_zzz)"));
+    await vscode.commands.executeCommand('findInCurrentFile', onceAlwaysArgs("(zzz_never_matches_zzz)"));
 
     await assertEventualText('RAN:please match me now');
   });
@@ -116,15 +116,15 @@ suite('runPostCommands', () => {
   // normal makeFind() path (_buildFindArgs in parseCommands.js builds a real find
   // from the selection before the command ever reaches findAndSelect/runPost) -
   // no special-casing needed in runPost() itself.
-  test('onceIgnoreMatches: no find key - $1 comes from the current selection via the normal makeFind() path', async function () {
+  test('onceAlways: no find key - $1 comes from the current selection via the normal makeFind() path', async function () {
     this.timeout(10000);
 
-    await loadFixture('onceIgnoreMatches/input.txt');
+    await loadFixture('onceAlways/input.txt');
     editor.selection = new vscode.Selection(0, 7, 0, 12);  // selects "match"
 
     await vscode.commands.executeCommand('findInCurrentFile', {
       isRegex: true,
-      runPostCommands: "onceIgnoreMatches",
+      runPostCommands: "onceAlways",
       postCommands: [
         { command: "type", args: { text: "RAN:\\U$1" } },
       ],

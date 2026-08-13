@@ -215,7 +215,7 @@
                       "onceIfAMatch",
                       "onEveryMatch",
                       "onceOnNoMatches",
-                      "onceIgnoreMatches"
+                      "onceAlways"
                     ]
                   },
                   "postCommands": {
@@ -237,7 +237,7 @@
                       "onceIfAMatch",
                       "onEveryMatch",
                       "onceOnNoMatches",
-                      "onceIgnoreMatches"
+                      "onceAlways"
                     ],
                     "description": "When should the 'postCommands' run"
                   },

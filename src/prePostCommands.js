@@ -82,7 +82,7 @@ exports.runPost = async function (args, foundMatches, foundSelections, selection
   // handles array or a single object
   // if ((Array.isArray(args.postCommands) && args.postCommands?.some(argHasText)) || args.postCommands?.args?.text) {
 
-  if (args.runPostCommands === "onceIgnoreMatches") {
+  if (args.runPostCommands === "onceAlways") {
     if (resolvePostCommands) postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
     await exports.run(postCommands, "postCommands");  // ignore matches, run once
   }

@@ -18,8 +18,8 @@ exports.getValues = function () {
   return {
     title: "string", description: "string", find: "string", replace: "string", run: "string", preserveSelections: "boolean",
     // title: "string", description: "string", find: "string", replace: ["string", "object"], run: "string", preserveSelections: "boolean",  
-    runWhen: ["onceIfAMatch", "onEveryMatch", "onceOnNoMatches", "onceIgnoreMatches"], preCommands: ["string", "object"], postCommands: ["string", "object"],
-    runPostCommands: ["onceIfAMatch", "onEveryMatch", "onceOnNoMatches", "onceIgnoreMatches"], isRegex: "boolean", matchCase: "boolean", matchWholeWord: "boolean", ignoreWhiteSpace: "boolean",
+    runWhen: ["onceIfAMatch", "onEveryMatch", "onceOnNoMatches", "onceAlways"], preCommands: ["string", "object"], postCommands: ["string", "object"],
+    runPostCommands: ["onceIfAMatch", "onEveryMatch", "onceOnNoMatches", "onceAlways"], isRegex: "boolean", matchCase: "boolean", matchWholeWord: "boolean", ignoreWhiteSpace: "boolean",
     restrictFind: ["document", "selections", "line", "once", "onceIncludeCurrentWord", "onceExcludeCurrentWord", "nextSelect", "nextMoveCursor", "nextDontMoveCursor",
       "previousSelect", "previousMoveCursor", "previousDontMoveCursor", "matchAroundCursor"],
     reveal: ["first", "next", "last"], cursorMoveSelect: "string"
