@@ -302,6 +302,52 @@ exports.toSnakeCase = function (value) {
   );
 };
 
+/**
+ * Convert string to kebab-case.
+ * first_second_third => first-second-third
+ * first second third => first-second-third
+ * firstSecondThird => first-second-third
+ *
+ * Adapted from vscode's `FormatString._toKebabCase()` in
+ * {@link https://github.com/microsoft/vscode/blob/main/src/vs/editor/contrib/snippet/browser/snippetParser.ts}
+ * Portions Copyright (c) Microsoft Corporation. Licensed under the MIT License.
+ * See {@link https://github.com/microsoft/vscode/blob/main/LICENSE.txt}
+ *
+ * @param {string} value - string to transform to kebab-case
+ * @returns {string} transformed value
+ */
+exports.toKebabCase = function (value) {
+
+  const match = value.match(/[\p{L}0-9]+/gu);
+  if (!match) {
+    return value;
+  }
+
+  if (!value.match(/[\p{L}0-9]/u)) {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/^_+|_+$/g, '')
+      .replace(/[\s_]+/g, '-');
+  }
+
+  const cleaned = value.trim().replace(/^_+|_+$/g, '');
+
+  const match2 = cleaned.match(/\p{Lu}{2,}(?=\p{Lu}\p{Ll}+[0-9]*|[\s_-]|$)|\p{Lu}?\p{Ll}+[0-9]*|\p{Lu}(?=\p{Lu}\p{Ll})|\p{Lu}(?=[\s_-]|$)|[0-9]+/gu);
+
+  if (!match2) {
+    return cleaned
+      .split(/[\s_-]+/)
+      .filter(word => word.length > 0)
+      .map(word => word.toLowerCase())
+      .join('-');
+  }
+
+  return match2
+    .map(x => x.toLowerCase())
+    .join('-');
+};
+
 
 // no capture group in find but $1, etc. in replace (unless isRegEx = true)
 // an apparent capture group in find, but isReg is missing (default is false)

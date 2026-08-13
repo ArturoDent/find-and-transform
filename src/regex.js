@@ -28,7 +28,7 @@ exports.extensionNotGlobalRE = new RegExp(`(?<caseModifier>\\\\{1,2}[UuLl])?(?<e
 exports.capGroupCaseModifierRE = new RegExp("(?<caseModifier>\\\\{1,2}[UuLl])(?<capGroup>\\$\\{?\\d(?!:)\\}?)", "g");
 exports.capGroupOnlyRE = new RegExp("(?<capGroupOnly>(?<!\\$)\\$\{(\\d)\\}|(?<!\\$)\\$(\\d))", "g");
 
-exports.caseTransformRE = new RegExp("(?<caseModifier>\\\\{1,2}[UuLl])?(?<caseTransform>\\$\\{(\\d):\\/((up|down|pascal|camel|snake)case|capitalize)\\})", "g");
+exports.caseTransformRE = new RegExp("(?<caseModifier>\\\\{1,2}[UuLl])?(?<caseTransform>\\$\\{(\\d):\\/((up|down|pascal|camel|snake|kebab)case|capitalize)\\})", "g");
 
 exports.conditionalRE = new RegExp("(?<caseModifier>\\\\{1,2}[UuLl])?(?<conditional>(\\$\\{(\\d):([-+?]?)(.*?\\\\\}.*?|.*?))\\})", "g");
 

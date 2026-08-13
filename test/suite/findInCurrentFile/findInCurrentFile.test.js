@@ -842,6 +842,11 @@ suite('findInCurrentFile - run/replace', () => {
       dir: 'snakecase',
       args: { find: "(\\w+)", isRegex: true, replace: "${1:/snakecase}" },
     },
+    {
+      name: '${1:/kebabcase}: underscore-, space-, and camelCase-style input all convert the same way',
+      dir: 'kebabcase',
+      args: { find: "([\\w ]+)", isRegex: true, replace: "${1:/kebabcase}" },
+    },
   ];
 
   snippetTransformsCases.forEach(({ name, dir, args }) => {
