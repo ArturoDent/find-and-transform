@@ -163,7 +163,7 @@ Below you will find information on using the `findInCurrentFile` command - which
     
     "postCommands": "editor.action.insertCursorAtEndOfEachLineSelected",
     
-    "runPostCommands": "onceIfAMatch/onceOnNoMatches/onEveryMatch"  // default is "onceIfAMatch"
+    "runPostCommands": "onceIfAMatch/ onceOnNoMatches / onEveryMatch / onceIgnoreMatches"  // default is "onceIfAMatch"
   }
 }    
 ```
@@ -368,6 +368,7 @@ Newline examples that work and don't work:
     "runWhen": "onceIfAMatch",         // default, trigger the "run" operation only once no matter how many matches
     "runWhen": "onEveryMatch",         // trigger the "run" operation for each successful find match
     "runWhen": "onceOnNoMatches",      // only trigger the "run" operation if there is no find match
+    "runWhen": "onceIgnoreMatches",      // trigger the "run" operation whether or not there is a find match
     
     "isRegex": true,                   // boolean, will apply to 'cursorMoveSelect' as well as the find query
     "matchWholeWord": true,            // boolean, same as above

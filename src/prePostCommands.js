@@ -1,4 +1,4 @@
-const { commands, window } = require('vscode');
+const {commands, window, Selection} = require('vscode');
 // const registerCommands = require('./registerCommands');
 const resolve = require('./resolveVariables');
 
@@ -25,8 +25,32 @@ exports.run = async function (userCommands, preOrPost) {
 
   else if (Array.isArray(userCommands) && userCommands.length)
     // there is a bug in runCommands or copy/paste, see https://github.com/microsoft/vscode/issues/190831
-    await commands.executeCommand('runCommands', { commands: userCommands });
+    await commands.executeCommand('runCommands', {commands: userCommands});
 };
+
+/**
+ * Poll document.getText().length until two consecutive reads agree, to work around
+ * the same command/document timing lag noted above (a command like "type" can
+ * resolve its promise before its edit is fully reflected in the document) - used by
+ * onEveryMatch's cumulative-offset tracking, which needs an accurate length delta
+ * between each postCommand run.
+ * @param {import("vscode").TextDocument} document
+ * @param {number} [timeoutMs]
+ * @returns {Promise<number>} the settled length
+ */
+async function _settledDocumentLength(document, timeoutMs = 2000) {
+
+  let length = document.getText().length;
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 50));
+    const newLength = document.getText().length;
+    if (newLength === length) return length;
+    length = newLength;
+  }
+  return length;
+}
 
 /**
  * Run the args.postCommands and args.runPostCommands, no return
@@ -60,18 +84,48 @@ exports.runPost = async function (args, foundMatches, foundSelections, selection
 
   if (args.runPostCommands === "onceIgnoreMatches") {
     if (resolvePostCommands) postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, 0);
-    await this.run(postCommands, "postCommands");  // ignore matches, run once
+    await exports.run(postCommands, "postCommands");  // ignore matches, run once
   }
 
   else if (foundMatches.length) {
     if (args.runPostCommands === "onEveryMatch") {
       let index = 0;
-      for await (const foundSelection of foundSelections) {
+      // foundSelections are all computed up front, against the document as it was
+      // BEFORE any postCommand ran - so once postCommands for an earlier match have
+      // actually edited the document (e.g. a "type" command replacing a
+      // shorter/longer match), every later foundSelection's position is stale by
+      // however much the document has grown or shrunk so far. Track that drift as a
+      // running character-offset delta and shift each selection by it before using it.
+      //
+      // Captured as raw character offsets up front, once - re-deriving an offset
+      // from a *stored* Position later (via document.offsetAt(storedPosition)) is
+      // unreliable once the document has since shrunk, because offsetAt() silently
+      // clamps a Position that's now out of range to the document's current end
+      // instead of erroring, which quietly truncates later selections. Working in
+      // plain offset arithmetic from here on sidesteps that entirely.
+      let cumulativeOffset = 0;
+      const document = editor.document;
+      const originalOffsets = foundSelections.map(sel => ({
+        start: document.offsetAt(sel.start),
+        end: document.offsetAt(sel.end),
+      }));
+
+      for (const { start, end } of originalOffsets) {
+
+        const adjustedSelection = new Selection(
+          document.positionAt(start + cumulativeOffset),
+          document.positionAt(end + cumulativeOffset)
+        );
+
         if (resolvePostCommands) {
-          editor.selections = [foundSelection];  // TODO: if preserveSelections ?
+          editor.selections = [adjustedSelection];  // TODO: if preserveSelections ?
           postCommands = await _resolvePostCommandVariables(args, foundMatches, foundSelections, selection, index);
         }
+
+        const lengthBeforeThisPostCommand = await _settledDocumentLength(document);
         await exports.run(postCommands, "postCommands");
+        cumulativeOffset += await _settledDocumentLength(document) - lengthBeforeThisPostCommand;
+
         index++;
       };
     }

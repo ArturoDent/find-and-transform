@@ -121,12 +121,17 @@ exports.replaceInWholeDocument = async function (editor, args) {
 
     textEdits.push(new TextEdit(matchRange, resolvedReplace));
 
-    if (args.cursorMoveSelect) {  // to be used in cursorMoveSelect below to build matching text
+    // Tracked unconditionally (not just for cursorMoveSelect) - run/postCommands
+    // below also need each match's actual POST-edit replacement range, since they
+    // execute after the edit has already applied; foundSelections (built earlier,
+    // before this edit) reflects where each match WAS, which goes stale the moment
+    // an earlier match's own replacement changes length.
+    if (args.cursorMoveSelect) {  // only this part is CMS-specific
       matches[index].range = new Range(startPos, new Position(startPos.line, startPos.character + resolvedReplace?.length));
-      matches[index].lastMatchLengthDiff = lastMatchLengthDiff;
-      lastMatchLengthDiff += (resolvedReplace?.length - match[0].length);
-      matches[index].replaceLength = resolvedReplace?.length;
     }
+    matches[index].lastMatchLengthDiff = lastMatchLengthDiff;
+    lastMatchLengthDiff += (resolvedReplace?.length - match[0].length);
+    matches[index].replaceLength = resolvedReplace?.length;
 
     index++;
   }
@@ -189,7 +194,20 @@ exports.replaceInWholeDocument = async function (editor, args) {
     editor.revealRange(new Range(selectionToReveal.start, selectionToReveal.end), 2);
   }
 
-  if (args.run) await transforms.runWhen(args, foundMatches, foundSelections, editor.selection);
+  if (args.run || args.postCommands) {
 
-  if (args.postCommands) await prePostCommands.runPost(args, foundMatches, foundSelections, editor.selection);
+    // run/postCommands execute after the edit above already applied, so they need
+    // each match's actual POST-edit replacement range - not foundSelections, which
+    // reflects pre-edit match positions that go stale as soon as an earlier match's
+    // own replacement changes length (see the lastMatchLengthDiff tracking above,
+    // reused here exactly as cursorMoveSelect already does).
+    const postEditFoundSelections = foundMatches.map(match => new Selection(
+      document.positionAt(match.index + match.lastMatchLengthDiff),
+      document.positionAt(match.index + match.lastMatchLengthDiff + match.replaceLength)
+    ));
+
+    if (args.run) await transforms.runWhen(args, foundMatches, postEditFoundSelections, editor.selection);
+
+    if (args.postCommands) await prePostCommands.runPost(args, foundMatches, postEditFoundSelections, editor.selection);
+  }
 };

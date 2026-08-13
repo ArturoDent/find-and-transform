@@ -1,0 +1,4 @@
+start FOO middle BAR end BAZ done
+RAN:FOO
+RAN:BAR
+RAN:BAZ

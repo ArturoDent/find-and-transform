@@ -1305,7 +1305,10 @@ function _applyCaseModifier(namedGroups, groups, resolvedPathVariable) {
       // the case modifier and leave a bare $n - the capGroupOnly pass below is
       // what quotes it, so returning "$n" here would double-quote it.
       if (Array.isArray(groups) && groups.length === 0) return `$${thisCapGroup}`;
-      if (groups[thisCapGroup]) resolved = groups[thisCapGroup];
+      // groups is null when there's no match context at all (e.g. runWhen:
+      // "onceIgnoreMatches"/"onceOnNoMatches" firing with zero matches) - leave
+      // `resolved` as whatever was passed in (typically "") rather than throwing
+      if (groups && groups[thisCapGroup]) resolved = groups[thisCapGroup];
     }
     else if (namedGroups?.caseTransform || namedGroups.conditional || namedGroups.extensionVars) {} // do nothing, resolved already = resolvedPathVariable
     else return "";

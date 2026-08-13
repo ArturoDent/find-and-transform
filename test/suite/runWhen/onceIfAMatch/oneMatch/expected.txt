@@ -1,0 +1,2 @@
+line one FOO line three
+RAN:FOO
