@@ -995,8 +995,10 @@ Examples:
     
     "replace": "${3:-yada3} \\U$1",       // if no group 3, add "yada3" then upcase group 1
     
-                                          // groups within conditionals must be surrounded by backticks `$2`
+      // groups within conditionals may be surrounded by backticks `$2`, but it should not be necessary
     "replace": "${2:+abcd `\\U$2` efgh}",      // if group 2, add capitalized group 2 plus surrounding text
+
+     "replace": "${2:+abcd \\U$2 efgh}",  // same as above
     
     "replace": "${1:+aaa\\}bbb}",         // must double-escape closing brackets if want it as text
     
@@ -1012,6 +1014,8 @@ Examples:
                                           // then follow with upcased group 1
     
     "replace": "${2:?`$3`:`$1`}",         // if group 2, add group 3, else add group 1
+    "replace": "${2:?$3:$1}",         // if group 2, add group 3, else add group 1
+
     
     "isRegex": true
   }
@@ -2011,6 +2015,7 @@ See [CHANGELOG](CHANGELOG.md) for notes on prior releases.
 &emsp;&emsp; 6.1.0 - added `onceAlways` for runWHen and runPostCommands.  
 &emsp;&emsp; 6.1.0 - fixed selection positions when text added/removed of a different length.  
 &emsp;&emsp; 6.1.0 - added `kebabcase` transform support: `${1:/kebabcase}`.  
+&emsp;&emsp; 6.1.1 - fixed capture groups in conditional - no backticks.  
 
 <br/>
 

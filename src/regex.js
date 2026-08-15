@@ -25,7 +25,7 @@ vars = variables.getExtensionDefinedVariables().join("|").replaceAll(/([\$][\{])
 exports.extensionGlobalRE = new RegExp(`(?<caseModifier>\\\\{1,2}[UuLl])?(?<extensionVars>${ vars })`, 'g');
 exports.extensionNotGlobalRE = new RegExp(`(?<caseModifier>\\\\{1,2}[UuLl])?(?<extensionVars>${ vars })`);
 
-exports.capGroupCaseModifierRE = new RegExp("(?<caseModifier>\\\\{1,2}[UuLl])(?<capGroup>\\$\\{?\\d(?!:)\\}?)", "g");
+exports.capGroupCaseModifierRE = new RegExp("(?<caseModifier>\\\\{1,2}[UuLl])(?<capGroup>\\$\\{\\d(?!:)\\}|\\$\\d)", "g");
 exports.capGroupOnlyRE = new RegExp("(?<capGroupOnly>(?<!\\$)\\$\{(\\d)\\}|(?<!\\$)\\$(\\d))", "g");
 
 exports.caseTransformRE = new RegExp("(?<caseModifier>\\\\{1,2}[UuLl])?(?<caseTransform>\\$\\{(\\d):\\/((up|down|pascal|camel|snake|kebab)case|capitalize)\\})", "g");

@@ -405,6 +405,31 @@ suite('resolveVariables.js - inline $${ ... }$$ jsOps', () => {
       }
     );
   });
+
+  // capGroupCaseModifierRE's brace-pairing bug (regex.js) isn't specific to
+  // conditionals - a bare \U$1 immediately before ANY "}", including a
+  // jsOp's own closing "}$$" delimiter, used to swallow that brace too and
+  // corrupt the delimiter. No backticks or quotes involved, so the fix that
+  // paired the braces (rather than leaving them independently optional)
+  // fixes this the same way it fixes ${1:+\U$1}.
+  test('a case-modified group immediately before an inline jsOp\'s own closing "}$$" resolves without corrupting the delimiter', async () => {
+    const result = await resolveVariables.resolveVariables(
+      { replace: "$${ return \\U$1}$$" }, 'replace', ['5', '5'], null, null, null);
+
+    assert.strictEqual(result, '5');
+  });
+
+  // Same underlying bug, the (?!:) lookahead side: a bare \U$1 immediately
+  // followed by a literal ":" (a ternary or object-literal key, not a
+  // conditional's if/else divider) used to be skipped by
+  // capGroupCaseModifierRE entirely, leaving "\U" as literal text next to
+  // the un-cased value - here that stray "\U5" would be a SyntaxError.
+  test('a case-modified group immediately before a literal ":" (e.g. a ternary) resolves the case modifier instead of leaving it as literal text', async () => {
+    const result = await resolveVariables.resolveVariables(
+      { replace: "$${ return true ? \\U$1:\\U$2; }$$" }, 'replace', ['5 7', '5', '7'], null, null, null);
+
+    assert.strictEqual(result, '5');
+  });
 });
 
 

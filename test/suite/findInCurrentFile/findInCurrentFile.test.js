@@ -750,6 +750,27 @@ suite('findInCurrentFile - run/replace', () => {
       args: { find: "(First)|(Second)|(Third)", isRegex: true, replace: "${1:+*`$1``$1`*}${2:+*`$2``$2`*}" },
     },
     {
+      // Regression test: a bare (non-backtick) case-modified capture group
+      // like \U$1 sits immediately before the conditional's own closing
+      // "}", with nothing between the digit and the brace.
+      // capGroupCaseModifierRE's braces must be paired (both present or
+      // both absent), not independently optional - otherwise the closing
+      // brace gets swallowed as if it belonged to the $1 reference.
+      name: '${1:+\\U$1}: bare \\U$1 immediately before the conditional\'s closing } must not swallow that }',
+      dir: 'caseModifierBareGroupBeforeClose',
+      args: { find: "(First)|(Second)|(Third)", isRegex: true, replace: "${1:+\\U$1}" },
+    },
+    {
+      // Regression test: a bare (non-braced) case-modified capture group
+      // like \U$3 immediately followed by the enclosing if/else
+      // conditional's own ":" divider (as in ${2:?\U$3:\U$1}) must still
+      // resolve the case modifier, not get skipped by
+      // capGroupCaseModifierRE's (?!:) lookahead.
+      name: '${2:?\\U$3:\\U$1}: bare \\U$N immediately before the if/else "?:" divider must still resolve',
+      dir: 'caseModifierBareGroupBeforeColon',
+      args: { find: "(matched) (then) (not)", isRegex: true, replace: "${2:?\\U$3:\\U$1}" },
+    },
+    {
       // $0 as the whole match (l.960): not conditional itself, but part of the same
       // examples block - reinserts the entire matched text unchanged.
       name: '$0 as a replacement (l.960): the whole match, unchanged',
