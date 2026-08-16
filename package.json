@@ -1,9 +1,8 @@
 {
-  "id": "ArturoDent.find-and-transform",
   "name": "find-and-transform",
   "displayName": "Find and Transform",
   "description": "Find or search with many options and variables.",
-  "version": "6.1.1",
+  "version": "6.1.2",
   "engines": {
     "vscode": "^1.69.0"
   },
